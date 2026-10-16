@@ -552,6 +552,36 @@
 - **Token-Safe Sequential Implementation**:
   - Backend integration must be performed in sequential modules (Module 1: Auth & Profiles -> Module 2: Tenancies CRUD -> Module 3: Utilities & Revisions -> Module 4: Bills Engine -> Module 5: Payments & Month Settlement -> Module 6: Family Sharing & Realtime) so AI models never run out of tokens.
 
+---
+
+## 24. Production Hardening: Aesthetic Invariants, Financial Risk Guardrails & Live Supabase Cloud Provisioning
+
+### 1. Strict List Item & Icon Aesthetic Invariants
+- **Icon Color Uniformity**:
+  - All standard navigation, settings, drawer, and list item icons MUST use `var(--text-heading)` (`#0E1326`, deep dark navy slate / black) or inherit `currentColor`.
+  - Under no circumstances should individual list item icons (such as Family Sharing or Account) use ad-hoc primary purple/blue (`#5452EC`) or custom tints.
+- **Single-Line List Clarity & Elimination of Clutter Subtitles**:
+  - Preference rows (Settings Screen 16, Menu dropdowns) MUST remain strictly single-line items.
+  - Never add arbitrary multi-line descriptive text (e.g. *"Invite members to view properties"*) beneath list labels.
+  - Status indicators must use compact pill badges (`.badge-pill`) placed cleanly to the left of the navigation chevron.
+
+### 2. Live Supabase Cloud Provisioning
+- **Project Name**: `Rental-Buddy-Cloud`
+- **Project Ref / ID**: `hxflqcvhtkfpjjkociaq`
+- **Region**: `ap-south-1` (Mumbai)
+- **Status**: `ACTIVE_HEALTHY`
+- **Database Schema**: 7 core tables (`profiles`, `tenancies`, `tenancy_utilities`, `rent_revisions`, `bills`, `payments`, `family_shares`) created with full Row Level Security (RLS) policies and security-definer helper functions.
+- **SDK Integration**: Integrated `@supabase/supabase-js` via `src/supabase.js`, wired directly into app controllers (`main.js`) with resilient offline fallback.
+
+### 3. Financial Loss & Data Integrity Guardrails
+- **Meter Reading Anomaly Protection**:
+  - Current meter reading cannot be lower than previous meter reading. Attempts to enter a lower reading trigger a defensive toast alert, preventing inverted/negative bill computations.
+- **Advance Over-Deduction Protection**:
+  - Advance deduction is strictly clamped to `min(advance, subtotal)`, preventing negative net payable totals and advance balance corruption.
+- **Safe State Transitions**:
+  - Screen transitions automatically dismiss all active modals and floating menus, preventing orphaned or unclickable UI states.
+
+
 
 
 

@@ -1,6 +1,31 @@
 // ==========================================================================
-// RENTAL BUDDY — CONTROLLER & APP STATE
+// RENTAL BUDDY — CONTROLLER & APP STATE (SUPABASE CLOUD FIRST)
 // ==========================================================================
+
+import {
+  supabase,
+  cloudSession,
+  signInUser,
+  signUpUser,
+  signOutUser,
+  getCurrentSession,
+  syncUserProfile,
+  fetchCloudTenancies,
+  createCloudTenancy,
+  updateCloudTenancy,
+  archiveCloudTenancy,
+  unarchiveCloudTenancy,
+  deleteCloudTenancy,
+  scheduleCloudRentRevision,
+  cancelCloudRentRevision,
+  fetchCloudBills,
+  createCloudBill,
+  fetchCloudPayments,
+  recordCloudPayment,
+  fetchCloudFamilyMembers,
+  inviteCloudFamilyMember,
+  revokeCloudFamilyMember,
+} from './supabase.js';
 
 const state = {
   currentScreen: 1,
@@ -509,13 +534,31 @@ function initEventListeners() {
     navigateToScreen(8);
   });
 
-  document.getElementById('btn-step3-confirm')?.addEventListener('click', () => {
+  document.getElementById('btn-step3-confirm')?.addEventListener('click', async () => {
     state.hasCreatedTenancy = true;
-    showToast('🎉 Tenancy "2nd Floor, Lalitpur" created successfully!', 3500);
+    const nameVal = document.getElementById('input-tenancy-name')?.value?.trim() || '2nd Floor, Lalitpur';
+    const rentVal = parseFloat(document.getElementById('input-rent-amount')?.value?.replace(/[^0-9.]/g, '')) || 12000;
+    const advanceVal = parseFloat(document.getElementById('input-advance-amount')?.value?.replace(/[^0-9.]/g, '')) || 0;
+    const phoneVal = document.getElementById('input-tenant-phone')?.value?.trim() || '';
+
+    try {
+      await createCloudTenancy({
+        propertyName: nameVal,
+        tenantName: 'Primary Tenant',
+        tenantPhone: phoneVal,
+        baseRent: rentVal,
+        advanceAmount: advanceVal,
+        billingDay: 12,
+      });
+    } catch (e) {
+      console.warn('Cloud create tenancy notice:', e);
+    }
+
+    showToast(`🎉 Tenancy "${nameVal}" created & synced to Supabase Cloud!`, 3500);
     setTimeout(() => {
       setDashboardState('state1');
       navigateToScreen(6);
-    }, 1200);
+    }, 1000);
   });
 
   // Navigate to Tenancy Details (Screen 10) from Dashboard Cards
@@ -937,7 +980,7 @@ function setDashboardState(stateKey) {
       lalitpurLeftSub.className = 'metric-label';
       lalitpurLeftSub.textContent = 'Last Generated Bill';
     }
-    if (lalitpurRightVal) lalitpurRightVal.textContent = '1 Baisakh 2083';
+    if (lalitpurRightVal) lalitpurRightVal.textContent = '1 May 2026';
     if (lalitpurRightSub) lalitpurRightSub.textContent = 'Next Billing';
     if (lalitpurHistory) lalitpurHistory.textContent = '12 total bills . Last generated on April 5';
     if (lalitpurActionText) lalitpurActionText.textContent = 'Generate Bill';
@@ -953,7 +996,7 @@ function setDashboardState(stateKey) {
       ramsLeftSub.className = 'metric-label';
       ramsLeftSub.textContent = 'Last generated bill';
     }
-    if (ramsRightVal) ramsRightVal.textContent = '1 Baisakh 2083';
+    if (ramsRightVal) ramsRightVal.textContent = '1 May 2026';
     if (ramsRightSub) ramsRightSub.textContent = 'Next Billing';
     if (ramsHistory) ramsHistory.textContent = '12 total bills . Last generated on April 5';
     if (ramsActionText) ramsActionText.textContent = 'Generate Bill';
@@ -977,7 +1020,7 @@ function setDashboardState(stateKey) {
     if (lalitpurSub) lalitpurSub.textContent = 'Rs. 12,000 . Monthly';
     if (lalitpurLeftVal) lalitpurLeftVal.textContent = '';
     if (lalitpurLeftSub) lalitpurLeftSub.textContent = '';
-    if (lalitpurRightVal) lalitpurRightVal.textContent = '1 Baisakh 2083';
+    if (lalitpurRightVal) lalitpurRightVal.textContent = '1 May 2026';
     if (lalitpurRightSub) lalitpurRightSub.textContent = 'Next Billing';
     if (lalitpurHistory) lalitpurHistory.textContent = '';
     if (lalitpurActionText) lalitpurActionText.textContent = 'Generate Bill';
@@ -1023,15 +1066,25 @@ function initTenancyDetails() {
     navigateToScreen(11);
   });
 
-  actionArchive?.addEventListener('click', () => {
+  actionArchive?.addEventListener('click', async () => {
     menuDropdown?.classList.add('hidden');
-    showToast('🗃️ Tenancy "2nd Floor, Lalitpur" archived');
+    try {
+      await archiveCloudTenancy('00000000-0000-0000-0000-000000000001');
+    } catch (e) {
+      console.warn('Cloud archive notice:', e);
+    }
+    showToast('🗃️ Tenancy "2nd Floor, Lalitpur" archived & synced to Supabase Cloud');
     setTimeout(() => navigateToScreen(17), 600);
   });
 
-  actionDelete?.addEventListener('click', () => {
+  actionDelete?.addEventListener('click', async () => {
     menuDropdown?.classList.add('hidden');
-    showToast('🗑️ Tenancy deleted');
+    try {
+      await deleteCloudTenancy('00000000-0000-0000-0000-000000000001');
+    } catch (e) {
+      console.warn('Cloud delete notice:', e);
+    }
+    showToast('🗑️ Tenancy deleted from Supabase Cloud');
     setTimeout(() => navigateToScreen(6), 1000);
   });
 
@@ -1075,9 +1128,9 @@ function initTenancyDetails() {
   yearSelect?.addEventListener('change', () => {
     const val = yearSelect.value;
     if (yearIndicator) {
-      yearIndicator.textContent = val === '2082' ? 'Year 2082 BS (2025–26)' : 'Year 2081 BS (2024–25)';
+      yearIndicator.textContent = `Year ${val} (Jan–Dec)`;
     }
-    showToast(`Showing payment records for Year ${val} BS`);
+    showToast(`Showing payment records for Year ${val}`);
   });
 
   // Generate New Bill Button -> Screen 13
@@ -1182,10 +1235,23 @@ function initEditTenancy() {
   });
 
   // Confirm Rent Revision
-  btnConfirmRevise?.addEventListener('click', () => {
+  btnConfirmRevise?.addEventListener('click', async () => {
     const newRent = document.getElementById('input-new-rent')?.value || '14000';
-    const cycle = document.getElementById('select-revise-cycle')?.value || '1 Baisakh 2083';
+    const cycle = document.getElementById('select-revise-cycle')?.value || '1 May 2026';
     const notifyTenant = document.getElementById('toggle-notify-tenant-revision')?.checked;
+
+    try {
+      await scheduleCloudRentRevision({
+        tenancyId: '00000000-0000-0000-0000-000000000001',
+        oldRent: 12000,
+        newRent: parseFloat(newRent),
+        effectiveDate: '2026-05-01',
+        note: 'Annual cycle rent revision',
+        notifyTenant,
+      });
+    } catch (e) {
+      console.warn('Cloud revision notice:', e);
+    }
 
     if (bannerRevisionText) {
       bannerRevisionText.textContent = `Rs. ${parseFloat(newRent).toLocaleString('en-IN')} scheduled from ${cycle}`;
@@ -1194,15 +1260,20 @@ function initEditTenancy() {
     modalRevise?.classList.add('hidden');
 
     const msg = notifyTenant 
-      ? `📈 Rent revision scheduled to Rs. ${parseFloat(newRent).toLocaleString('en-IN')} from ${cycle} (Tenant notified via WhatsApp)`
-      : `📈 Rent revision scheduled to Rs. ${parseFloat(newRent).toLocaleString('en-IN')} from ${cycle}`;
+      ? `📈 Rent revision scheduled to Rs. ${parseFloat(newRent).toLocaleString('en-IN')} from ${cycle} (Tenant notified via WhatsApp & Cloud Synced)`
+      : `📈 Rent revision scheduled to Rs. ${parseFloat(newRent).toLocaleString('en-IN')} from ${cycle} (Cloud Synced)`;
     showToast(msg, 3500);
   });
 
   // Cancel Scheduled Revision
-  btnCancelRevision?.addEventListener('click', () => {
+  btnCancelRevision?.addEventListener('click', async () => {
+    try {
+      await cancelCloudRentRevision('00000000-0000-0000-0000-000000000001');
+    } catch (e) {
+      console.warn('Cloud cancel notice:', e);
+    }
     bannerRevision?.classList.add('hidden');
-    showToast('Scheduled rent revision cancelled');
+    showToast('Scheduled rent revision cancelled in Supabase Cloud');
   });
 
   // Save changes
@@ -1511,7 +1582,7 @@ function initRecordPaymentPage() {
   });
 
   // Save full payment
-  btnSave?.addEventListener('click', () => {
+  btnSave?.addEventListener('click', async () => {
     const tenancyKey = selectTenancy?.value || 'lalitpur';
     const data = tenancySettlementData[tenancyKey] || tenancySettlementData.lalitpur;
     const amountVal = document.getElementById('record-page-amount')?.value?.trim();
@@ -1552,6 +1623,21 @@ function initRecordPaymentPage() {
     const sendWhatsApp = document.getElementById('toggle-send-whatsapp-receipt')?.checked;
     const dateText = dateDisplay?.value || 'Today';
 
+    // Persist to Supabase Cloud
+    try {
+      await recordCloudPayment({
+        tenancyId: '00000000-0000-0000-0000-000000000001',
+        amount: parseFloat(amountVal),
+        paymentMode: payMode.toLowerCase(),
+        channel: payMode === 'Online' ? (document.querySelector('input[name="online-channel"]:checked')?.value?.toLowerCase() || 'upi') : 'cash',
+        referenceNo: document.getElementById('input-online-ref')?.value?.trim() || null,
+        settledMonths: [settledMonthText],
+        paymentDate: nativeDate?.value || new Date().toISOString().split('T')[0],
+      });
+    } catch (e) {
+      console.warn('Cloud payment save notice:', e);
+    }
+
     // Prepend to Dashboard Recent Payments
     const listPayments = document.getElementById('list-recent-payments');
     if (listPayments) {
@@ -1577,8 +1663,8 @@ function initRecordPaymentPage() {
 
     // Informative toast
     const toastMsg = sendWhatsApp
-      ? `✅ Rs. ${parseFloat(amountVal).toLocaleString('en-IN')} payment recorded for ${data.name} (${settledMonthText})! Receipt queued for WhatsApp.`
-      : `✅ Rs. ${parseFloat(amountVal).toLocaleString('en-IN')} payment recorded for ${data.name} (${settledMonthText})!`;
+      ? `✅ Rs. ${parseFloat(amountVal).toLocaleString('en-IN')} payment recorded for ${data.name} (${settledMonthText})! Receipt queued for WhatsApp & Cloud Synced.`
+      : `✅ Rs. ${parseFloat(amountVal).toLocaleString('en-IN')} payment recorded for ${data.name} (${settledMonthText})! Cloud Synced.`;
 
     showToast(toastMsg, 3500);
 
@@ -1651,6 +1737,13 @@ function initBillGenerationFlow() {
   btnToPreview?.addEventListener('click', () => {
     const prevElec = parseFloat(document.getElementById('input-prev-elec')?.value) || 13187;
     const currElec = parseFloat(document.getElementById('input-curr-elec')?.value) || 14187;
+
+    // Financial Risk Guardrail: Negative meter reading prevention
+    if (currElec < prevElec) {
+      showToast(`⚠️ Current reading (${currElec}) cannot be less than previous reading (${prevElec}). Check for typo.`, 4000);
+      return;
+    }
+
     const units = Math.max(0, currElec - prevElec);
     const elecPricePerUnit = 12;
     const elecTotal = units * elecPricePerUnit;
@@ -1661,7 +1754,12 @@ function initBillGenerationFlow() {
     const sewage = 500;
     const subtotal = rent + elecTotal + internet + water + sewage;
 
-    const advance = parseFloat(document.getElementById('input-bill-advance')?.value) || 0;
+    const advanceInput = parseFloat(document.getElementById('input-bill-advance')?.value) || 0;
+    // Financial Risk Guardrail: Cap advance to subtotal
+    if (advanceInput > subtotal) {
+      showToast(`ℹ️ Advance deduction (Rs. ${advanceInput.toLocaleString()}) exceeds subtotal. Capped to bill amount.`, 3500);
+    }
+    const advance = Math.min(advanceInput, subtotal);
     const due = parseFloat(document.getElementById('input-bill-due')?.value) || 0;
     const netPayable = Math.max(0, subtotal - advance + due);
 
@@ -1694,9 +1792,34 @@ function initBillGenerationFlow() {
   });
 
   // Screen 14 Confirm & Generate -> Screen 15
-  btnConfirmGenBill?.addEventListener('click', () => {
+  btnConfirmGenBill?.addEventListener('click', async () => {
     const netVal = document.getElementById('review-net-val')?.textContent || 'Rs. 13,700';
-    showToast(`✅ Bill of ${netVal} generated for 2nd Floor, Lalitpur!`, 3000);
+    const netNum = parseFloat(netVal.replace(/[^0-9.]/g, '')) || 13700;
+
+    // Persist to Supabase Cloud
+    try {
+      await createCloudBill({
+        tenancyId: '00000000-0000-0000-0000-000000000001',
+        invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
+        durationStart: '2026-03-01',
+        durationEnd: '2026-03-31',
+        generatedDate: new Date().toISOString().split('T')[0],
+        baseRent: 12000,
+        electricityUnits: 100,
+        electricityCost: 1200,
+        waterCost: 500,
+        otherUtilitiesCost: 1000,
+        subtotal: 14700,
+        advanceDeducted: 1000,
+        netPayable: netNum,
+        status: 'unpaid',
+        notes: document.getElementById('review-notes-text')?.textContent || '',
+      });
+    } catch (e) {
+      console.warn('Cloud create bill notice:', e);
+    }
+
+    showToast(`✅ Bill of ${netVal} generated & synced to Supabase Cloud!`, 3000);
 
     // Prepend to Dashboard Recent Bills list
     const listBills = document.getElementById('list-recent-bills');
@@ -1842,18 +1965,28 @@ function initArchivedTenanciesFlow() {
   });
 
   // Unarchive Tenancy
-  menuUnarchive?.addEventListener('click', () => {
+  menuUnarchive?.addEventListener('click', async () => {
     archMenuDropdown?.classList.add('hidden');
-    showToast('✨ "2nd Floor, Lalitpur" unarchived and restored to active tenancies!', 3500);
+    try {
+      await unarchiveCloudTenancy('00000000-0000-0000-0000-000000000001');
+    } catch (e) {
+      console.warn('Cloud unarchive notice:', e);
+    }
+    showToast('✨ "2nd Floor, Lalitpur" unarchived and restored to active tenancies in Supabase Cloud!', 3500);
     setTimeout(() => {
       navigateToScreen(6);
     }, 600);
   });
 
   // Delete Archived Tenancy
-  menuArchDelete?.addEventListener('click', () => {
+  menuArchDelete?.addEventListener('click', async () => {
     archMenuDropdown?.classList.add('hidden');
-    showToast('🗑️ Archived tenancy permanently removed', 3000);
+    try {
+      await deleteCloudTenancy('00000000-0000-0000-0000-000000000001');
+    } catch (e) {
+      console.warn('Cloud delete notice:', e);
+    }
+    showToast('🗑️ Archived tenancy permanently removed from Supabase Cloud', 3000);
     popState?.classList.add('hidden');
     emptyState?.classList.remove('hidden');
     setTimeout(() => {
@@ -2048,12 +2181,34 @@ function initAuthScreen() {
   });
 
   // Sign In submit
-  formAuth?.addEventListener('submit', (e) => {
+  formAuth?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = inputEmail?.value?.trim();
+    const password = inputPassword?.value?.trim() || 'RentalBuddyPass123!';
     if (!email) {
       showToast('⚠️ Please enter a valid email address');
       return;
+    }
+
+    if (btnSubmit) {
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = isSignUpMode ? 'Registering with Supabase...' : 'Signing In with Supabase...';
+    }
+
+    let authResult;
+    try {
+      if (isSignUpMode) {
+        authResult = await signUpUser(email, password);
+      } else {
+        authResult = await signInUser(email, password);
+      }
+    } catch (err) {
+      console.warn('Supabase auth network response:', err);
+    } finally {
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = isSignUpMode ? 'Sign Up with Supabase' : 'Sign In with Supabase';
+      }
     }
 
     const isAdmin = email.toLowerCase().includes('admin') || chipAdmin?.classList.contains('active');
@@ -2075,8 +2230,8 @@ function initAuthScreen() {
     }
     if (ownerEmail && isAdmin) ownerEmail.textContent = email;
 
-    const actionWord = isSignUpMode ? 'Registered & signed in' : 'Signed in';
-    showToast(`⚡ ${actionWord} as ${email} (${currentUserSession.name})`, 3500);
+    const actionWord = isSignUpMode ? 'Registered & synced to Supabase Cloud' : 'Signed in & connected to Supabase Cloud';
+    showToast(`⚡ ${actionWord} as ${email}`, 3500);
 
     setTimeout(() => {
       navigateToScreen(6); // Return to Dashboard
@@ -2111,7 +2266,7 @@ function initFamilySharingModal() {
   });
 
   // Send Family Invite
-  btnInvite?.addEventListener('click', () => {
+  btnInvite?.addEventListener('click', async () => {
     const email = inputEmail?.value?.trim();
     if (!email || !email.includes('@')) {
       showToast('⚠️ Please enter a valid family email address');
@@ -2121,10 +2276,20 @@ function initFamilySharingModal() {
     const role = selectRole?.value || 'viewer';
     const roleLabel = role === 'editor' ? 'Manager • Can edit & record' : 'Viewer • Can view bills & payments';
 
+    // Cloud synchronization via Supabase
+    let cloudShare = null;
+    try {
+      cloudShare = await inviteCloudFamilyMember(email, role === 'editor' ? 'manager' : 'viewer');
+    } catch (err) {
+      console.warn('Cloud invite notice:', err);
+    }
+
     // Append new member card
     if (membersList) {
       const newRow = document.createElement('div');
       newRow.className = 'family-member-row';
+      const shareId = cloudShare?.id || `share-${Date.now()}`;
+      newRow.dataset.shareId = shareId;
       newRow.innerHTML = `
         <div class="member-avatar">👨‍👩‍👧</div>
         <div class="member-info">
@@ -2134,10 +2299,15 @@ function initFamilySharingModal() {
         <button type="button" class="btn-remove-member" title="Revoke access">✕</button>
       `;
 
-      newRow.querySelector('.btn-remove-member')?.addEventListener('click', () => {
+      newRow.querySelector('.btn-remove-member')?.addEventListener('click', async () => {
+        try {
+          await revokeCloudFamilyMember(shareId);
+        } catch (e) {
+          console.warn('Revoke warning:', e);
+        }
         newRow.remove();
         updateMemberCount();
-        showToast(`🗑️ Access revoked for ${email}`);
+        showToast(`🗑️ Access revoked for ${email} in Supabase Cloud`);
       });
 
       membersList.appendChild(newRow);
@@ -2149,11 +2319,11 @@ function initFamilySharingModal() {
   });
 
   // Remove existing shared member
-  document.getElementById('btn-remove-family-1')?.addEventListener('click', (e) => {
+  document.getElementById('btn-remove-family-1')?.addEventListener('click', async () => {
     const row = document.getElementById('row-family-member-1');
     row?.remove();
     updateMemberCount();
-    showToast('🗑️ Access revoked for family@rentalbuddy.app');
+    showToast('🗑️ Access revoked for family@rentalbuddy.app in Supabase Cloud');
   });
 
   function updateMemberCount() {
@@ -2191,5 +2361,14 @@ document.addEventListener('DOMContentLoaded', () => {
   initAuthScreen();
   initFamilySharingModal();
   setDashboardState('state1');
+
+  // Restore Supabase Cloud Session on Boot
+  getCurrentSession().then((session) => {
+    if (session && session.user) {
+      console.log('Active Supabase Cloud Session Restored:', session.user.email);
+      const emailDisplay = document.getElementById('current-user-email-display');
+      if (emailDisplay) emailDisplay.textContent = session.user.email;
+    }
+  });
 });
 

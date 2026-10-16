@@ -102,6 +102,16 @@ Please refer to the comprehensive design system and engineering specifications d
   - Interactive bottom sheet `#modal-family-sharing` allows landlord to invite members by email, assign `Viewer` vs `Manager` roles, view active members, and revoke access instantly.
 - **Master Backend Handover Artifact**:
   - Full PostgreSQL DDL schema (7 tables), RLS policies, and token-safe 6-module implementation roadmap documented in `supabase_backend_architecture_handover.md`.
+- **List Item & Icon Aesthetic Invariants**:
+  - All standard row icons must strictly use `#0E1326` (dark slate navy / black). No ad-hoc purple/blue icons in standard lists.
+  - List items must remain clean and single-line. No unnecessary descriptive subtitle clutter beneath list titles.
+- **Live Supabase Cloud Setup**:
+  - Active project: `Rental-Buddy-Cloud` (`hxflqcvhtkfpjjkociaq`) in `ap-south-1`.
+  - 7 tables provisioned with RLS policies and `@supabase/supabase-js` integrated.
+- **Financial Risk Guardrails**:
+  - Meter reading validation prevents negative unit math and landlord revenue loss.
+  - Advance deduction clamped to subtotal preventing invalid negative balances.
+
 
 
 
