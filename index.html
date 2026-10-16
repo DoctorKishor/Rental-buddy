@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#EFF0FA" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <title>Rental Buddy — Property & Rent Manager</title>
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app" class="app-viewport">
+      <!-- Device Frame Wrapper for Desktop / Tablet View -->
+      <main class="mobile-frame" id="mobileFrame">
+        
+
+
+        <!-- Screens Container -->
+        <div class="screens-slider" id="screensSlider">
+          
+          <!-- SCREEN 1: Onboarding Intro / Value Propositions -->
+          <section class="screen active" id="screen-1" data-screen="1">
+            <div class="screen-content">
+              <!-- Brand Header -->
+              <div class="brand-header">
+                <div class="brand-logo-icon">
+                  <!-- House with person inside -->
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9.5z" />
+                    <circle cx="12" cy="11.5" r="2" fill="currentColor" stroke="none" />
+                    <path d="M9 18a3 3 0 0 1 6 0" />
+                  </svg>
+                </div>
+                <h2 class="brand-title">Rental Buddy</h2>
+              </div>
+
+              <!-- Hero Heading -->
+              <div class="hero-block">
+                <h1 class="hero-title">Refined Financial<br />Clarity.</h1>
+                <p class="hero-subtitle">
+                  Rental Buddy is your all-in-one utility for managing rent, electricity, and water bills with ease.
+                </p>
+              </div>
+
+              <!-- Feature Cards List -->
+              <div class="features-list">
+                <!-- Card 1: Cloud Backup -->
+                <div class="feature-card">
+                  <div class="feature-icon-wrapper">
+                    <!-- Phone / Cloud sync icon -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="5" y="2" width="14" height="20" rx="3" ry="3"></rect>
+                      <circle cx="12" cy="17" r="1.5"></circle>
+                      <line x1="10" y1="5" x2="14" y2="5"></line>
+                    </svg>
+                  </div>
+                  <div class="feature-text">
+                    <h3 class="feature-title">Cloud Backup</h3>
+                    <p class="feature-desc">Realtime sync. Seamless collaboration. Everything is done at your fingertips.</p>
+                  </div>
+                </div>
+
+                <!-- Card 2: Private Data -->
+                <div class="feature-card">
+                  <div class="feature-icon-wrapper">
+                    <!-- Padlock icon -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                  </div>
+                  <div class="feature-text">
+                    <h3 class="feature-title">Private Data</h3>
+                    <p class="feature-desc">Your records are stored securely and accessible only by you.</p>
+                  </div>
+                </div>
+
+                <!-- Card 3: Smart Ledger -->
+                <div class="feature-card">
+                  <div class="feature-icon-wrapper">
+                    <!-- Ledger Notebook icon -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5z"></path>
+                      <path d="M6 6h10"></path>
+                      <path d="M6 10h10"></path>
+                      <path d="M6 14h8"></path>
+                      <line x1="2" y1="5" x2="4" y2="5"></line>
+                      <line x1="2" y1="9" x2="4" y2="9"></line>
+                      <line x1="2" y1="13" x2="4" y2="13"></line>
+                      <line x1="2" y1="17" x2="4" y2="17"></line>
+                    </svg>
+                  </div>
+                  <div class="feature-text">
+                    <h3 class="feature-title">Smart Ledger</h3>
+                    <p class="feature-desc">Effortlessly track rent, dues, and utility bill settlements in one place.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sticky Bottom Action Bar -->
+            <footer class="bottom-bar">
+              <button class="btn btn-primary btn-pill" id="btn-screen1-continue">
+                Continue
+              </button>
+            </footer>
+          </section>
+
+          <!-- SCREEN 2: Choose Your Preferences -->
+          <section class="screen" id="screen-2" data-screen="2">
+            <div class="screen-content">
+              <!-- Top Navigation Header -->
+              <nav class="nav-header">
+                <button class="nav-back-btn" id="btn-screen2-back" aria-label="Go back">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+              </nav>
+
+              <!-- Hero Heading -->
+              <div class="hero-block">
+                <h1 class="hero-title">Choose Your<br />Preferences</h1>
+                <p class="hero-subtitle">
+                  Select the currency you are comfortable with
+                </p>
+              </div>
+
+              <!-- Currency Selection Form -->
+              <div class="section-group">
+                <h2 class="section-label">Currency</h2>
+                <div class="radio-list" role="radiogroup" aria-label="Select Currency">
+                  
+                  <!-- Option 1: Indian Rupee -->
+                  <label class="radio-card selected" for="curr-inr">
+                    <input type="radio" id="curr-inr" name="currency" value="INR" checked />
+                    <span class="radio-label">Indian Rupee (₹)</span>
+                    <span class="custom-radio"></span>
+                  </label>
+
+                  <!-- Option 2: USD -->
+                  <label class="radio-card" for="curr-usd">
+                    <input type="radio" id="curr-usd" name="currency" value="USD" />
+                    <span class="radio-label">USD ($)</span>
+                    <span class="custom-radio"></span>
+                  </label>
+
+                  <!-- Option 3: Others -->
+                  <label class="radio-card" for="curr-others">
+                    <input type="radio" id="curr-others" name="currency" value="OTHER" />
+                    <span class="radio-label" id="others-label">Others (~)</span>
+                    <span class="custom-radio"></span>
+                  </label>
+                </div>
+
+                <!-- Custom Currency Expander (shown if Others chosen) -->
+                <div class="custom-currency-box hidden" id="customCurrencyBox">
+                  <label class="custom-currency-field">
+                    <span>Select or type custom currency:</span>
+                    <select id="currencyCustomSelect" class="currency-dropdown">
+                      <option value="EUR">Euro (€)</option>
+                      <option value="GBP">British Pound (£)</option>
+                      <option value="AED">UAE Dirham (AED)</option>
+                      <option value="CAD">Canadian Dollar (C$)</option>
+                      <option value="AUD">Australian Dollar (A$)</option>
+                      <option value="SGD">Singapore Dollar (S$)</option>
+                      <option value="SAR">Saudi Riyal (SAR)</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sticky Bottom Action Bar -->
+            <footer class="bottom-bar">
+              <button class="btn btn-primary btn-pill" id="btn-screen2-continue">
+                Continue
+              </button>
+            </footer>
+          </section>
+
+          <!-- SCREEN 3: Let's Set You Up -->
+          <section class="screen" id="screen-3" data-screen="3">
+            <div class="screen-content">
+              <!-- Top Navigation Header -->
+              <nav class="nav-header">
+                <button class="nav-back-btn" id="btn-screen3-back" aria-label="Go back">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+              </nav>
+
+              <!-- Hero Heading -->
+              <div class="hero-block">
+                <h1 class="hero-title">Let’s Set You Up</h1>
+                <p class="hero-subtitle">
+                  We will guide you through creating your first tenancy or import from the drive.
+                </p>
+              </div>
+
+              <!-- Action Cards -->
+              <div class="action-cards-stack">
+                <!-- Action 1: Create New Tenancy -->
+                <button class="action-card" id="btn-create-tenancy" type="button">
+                  <div class="action-icon-circle primary">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                  </div>
+                  <div class="action-details">
+                    <h3 class="action-title">Create New Tenancy</h3>
+                    <p class="action-subtitle">Setup your rent details step by step</p>
+                  </div>
+                  <div class="action-chevron">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                  </div>
+                </button>
+
+                <!-- Action 2: Restore From Backup -->
+                <button class="action-card" id="btn-restore-backup" type="button">
+                  <div class="action-icon-circle lavender">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                  </div>
+                  <div class="action-details">
+                    <h3 class="action-title">Restore From Backup</h3>
+                    <p class="action-subtitle">Import a backup from Cloud or Local file</p>
+                  </div>
+                  <div class="action-chevron">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                  </div>
+                </button>
+
+                <!-- Hidden file input for backup restoration -->
+                <input type="file" id="backupFileInput" accept=".json,.backup" style="display:none;" />
+              </div>
+            </div>
+          </section>
+
+          <!-- SCREEN 4: Enable Notifications -->
+          <section class="screen" id="screen-4" data-screen="4">
+            <div class="screen-content notification-screen-content">
+              <!-- Top Navigation Header -->
+              <nav class="nav-header">
+                <button class="nav-back-btn" id="btn-screen4-back" aria-label="Go back">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+              </nav>
+
+              <!-- Hero Heading -->
+              <div class="hero-block">
+                <h1 class="hero-title">Enable notifications</h1>
+                <p class="hero-subtitle">
+                  You will get notifications for bill generation and payment reminders once enabled.
+                </p>
+              </div>
+
+              <!-- Centered Bell Graphic -->
+              <div class="bell-illustration-container">
+                <div class="bell-glow"></div>
+                <div class="bell-svg-wrapper">
+                  <svg class="bell-icon-svg" viewBox="0 0 200 240" fill="none">
+                    <!-- Bell Body matching exact curved silhouette from Figma -->
+                    <path
+                      d="M100 20 C125 20 145 38 147 68 C149 92 156 120 172 138 C182 149 176 168 158 168 L42 168 C24 168 18 149 28 138 C44 120 51 92 53 68 C55 38 75 20 100 20 Z"
+                      fill="#5452EC"
+                    />
+                    <!-- Bell Clapper bottom ellipse -->
+                    <ellipse cx="100" cy="186" rx="26" ry="14" fill="#5452EC" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sticky Bottom Action Bar with 2 Buttons -->
+            <footer class="bottom-bar two-buttons">
+              <button class="btn btn-secondary btn-pill" id="btn-notify-notnow">
+                Not now
+              </button>
+              <button class="btn btn-primary btn-pill" id="btn-notify-enable">
+                Enable Notifications
+              </button>
+            </footer>
+          </section>
+
+          <!-- SCREEN 5: Onboarding Completed / Quick Landing Feedback -->
+          <section class="screen" id="screen-5" data-screen="5">
+            <div class="screen-content success-screen-content">
+              <div class="success-icon-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+              <h1 class="hero-title">You're All Set!</h1>
+              <p class="hero-subtitle">
+                Rental Buddy is ready. Your preference is saved (<span id="summary-currency" class="badge-pill">INR ₹</span>).
+              </p>
+              <div class="summary-card">
+                <div class="summary-row">
+                  <span>Selected Currency:</span>
+                  <strong id="summary-currency-text">Indian Rupee (₹)</strong>
+                </div>
+                <div class="summary-row">
+                  <span>Notifications:</span>
+                  <strong id="summary-notify-text">Enabled</strong>
+                </div>
+                <div class="summary-row">
+                  <span>Setup Method:</span>
+                  <strong id="summary-setup-text">New Tenancy</strong>
+                </div>
+              </div>
+            </div>
+            <footer class="bottom-bar two-buttons">
+              <button class="btn btn-secondary btn-pill" id="btn-restart-prototype">
+                Replay Tour
+              </button>
+              <button class="btn btn-primary btn-pill" id="btn-goto-dashboard">
+                Go to Dashboard
+              </button>
+            </footer>
+          </section>
+
+          <!-- SCREEN 6: Your Tenancy (Dashboard / Empty State) -->
+          <section class="screen" id="screen-6" data-screen="6">
+            <div class="screen-content">
+              <!-- Top Bar with Settings & Add Action -->
+              <div class="dashboard-header">
+                <button class="icon-btn" id="btn-dashboard-settings" aria-label="Settings">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                  </svg>
+                </button>
+                <button class="icon-btn" id="btn-dashboard-add" aria-label="Add Tenancy">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Page Title -->
+              <h1 class="dashboard-title">Your Tenancy</h1>
+
+              <!-- Centered Empty State Card -->
+              <div class="empty-state-container">
+                <div class="empty-state-card">
+                  <div class="empty-state-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9.5z" />
+                      <circle cx="12" cy="11.5" r="2" fill="currentColor" stroke="none" />
+                      <path d="M9 18a3 3 0 0 1 6 0" />
+                    </svg>
+                  </div>
+                  <h2 class="empty-state-heading">No Tenancy</h2>
+                  <p class="empty-state-copy">
+                    You don’t have any tenancy yet. Create one from below and you will see here.
+                  </p>
+                  <button class="btn btn-primary btn-pill btn-empty-cta" id="btn-empty-create">
+                    Create Tenancy
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SCREEN 7: Create Tenancy — Step 1 of 3 (General Information) -->
+          <section class="screen" id="screen-7" data-screen="7">
+            <div class="screen-content">
+              <!-- Stepper Header -->
+              <div class="stepper-header">
+                <button class="nav-back-btn" id="btn-step1-back" aria-label="Go back">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+                <div class="stepper-titles">
+                  <h2 class="stepper-main-title">Create Tenancy</h2>
+                  <span class="stepper-sub-title">Step 1 of 3</span>
+                </div>
+                <div class="stepper-spacer"></div>
+              </div>
+
+              <!-- Hero Heading -->
+              <div class="hero-block">
+                <h1 class="hero-title">General Information</h1>
+                <p class="hero-subtitle">
+                  Provide the general information required to create a tenancy.
+                </p>
+              </div>
+
+              <!-- Step 1 Form -->
+              <form class="form-stack" id="form-step1" onsubmit="return false;">
+                <!-- Tenant / Tenancy Name -->
+                <div class="form-group">
+                  <label class="form-label" for="input-tenancy-name">Tenancy Name</label>
+                  <input
+                    type="text"
+                    id="input-tenancy-name"
+                    class="form-input"
+                    placeholder="e.g., First Floor, Lalitpur"
+                    value="2nd Floor, Lalitpur"
+                    required
+                  />
+                </div>
+
+                <!-- Rent Amount & Advance Amount (Split 2-Columns) -->
+                <div class="form-row-split">
+                  <div class="form-group">
+                    <label class="form-label" for="input-rent-amount">Rent Amount</label>
+                    <input
+                      type="text"
+                      id="input-rent-amount"
+                      class="form-input"
+                      placeholder="e.g., ₹ 12000"
+                      value="12000"
+                      required
+                    />
+                    <span class="form-caption">Amount excluding utilities</span>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="input-advance-amount">Advance Amount</label>
+                    <input
+                      type="text"
+                      id="input-advance-amount"
+                      class="form-input"
+                      placeholder="e.g., ₹ 55000"
+                      value="55000"
+                    />
+                  </div>
+                </div>
+
+                <!-- Phone Number with Contacts Picker Button -->
+                <div class="form-group">
+                  <label class="form-label" for="input-phone-number">Phone Number</label>
+                  <div class="input-with-action">
+                    <input
+                      type="tel"
+                      id="input-phone-number"
+                      class="form-input"
+                      placeholder="e.g., 9876543210"
+                      value="9876543210"
+                    />
+                    <button type="button" class="input-action-btn" id="btn-pick-contact" aria-label="Pick from contacts">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Billing Cycle Radio Pills -->
+                <div class="form-group">
+                  <label class="form-label">Billing Cycle</label>
+                  <div class="split-radio-grid">
+                    <label class="radio-card mini-radio selected" for="cycle-monthly">
+                      <input type="radio" id="cycle-monthly" name="billingCycle" value="Monthly" checked />
+                      <span class="radio-label">Monthly</span>
+                      <span class="custom-radio"></span>
+                    </label>
+                    <label class="radio-card mini-radio" for="cycle-yearly">
+                      <input type="radio" id="cycle-yearly" name="billingCycle" value="Yearly" />
+                      <span class="radio-label">Yearly</span>
+                      <span class="custom-radio"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Recurring Billing Date Picker -->
+                <div class="form-group">
+                  <label class="form-label" for="input-billing-date">Recurring Billing Date (date of the month)</label>
+                  <div class="input-with-icon date-picker-box" id="datePickerTrigger">
+                    <input
+                      type="text"
+                      id="input-billing-date"
+                      class="form-input date-text"
+                      value="12th of every month"
+                      readonly
+                    />
+                    <input
+                      type="date"
+                      id="native-billing-date"
+                      class="native-date-field"
+                      value="2026-04-12"
+                      aria-label="Pick billing date"
+                    />
+                    <div class="input-trailing-icon" id="datePickerIcon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <!-- Sticky Bottom Action Bar -->
+            <footer class="bottom-bar">
+              <button class="btn btn-primary btn-pill" id="btn-step1-next">
+                Next
+              </button>
+            </footer>
+          </section>
+
+          <!-- SCREEN 8: Create Tenancy — Step 2 of 3 (Utilities Information) -->
+          <section class="screen" id="screen-8" data-screen="8">
+            <div class="screen-content">
+              <!-- Stepper Header -->
+              <div class="stepper-header">
+                <button class="nav-back-btn" id="btn-step2-back" aria-label="Go back">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+                <div class="stepper-titles">
+                  <h2 class="stepper-main-title">Create Tenancy</h2>
+                  <span class="stepper-sub-title">Step 2 of 3</span>
+                </div>
+                <div class="stepper-spacer"></div>
+              </div>
+
+              <!-- Hero Heading -->
+              <div class="hero-block">
+                <h1 class="hero-title">Utilities Information</h1>
+                <p class="hero-subtitle">
+                  Enable the utilities that need to be paid separately and provide the billing method.
+                </p>
+              </div>
+
+              <!-- Utility Cards Stack (Expandable Accordions) -->
+              <div class="utilities-stack">
+                
+                <!-- 1. Electricity Card -->
+                <div class="utility-card expanded" id="card-util-electricity">
+                  <div class="utility-header">
+                    <span class="utility-name">Electricity</span>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="toggle-electricity" checked />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                  
+                  <div class="utility-details" id="details-electricity">
+                    <div class="utility-divider"></div>
+                    <div class="form-group">
+                      <label class="form-label mini">Bill Type</label>
+                      <div class="inline-radios">
+                        <label class="radio-inline" id="label-elec-flat">
+                          <input type="radio" name="billType-electricity" value="Flat" />
+                          <span class="custom-radio mini"></span>
+                          <span>Flat</span>
+                        </label>
+                        <label class="radio-inline selected" id="label-elec-meter">
+                          <input type="radio" name="billType-electricity" value="Meter Reading" checked />
+                          <span class="custom-radio mini"></span>
+                          <span>Meter Reading</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <!-- Fields for Meter Reading -->
+                    <div class="util-subfields" id="subfields-elec-meter">
+                      <div class="form-group">
+                        <label class="form-label mini" for="input-elec-price">Electricity Price Per Unit</label>
+                        <input type="number" id="input-elec-price" class="form-input mini" value="12" placeholder="e.g. 12" />
+                      </div>
+                      <div class="form-group" style="margin-top: 10px;">
+                        <label class="form-label mini" for="input-elec-reading">Current Meter Reading</label>
+                        <input type="number" step="0.01" id="input-elec-reading" class="form-input mini" value="12341.12" placeholder="e.g. 12341.12" />
+                      </div>
+                    </div>
+
+                    <!-- Field for Flat -->
+                    <div class="util-subfields hidden" id="subfields-elec-flat">
+                      <div class="form-group">
+                        <label class="form-label mini" for="input-elec-flat-amount">Electricity Bill Amount</label>
+                        <input type="number" id="input-elec-flat-amount" class="form-input mini" value="500" placeholder="e.g. 500" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 2. Water Card -->
+                <div class="utility-card expanded" id="card-util-water">
+                  <div class="utility-header">
+                    <span class="utility-name">Water</span>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="toggle-water" checked />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="utility-details" id="details-water">
+                    <div class="utility-divider"></div>
+                    <div class="form-group">
+                      <label class="form-label mini">Bill Type</label>
+                      <div class="inline-radios">
+                        <label class="radio-inline selected" id="label-water-flat">
+                          <input type="radio" name="billType-water" value="Flat" checked />
+                          <span class="custom-radio mini"></span>
+                          <span>Flat</span>
+                        </label>
+                        <label class="radio-inline" id="label-water-meter">
+                          <input type="radio" name="billType-water" value="Meter Reading" />
+                          <span class="custom-radio mini"></span>
+                          <span>Meter Reading</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <!-- Field for Flat -->
+                    <div class="util-subfields" id="subfields-water-flat">
+                      <div class="form-group">
+                        <label class="form-label mini" for="input-water-amount">Water Bill Amount</label>
+                        <input type="number" id="input-water-amount" class="form-input mini" value="300" placeholder="e.g. 300" />
+                      </div>
+                    </div>
+
+                    <!-- Fields for Meter Reading -->
+                    <div class="util-subfields hidden" id="subfields-water-meter">
+                      <div class="form-group">
+                        <label class="form-label mini" for="input-water-price">Water Price Per Unit</label>
+                        <input type="number" id="input-water-price" class="form-input mini" value="25" placeholder="e.g. 25" />
+                      </div>
+                      <div class="form-group" style="margin-top: 10px;">
+                        <label class="form-label mini" for="input-water-reading">Current Meter Reading</label>
+                        <input type="number" step="0.01" id="input-water-reading" class="form-input mini" value="450.5" placeholder="e.g. 450.5" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 3. Garbage Card -->
+                <div class="utility-card expanded" id="card-util-garbage">
+                  <div class="utility-header">
+                    <span class="utility-name">Garbage</span>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="toggle-garbage" checked />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="utility-details" id="details-garbage">
+                    <div class="utility-divider"></div>
+                    <div class="form-group">
+                      <label class="form-label mini" for="input-garbage-amount">Garbage Bill Amount</label>
+                      <input type="number" id="input-garbage-amount" class="form-input mini" value="200" placeholder="e.g. 200" />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 4. Internet Card -->
+                <div class="utility-card" id="card-util-internet">
+                  <div class="utility-header">
+                    <span class="utility-name">Internet</span>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="toggle-internet" />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="utility-details hidden" id="details-internet">
+                    <div class="utility-divider"></div>
+                    <div class="form-group">
+                      <label class="form-label mini" for="input-internet-amount">Internet Bill Amount</label>
+                      <input type="number" id="input-internet-amount" class="form-input mini" value="1000" placeholder="e.g. 1000" />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Additional Notes -->
+                <div class="form-group" style="margin-top: 10px;">
+                  <label class="form-label" for="input-additional-notes">Additional Notes</label>
+                  <input
+                    type="text"
+                    id="input-additional-notes"
+                    class="form-input"
+                    placeholder="Any notes"
+                  />
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Sticky Bottom Action Bar -->
+            <footer class="bottom-bar">
+              <button class="btn btn-primary btn-pill" id="btn-step2-next">
+                Next
+              </button>
+            </footer>
+          </section>
+
+          <!-- SCREEN 9: Create Tenancy — Step 3 of 3 (Confirm Tenancy Details) -->
+          <section class="screen" id="screen-9" data-screen="9">
+            <div class="screen-content">
+              <!-- Stepper Header -->
+              <div class="stepper-header">
+                <button class="nav-back-btn" id="btn-step3-back" aria-label="Go back">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+                <div class="stepper-titles">
+                  <h2 class="stepper-main-title">Create Tenancy</h2>
+                  <span class="stepper-sub-title">Step 3 of 3</span>
+                </div>
+                <div class="stepper-spacer"></div>
+              </div>
+
+              <!-- Hero Heading (Balanced, Zero-Orphan Copy) -->
+              <div class="hero-block">
+                <h1 class="hero-title">Confirm Tenancy<br />Details</h1>
+                <p class="hero-subtitle">
+                  Please confirm the tenancy details before creating.
+                </p>
+              </div>
+
+              <!-- Summary Section 1: General Information -->
+              <div class="section-group">
+                <h2 class="section-label">General Information</h2>
+                <div class="confirm-card">
+                  <div class="confirm-row">
+                    <span class="confirm-label">Tenancy Name</span>
+                    <strong class="confirm-value" id="confirm-tenancy-name">2nd Floor, Lalitpur</strong>
+                  </div>
+                  <div class="confirm-row">
+                    <span class="confirm-label">Rent Amount</span>
+                    <strong class="confirm-value" id="confirm-rent-amount">Rs. 12,000</strong>
+                  </div>
+                  <div class="confirm-row">
+                    <span class="confirm-label">Billing Cycle</span>
+                    <strong class="confirm-value" id="confirm-billing-cycle">Monthly</strong>
+                  </div>
+                  <div class="confirm-row">
+                    <span class="confirm-label">Next Billing Date</span>
+                    <strong class="confirm-value" id="confirm-next-date">Wed 12 Apr, 2026</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Summary Section 2: Utilities Information -->
+              <div class="section-group" style="margin-top: 18px;">
+                <h2 class="section-label">Utilities Information</h2>
+                <div class="confirm-card">
+                  
+                  <!-- Electricity Confirmation -->
+                  <div class="confirm-utility-block" id="confirm-block-electricity">
+                    <h3 class="confirm-utility-title">Electricity</h3>
+                    <div class="confirm-row">
+                      <span class="confirm-label">Bill Type</span>
+                      <strong class="confirm-value" id="confirm-elec-billtype">Meter Reading</strong>
+                    </div>
+                    <!-- Meter Reading rows -->
+                    <div id="confirm-elec-meter-rows">
+                      <div class="confirm-row">
+                        <span class="confirm-label">Electricity Price Per Unit</span>
+                        <strong class="confirm-value" id="confirm-elec-price">Rs. 12</strong>
+                      </div>
+                      <div class="confirm-row" style="margin-top: 10px;">
+                        <span class="confirm-label">Current Meter Reading</span>
+                        <strong class="confirm-value" id="confirm-elec-reading">12341.12</strong>
+                      </div>
+                    </div>
+                    <!-- Flat row -->
+                    <div id="confirm-elec-flat-row" class="hidden">
+                      <div class="confirm-row">
+                        <span class="confirm-label">Electricity Bill Amount</span>
+                        <strong class="confirm-value" id="confirm-elec-flat-amount">Rs. 500</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="confirm-divider" id="divider-elec-water"></div>
+
+                  <!-- Water Confirmation -->
+                  <div class="confirm-utility-block" id="confirm-block-water">
+                    <h3 class="confirm-utility-title">Water</h3>
+                    <div class="confirm-row">
+                      <span class="confirm-label">Bill Type</span>
+                      <strong class="confirm-value" id="confirm-water-billtype">Flat</strong>
+                    </div>
+                    <!-- Flat row -->
+                    <div id="confirm-water-flat-row">
+                      <div class="confirm-row">
+                        <span class="confirm-label">Water Bill Amount</span>
+                        <strong class="confirm-value" id="confirm-water-amount">Rs. 300</strong>
+                      </div>
+                    </div>
+                    <!-- Meter Reading rows -->
+                    <div id="confirm-water-meter-rows" class="hidden">
+                      <div class="confirm-row">
+                        <span class="confirm-label">Water Price Per Unit</span>
+                        <strong class="confirm-value" id="confirm-water-price">Rs. 25</strong>
+                      </div>
+                      <div class="confirm-row" style="margin-top: 10px;">
+                        <span class="confirm-label">Current Meter Reading</span>
+                        <strong class="confirm-value" id="confirm-water-reading">450.5</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="confirm-divider" id="divider-water-garbage"></div>
+
+                  <!-- Garbage Confirmation -->
+                  <div class="confirm-utility-block" id="confirm-block-garbage">
+                    <h3 class="confirm-utility-title">Garbage</h3>
+                    <div class="confirm-row">
+                      <span class="confirm-label">Garbage Bill Amount</span>
+                      <strong class="confirm-value" id="confirm-garbage-amount">Rs. 200</strong>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Sticky Bottom Action Bar -->
+            <footer class="bottom-bar">
+              <button class="btn btn-primary btn-pill" id="btn-step3-confirm">
+                Confirm and Create
+              </button>
+            </footer>
+          </section>
+
+        </div>
+
+        <!-- Toast notification popup (Native Gesture Bar strictly excluded) -->
+        <div class="toast-popup" id="toastPopup" role="alert"></div>
+
+      </main>
+    </div>
+
+    <!-- Floating Prototype Controls for Pair-Programming & Screen Review -->
+    <aside class="screen-picker-widget" aria-label="Prototype Navigation">
+      <div class="widget-header">
+        <span class="widget-dot"></span>
+        <span class="widget-label">Screen Switcher</span>
+      </div>
+      <div class="widget-nav-group">
+        <span class="widget-group-label">Onboarding</span>
+        <div class="widget-buttons">
+          <button type="button" class="widget-btn active" data-goto="1">1. Intro</button>
+          <button type="button" class="widget-btn" data-goto="2">2. Prefs</button>
+          <button type="button" class="widget-btn" data-goto="3">3. Set Up</button>
+          <button type="button" class="widget-btn" data-goto="4">4. Notify</button>
+          <button type="button" class="widget-btn" data-goto="5">5. Ready</button>
+        </div>
+      </div>
+      <div class="widget-nav-group">
+        <span class="widget-group-label">Tenancy Flow</span>
+        <div class="widget-buttons">
+          <button type="button" class="widget-btn" data-goto="6">6. Dashboard</button>
+          <button type="button" class="widget-btn" data-goto="7">7. Step 1 (Info)</button>
+          <button type="button" class="widget-btn" data-goto="8">8. Step 2 (Utils)</button>
+          <button type="button" class="widget-btn" data-goto="9">9. Step 3 (Confirm)</button>
+        </div>
+      </div>
+      <div class="widget-tools">
+        <button type="button" class="widget-viewport-btn" id="toggle360Btn">
+          📱 360px View: <span id="viewportLabel">Standard (412px)</span>
+        </button>
+      </div>
+    </aside>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

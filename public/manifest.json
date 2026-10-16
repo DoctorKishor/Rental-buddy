@@ -1,0 +1,22 @@
+{
+  "name": "Rental Buddy",
+  "short_name": "RentalBuddy",
+  "description": "Smart rental manager to receive and track rent, electricity, and water bills.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#EFF0FA",
+  "theme_color": "#5452EC",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
