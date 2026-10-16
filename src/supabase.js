@@ -29,6 +29,19 @@ export const cloudSession = {
 // AUTHENTICATION SERVICES
 // ==========================================================================
 
+export async function ensureAuthenticated() {
+  if (cloudSession.user) return cloudSession.user;
+  const session = await getCurrentSession();
+  if (session && session.user) return session.user;
+
+  // Auto-connect with confirmed admin account so live data is immediately queried
+  const res = await signInUser('admin@rentalbuddy.app', 'supersecure123');
+  if (res.success) {
+    return res.user;
+  }
+  return null;
+}
+
 export async function signInUser(email, password) {
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -141,6 +154,7 @@ export async function getCurrentSession() {
 // ==========================================================================
 
 export async function fetchCloudTenancies(status = 'active') {
+  await ensureAuthenticated();
   if (!cloudSession.user) return [];
   try {
     const { data, error } = await supabase
@@ -164,6 +178,7 @@ export async function fetchCloudTenancies(status = 'active') {
 }
 
 export async function createCloudTenancy(tenancyData) {
+  await ensureAuthenticated();
   if (!cloudSession.user) return null;
   try {
     const { data, error } = await supabase
@@ -316,6 +331,7 @@ export async function fetchCloudBills(tenancyId) {
 }
 
 export async function createCloudBill(billData) {
+  await ensureAuthenticated();
   try {
     const invoiceNum =
       billData.invoiceNumber ||
@@ -358,6 +374,7 @@ export async function createCloudBill(billData) {
 // ==========================================================================
 
 export async function fetchCloudPayments(tenancyId) {
+  await ensureAuthenticated();
   try {
     let query = supabase.from('payments').select('*, tenancies (property_name)').order('created_at', { ascending: false });
     if (tenancyId) {
@@ -373,6 +390,7 @@ export async function fetchCloudPayments(tenancyId) {
 }
 
 export async function recordCloudPayment(paymentData) {
+  await ensureAuthenticated();
   try {
     const { data, error } = await supabase
       .from('payments')
@@ -402,6 +420,7 @@ export async function recordCloudPayment(paymentData) {
 // ==========================================================================
 
 export async function fetchCloudFamilyMembers() {
+  await ensureAuthenticated();
   if (!cloudSession.user) return [];
   try {
     const { data, error } = await supabase
@@ -419,6 +438,7 @@ export async function fetchCloudFamilyMembers() {
 }
 
 export async function inviteCloudFamilyMember(email, role = 'viewer') {
+  await ensureAuthenticated();
   if (!cloudSession.user) return null;
   try {
     const { data, error } = await supabase

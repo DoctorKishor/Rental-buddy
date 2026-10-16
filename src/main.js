@@ -550,13 +550,13 @@ function initEventListeners() {
         advanceAmount: advanceVal,
         billingDay: 12,
       });
+      await syncDashboardFromCloud();
     } catch (e) {
       console.warn('Cloud create tenancy notice:', e);
     }
 
     showToast(`🎉 Tenancy "${nameVal}" created & synced to Supabase Cloud!`, 3500);
     setTimeout(() => {
-      setDashboardState('state1');
       navigateToScreen(6);
     }, 1000);
   });
@@ -671,6 +671,11 @@ function initDashboard() {
   emptyCreateBtn?.addEventListener('click', () => navigateToScreen(7));
   addTenancyBtn?.addEventListener('click', () => navigateToScreen(7));
   settingsBtn?.addEventListener('click', () => navigateToScreen(16));
+
+  // Live Cloud Status Banner -> Screen 20
+  document.getElementById('cloud-status-banner')?.addEventListener('click', () => {
+    navigateToScreen(20);
+  });
 
   // Segmented Ledger Switcher (Payments vs Bills)
   const tabPayments = document.getElementById('tab-recent-payments');
@@ -1032,6 +1037,195 @@ function setDashboardState(stateKey) {
     listPayments?.classList.add('hidden');
     listBills?.classList.add('hidden');
     emptyPayments?.classList.remove('hidden');
+  }
+}
+
+// ==========================================================================
+// DYNAMIC SUPABASE CLOUD SYNC & REALTIME RENDERER
+// ==========================================================================
+
+export async function syncDashboardFromCloud() {
+  try {
+    const user = await ensureAuthenticated();
+    const cloudEmail = document.getElementById('cloud-banner-user-email');
+    if (cloudEmail && user) {
+      cloudEmail.textContent = user.email;
+    }
+
+    // 1. Fetch live active tenancies from Supabase
+    const cloudTenancies = await fetchCloudTenancies('active');
+    const wrapper = document.getElementById('tenancies-list-wrapper');
+    const emptyState = document.getElementById('dashboard-empty-tenancies');
+    const title = document.getElementById('dashboard-main-title');
+
+    if (cloudTenancies && cloudTenancies.length > 0) {
+      emptyState?.classList.add('hidden');
+      if (title) {
+        title.textContent = cloudTenancies.length === 1 ? 'Your Tenancy' : 'Your Tenancies';
+      }
+
+      // Update the primary tenancy card dynamically
+      const primary = cloudTenancies[0];
+      const lalitpurCard = document.getElementById('card-tenancy-lalitpur');
+      lalitpurCard?.classList.remove('hidden');
+
+      const lalitpurName = lalitpurCard?.querySelector('.tenancy-name');
+      const lalitpurSub = document.getElementById('lalitpur-sub');
+      const lalitpurRightVal = document.getElementById('lalitpur-right-val');
+      const lalitpurPill = document.getElementById('lalitpur-status-pill');
+
+      if (lalitpurName) lalitpurName.textContent = primary.property_name;
+      if (lalitpurSub) lalitpurSub.textContent = `Rs. ${parseFloat(primary.base_rent).toLocaleString('en-IN')} • Monthly`;
+      if (lalitpurRightVal) lalitpurRightVal.textContent = `${primary.billing_day || 12} May 2026`;
+      if (lalitpurPill) {
+        lalitpurPill.className = 'status-pill status-upcoming';
+        lalitpurPill.textContent = 'Active • Supabase Cloud';
+      }
+
+      // If additional cloud tenancies exist, render dynamic cards
+      if (wrapper) {
+        wrapper.querySelectorAll('.dynamic-cloud-card').forEach((c) => c.remove());
+        for (let i = 1; i < cloudTenancies.length; i++) {
+          const t = cloudTenancies[i];
+          const dynamicCard = document.createElement('article');
+          dynamicCard.className = 'tenancy-card dynamic-cloud-card';
+          dynamicCard.innerHTML = `
+            <div class="tenancy-card-header">
+              <span class="status-pill status-upcoming">Active • Supabase Cloud</span>
+            </div>
+            <div class="tenancy-card-main-row" role="button" tabindex="0">
+              <div class="tenancy-info">
+                <h2 class="tenancy-name">${t.property_name}</h2>
+                <span class="tenancy-meta-sub">Rs. ${parseFloat(t.base_rent).toLocaleString('en-IN')} • Monthly</span>
+              </div>
+              <div class="tenancy-row-chevron">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </div>
+            </div>
+            <div class="tenancy-card-divider"></div>
+            <div class="tenancy-metrics-grid">
+              <div class="metric-col">
+                <span class="metric-title">Rs. ${parseFloat(t.base_rent).toLocaleString('en-IN')}</span>
+                <span class="metric-label">Base Rent</span>
+              </div>
+              <div class="metric-col right-align">
+                <span class="metric-title">${t.billing_day || 1} May 2026</span>
+                <span class="metric-label">Next Billing</span>
+              </div>
+            </div>
+            <div class="tenancy-card-divider"></div>
+            <div class="tenancy-action-row">
+              <button class="btn-card-action lavender-action btn-cloud-record">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                  <circle cx="12" cy="12" r="2.5"></circle>
+                </svg>
+                <span>Record Payment</span>
+              </button>
+            </div>
+          `;
+          dynamicCard.querySelector('.tenancy-card-main-row')?.addEventListener('click', () => {
+            navigateToScreen(10);
+          });
+          dynamicCard.querySelector('.btn-cloud-record')?.addEventListener('click', () => {
+            openRecordPaymentPage('lalitpur');
+          });
+          wrapper.appendChild(dynamicCard);
+        }
+      }
+    }
+
+    // 2. Fetch real bills from Supabase
+    const cloudBills = await fetchCloudBills();
+    const listBills = document.getElementById('list-recent-bills');
+    if (cloudBills && cloudBills.length > 0 && listBills) {
+      listBills.innerHTML = '';
+      cloudBills.forEach((b) => {
+        const item = document.createElement('div');
+        item.className = 'recent-item-card';
+        item.setAttribute('role', 'button');
+        item.setAttribute('tabindex', '0');
+        item.innerHTML = `
+          <div class="recent-item-left">
+            <span class="recent-prop-name">Cloud Invoice: ${b.invoice_number}</span>
+            <strong class="recent-item-title">${b.duration_start} – ${b.duration_end}</strong>
+            <span class="recent-item-timestamp">Generated on ${b.generated_date} • ${b.status}</span>
+          </div>
+          <div class="recent-item-right">
+            <strong class="recent-item-amount">Rs. ${parseFloat(b.net_payable).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+            <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </div>
+        `;
+        item.addEventListener('click', () => navigateToScreen(15));
+        listBills.appendChild(item);
+      });
+    }
+
+    // 3. Fetch real payments from Supabase
+    const cloudPayments = await fetchCloudPayments();
+    const listPayments = document.getElementById('list-recent-payments');
+    const emptyPayments = document.getElementById('empty-recent-payments');
+    if (cloudPayments && cloudPayments.length > 0 && listPayments) {
+      emptyPayments?.classList.add('hidden');
+      listPayments.classList.remove('hidden');
+      listPayments.innerHTML = '';
+      cloudPayments.forEach((p) => {
+        const item = document.createElement('div');
+        item.className = 'recent-item-card';
+        item.setAttribute('role', 'button');
+        item.setAttribute('tabindex', '0');
+        const months = Array.isArray(p.settled_months) ? p.settled_months.join(', ') : 'Settled';
+        item.innerHTML = `
+          <div class="recent-item-left">
+            <span class="recent-prop-name">${p.tenancies?.property_name || '2nd Floor, Lalitpur'}</span>
+            <strong class="recent-item-title">${months} — Paid via ${p.payment_mode.toUpperCase()}</strong>
+            <span class="recent-item-timestamp">Paid on ${p.payment_date} ${p.reference_no ? '• Ref: ' + p.reference_no : ''}</span>
+          </div>
+          <div class="recent-item-right">
+            <strong class="recent-item-amount">Rs. ${parseFloat(p.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+            <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </div>
+        `;
+        listPayments.appendChild(item);
+      });
+    }
+
+    // 4. Fetch real family members in settings modal
+    const members = await fetchCloudFamilyMembers();
+    const membersList = document.getElementById('family-members-list');
+    const badgeCount = document.getElementById('badge-family-count');
+    if (members && members.length > 0 && membersList) {
+      membersList.querySelectorAll('.dynamic-cloud-member').forEach((m) => m.remove());
+      members.forEach((m) => {
+        const row = document.createElement('div');
+        row.className = 'family-member-row dynamic-cloud-member';
+        row.innerHTML = `
+          <div class="member-avatar">👨‍👩‍👧</div>
+          <div class="member-info">
+            <strong class="member-email">${m.member_email}</strong>
+            <span class="member-role-tag">${m.role === 'manager' ? 'Manager • Can edit & record' : 'Viewer • Can view bills & payments'}</span>
+          </div>
+          <button type="button" class="btn-remove-member" title="Revoke access">✕</button>
+        `;
+        row.querySelector('.btn-remove-member')?.addEventListener('click', async () => {
+          await revokeCloudFamilyMember(m.id);
+          row.remove();
+          showToast(`🗑️ Revoked access for ${m.member_email}`);
+        });
+        membersList.appendChild(row);
+      });
+      if (badgeCount) {
+        badgeCount.textContent = `${members.length} Shared`;
+      }
+    }
+  } catch (err) {
+    console.warn('Sync Dashboard Notice:', err);
   }
 }
 
@@ -1634,6 +1828,7 @@ function initRecordPaymentPage() {
         settledMonths: [settledMonthText],
         paymentDate: nativeDate?.value || new Date().toISOString().split('T')[0],
       });
+      await syncDashboardFromCloud();
     } catch (e) {
       console.warn('Cloud payment save notice:', e);
     }
@@ -1815,6 +2010,7 @@ function initBillGenerationFlow() {
         status: 'unpaid',
         notes: document.getElementById('review-notes-text')?.textContent || '',
       });
+      await syncDashboardFromCloud();
     } catch (e) {
       console.warn('Cloud create bill notice:', e);
     }
@@ -2233,6 +2429,8 @@ function initAuthScreen() {
     const actionWord = isSignUpMode ? 'Registered & synced to Supabase Cloud' : 'Signed in & connected to Supabase Cloud';
     showToast(`⚡ ${actionWord} as ${email}`, 3500);
 
+    await syncDashboardFromCloud();
+
     setTimeout(() => {
       navigateToScreen(6); // Return to Dashboard
     }, 600);
@@ -2362,13 +2560,20 @@ document.addEventListener('DOMContentLoaded', () => {
   initFamilySharingModal();
   setDashboardState('state1');
 
-  // Restore Supabase Cloud Session on Boot
-  getCurrentSession().then((session) => {
-    if (session && session.user) {
-      console.log('Active Supabase Cloud Session Restored:', session.user.email);
-      const emailDisplay = document.getElementById('current-user-email-display');
-      if (emailDisplay) emailDisplay.textContent = session.user.email;
+  // URL Hash routing support or default to Screen 6 (Dashboard) to immediately show live cloud data
+  const hash = window.location.hash;
+  if (hash && hash.startsWith('#screen-')) {
+    const screenNum = parseInt(hash.replace('#screen-', ''), 10);
+    if (!isNaN(screenNum) && screenNum >= 1 && screenNum <= 20) {
+      navigateToScreen(screenNum);
     }
+  } else {
+    navigateToScreen(6);
+  }
+
+  // Connect to Supabase and render real live data immediately
+  syncDashboardFromCloud().then(() => {
+    console.log('⚡ Rental Buddy: Supabase Cloud Data Synced Successfully');
   });
 });
 
