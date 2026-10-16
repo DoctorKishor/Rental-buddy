@@ -381,6 +381,94 @@
 3. **Screen Transition Auto-Cleanup**:
    - The screen navigator (`navigateToScreen`) MUST automatically dismiss all active `.modal-overlay` elements and floating menus whenever the user transitions between screens, preventing orphaned modals across views.
 
+---
+
+## 21. Bill Generation, Review, Invoice Details, Settings & Tenancy Archive Architecture (Screens 13 – 18)
+
+### 1. Bill Generation Flow (Screen 13: "Generate Bill")
+- **Context & Header**: Back arrow returning to Tenancy Details/Dashboard, title `"Generate Bill"`, subtitle with tenancy location (e.g., `for 2nd Floor, Lalitpur`).
+- **Interactive Bill Duration Date Range**:
+  - Twin date-pickers for `Start Date` and `End Date` in a 2-column layout.
+  - Interactive calendar pickers with human-formatted dates (e.g. `5 Mar 2026` to `5 Apr 2026`).
+- **Read-Only Meter Anchors**:
+  - `Last Month's Electricity Reading` and `Last Month's Water Reading` rendered with disabled styling (`#ECEEF8` background, `#7D849B` text) to guarantee baseline integrity.
+- **Dynamic Usage Inputs**:
+  - `Current Electricity Reading` and `Current Water Reading` fields with auto-calculation listeners.
+- **Optional Adjustments & Notes**:
+  - `Advance Payment (if any)` (Optional) with instant deduction preview.
+  - `Due Amount (if any)` (Optional) for carrying forward arrears.
+  - `Notes` (Optional) multi-line textarea (`min-height: 84px`) for landlord remarks.
+- **Sticky Bottom Action Bar**:
+  - Full-width `Preview Bill` pill button (`54px` min height, zero shrink).
+
+### 2. Bill Review (Screen 14: "Review Bill")
+- **Header**: Back arrow returning to Screen 13, centered title `"Review Bill"`.
+- **Tenancy Summary Card**:
+  - Property title (`2nd Floor, Lalitpur`).
+  - Two-column metadata: `Bill Duration` (e.g., `1 Falgun 2082 – 30 Falgun 2082`) and `Bill Generated On` (`1 Chaitra 2082`).
+  - *Figma Glitch Fixed*: Resolved Figma artifact `"April, 2081 Falgun 2082 - 30 Falgun 2082"` to clean, standard Gregorian/BS formatted interval `"1 Falgun 2082 – 30 Falgun 2082"`.
+- **Bill Breakdown Card**:
+  - `Rent Amount` (`Rs. 12,000`).
+  - `Electricity` calculation line with explicit sub-formula: `14187 - 13187 = 100 units @ 12/unit` -> `Rs. 1,200`.
+  - Utility line items: `Internet` (`Rs. 500`), `Water` (`Rs. 500`), `Sewage` (`Rs. 500`).
+  - `Total` subtotal line (`Rs. 14,700` bold navy).
+  - `Advance Payment` deduction line (`- Rs. 1000` emphasized in red `#DC2626`).
+  - `Net Payable` highlight row (`Rs. 13,700` bold `17px`).
+  - `Notes` card reflecting remarks entered in generation form.
+- **Sticky Bottom Action Bar**:
+  - Full-width `Generate Bill` pill button (`54px` min height) that saves the invoice to state and prepends it to the recent bills list.
+
+### 3. Final Bill Details & Invoice View (Screen 15: "Bill details")
+- **Header Navigation & Document Action**:
+  - Back arrow returning to Tenancy Details/Dashboard.
+  - Centered title `"Bill details"`.
+  - Document/share icon action in top right corner.
+- **Figma Typo Correction**:
+  - *Figma Bug*: Figma canvas displayed overlapping/corrupted text `"Bill breBill Breakdownakdown"`.
+  - *Resolution*: Corrected to clean, crisp `"Bill Breakdown"` section title.
+- **Invoice Breakdown**: Displays finalized verified calculation and settled breakdown.
+- **Sticky Bottom Action Bar**:
+  - Full-width `"Share Invoice via WhatsApp"` pill button (`54px` min height) triggering real-time invoice summary clipboard copy or direct WhatsApp web/app link.
+
+### 4. Settings Screen (Screen 16: "Settings")
+- **Header**: Back arrow returning to Dashboard, large title `"Settings"` (`28px` bold).
+- **Primary Preferences Card**:
+  - `Archived Tenancies`: Chevron navigation leading to Screen 17 with dynamic badge count.
+  - `Haptics`: Emerald green interactive toggle switch (`#10B981` active state).
+  - `Notifications`: Emerald green interactive toggle switch.
+  - `Backup & Restore`: Chevron item triggering instant offline JSON data export download.
+- **App Information & Support Card**:
+  - `About The App`: App info modal trigger.
+  - `Contact Support`: Landlord support email trigger.
+  - `Report a Bug`: Feedback dialog trigger.
+  - `Request Feature`: Feature wishlist trigger.
+- **App Footer Branding**:
+  - Version: `"Rental Buddy v1.0.0"`.
+  - Attribution: `"Crafted using Vroxal Design"`.
+
+### 5. Archived Tenancies (Screen 17: "Archived Tenancies")
+- **Header**: Back arrow returning to Settings, title `"Archived Tenancies"`.
+- **Figma Consistency Fix**:
+  - Standardized header title across all screens to `"Archived Tenancies"` (fixing typo where one frame was titled "Archive Tenancies").
+- **Empty State**:
+  - Lavender rounded container (`60px × 60px`, `#E8E7FB`) with house icon.
+  - Title: `"No archived tenancies"`.
+  - Explanatory copy: *"Tenancies you archive will appear here. You can archive a tenancy from its details screen."*
+- **Populated State**:
+  - White card (`20px` radius) with `Archived` chip, relative timestamp (`"Archived 1 day ago"`, fixing typo `"Archive 1 day ago"`), property title (`"2nd Floor, Lalitpur"`), monthly rate, divider line, and 2-column metrics (`Last Bill Amount` and `Total Generated`).
+  - Tapping card opens Screen 18 (Archived Tenancy Details).
+
+### 6. Archived Tenancy Details (Screen 18)
+- **Header**: Back arrow returning to Screen 17, centered property title, 3-dots menu button.
+- **Landlord 3-Dots Action Menu**:
+  - `Unarchive` action (restores the tenancy back to active status on Dashboard Screen 6).
+  - `Delete` action (red text `#DC2626` with confirmation prompt).
+- **Summary Overview Card**:
+  - Displays `Total Bill Paid` (`Rs. 68,148.16`), monthly rate, `Last Generated Bill` (`Rs. 12,034.12`), and `Next Billing` (`1 Baisakh 2083`).
+- **Rent Bill History**:
+  - Stack of 5 settled bills with billing date intervals, generated dates, formatted amounts, and clickable chevron chevrons opening full bill details (Screen 15).
+
+
 
 
 

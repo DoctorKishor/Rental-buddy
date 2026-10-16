@@ -71,6 +71,20 @@ Please refer to the comprehensive design system and engineering specifications d
   - DOM Scoping: Every modal sheet MUST be nested inside its parent `<section class="screen">` rather than loose in `.screens-slider`.
   - 4 Dismissal Vectors: Close button (36px tap target), backdrop tap, handle click, and Escape key.
   - Screen transitions automatically dismiss all modals and menus to prevent orphaned overlays.
+- **Bill Generation, Review & Invoice Details (Screens 13, 14, 15)**:
+  - Bill Generation (Screen 13): Interactive start/end date range pickers, read-only meter reading anchors from previous billing, dynamic current reading inputs with automatic unit math (`units × unit rate`), optional advance/due adjustments, multi-line notes, sticky "Preview Bill" button.
+  - Review Bill (Screen 14): Tenancy summary card with clean date intervals (fixed Figma artifact `"April, 2081 Falgun 2082 - 30 Falgun 2082"` to `"1 Falgun 2082 – 30 Falgun 2082"`), complete transparent breakdown with explicit electricity calculation row (`14187 - 13187 = 100 units @ 12/unit`), rent, internet, water, sewage, subtotal, advance deduction, net payable, sticky "Generate Bill" button.
+  - Bill Details & Share (Screen 15): Finalized invoice view with document share header icon, fixed Figma header typo `"Bill breBill Breakdownakdown"` to `"Bill Breakdown"`, sticky `"Share Invoice via WhatsApp"` pill button (`54px` min height) that formats a complete digital text invoice for instant messaging.
+- **Settings Screen (Screen 16)**:
+  - Accessible via Dashboard header gear icon.
+  - Card 1: `Archived Tenancies` (with chevron and badge counter), interactive `Haptics` and `Notifications` emerald toggles, `Backup & Restore` data exporter.
+  - Card 2: `About The App`, `Contact Support`, `Report a Bug`, `Request Feature` landlord assistance items.
+  - Footer branding: `"Rental Buddy v1.0.0"` and `"Crafted using Vroxal Design"`.
+- **Archived Tenancies & Archived Details (Screens 17, 18)**:
+  - Standardized screen title to `"Archived Tenancies"` (fixing typo "Archive Tenancies") and relative tag `"Archived 1 day ago"`.
+  - Toggleable state between empty state (lavender house icon + explanatory copy) and populated card state ("2nd Floor, Lalitpur").
+  - Screen 18 Details: 3-dots menu with `Unarchive` (restoring property to active dashboard) and `Delete`; Summary overview card; complete 5-item rent bill history stack leading to invoice preview.
+
 
 
 

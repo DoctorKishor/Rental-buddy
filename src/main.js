@@ -627,7 +627,7 @@ function initDashboard() {
 
   emptyCreateBtn?.addEventListener('click', () => navigateToScreen(7));
   addTenancyBtn?.addEventListener('click', () => navigateToScreen(7));
-  settingsBtn?.addEventListener('click', () => showToast('⚙️ App Settings & Preferences'));
+  settingsBtn?.addEventListener('click', () => navigateToScreen(16));
 
   // Segmented Ledger Switcher (Payments vs Bills)
   const tabPayments = document.getElementById('tab-recent-payments');
@@ -686,11 +686,11 @@ function initDashboard() {
     if (e.target === modalRecord) modalRecord.classList.add('hidden');
   });
 
-  // Wire up Record buttons to open dedicated Record Payment Page (Screen 12)
+  // Wire up Record & Generate Bill buttons
   document.getElementById('btn-lalitpur-action')?.addEventListener('click', () => {
     const actionText = document.getElementById('lalitpur-action-text')?.textContent;
     if (actionText?.includes('Generate Bill')) {
-      openBillModal('2nd Floor, Lalitpur', 'Monthly - April 2026', '12,034.12');
+      navigateToScreen(13);
     } else {
       openRecordPaymentPage('lalitpur');
     }
@@ -699,7 +699,7 @@ function initDashboard() {
   document.getElementById('btn-rams-action')?.addEventListener('click', () => {
     const actionText = document.getElementById('rams-action-text')?.textContent;
     if (actionText?.includes('Generate Bill')) {
-      openBillModal('Ram’s Flat', 'Weekly - April 2026', '2,540.00');
+      navigateToScreen(13);
     } else {
       openRecordPaymentPage('rams');
     }
@@ -707,6 +707,10 @@ function initDashboard() {
 
   document.getElementById('btn-apt-record')?.addEventListener('click', () => {
     openRecordPaymentPage('apt11');
+  });
+
+  document.getElementById('btn-apt-generate')?.addEventListener('click', () => {
+    navigateToScreen(13);
   });
 
   // Payment mode pills inside modal
@@ -1022,6 +1026,7 @@ function initTenancyDetails() {
   actionArchive?.addEventListener('click', () => {
     menuDropdown?.classList.add('hidden');
     showToast('🗃️ Tenancy "2nd Floor, Lalitpur" archived');
+    setTimeout(() => navigateToScreen(17), 600);
   });
 
   actionDelete?.addEventListener('click', () => {
@@ -1075,17 +1080,9 @@ function initTenancyDetails() {
     showToast(`Showing payment records for Year ${val} BS`);
   });
 
-  // Generate New Bill Button
+  // Generate New Bill Button -> Screen 13
   generateBillBtn?.addEventListener('click', () => {
-    const modalBill = document.getElementById('modal-generate-bill');
-    const billTargetTenancy = document.getElementById('bill-target-tenancy');
-    const billTargetCycle = document.getElementById('bill-target-cycle');
-    const billCalculatedTotal = document.getElementById('bill-calculated-total');
-
-    if (billTargetTenancy) billTargetTenancy.textContent = '2nd Floor, Lalitpur';
-    if (billTargetCycle) billTargetCycle.textContent = 'Monthly - Baisakh 2083';
-    if (billCalculatedTotal) billCalculatedTotal.textContent = 'Rs. 12,034.12';
-    modalBill?.classList.remove('hidden');
+    navigateToScreen(13);
   });
 }
 
@@ -1603,6 +1600,275 @@ function initRecordPaymentPage() {
   }
 }
 
+// ==========================================================================
+// BILL GENERATION & INVOICE DETAILS FLOW (SCREENS 13, 14, 15)
+// ==========================================================================
+
+function initBillGenerationFlow() {
+  const btnGenBillBack = document.getElementById('btn-genbill-back');
+  const btnToPreview = document.getElementById('btn-to-preview-bill');
+  const btnReviewBack = document.getElementById('btn-review-back');
+  const btnConfirmGenBill = document.getElementById('btn-confirm-generate-bill');
+  const btnBillDetailsBack = document.getElementById('btn-billdetails-back');
+  const btnShareInvoice = document.getElementById('btn-share-bill-invoice');
+  const btnShareWhatsappInvoice = document.getElementById('btn-share-whatsapp-invoice');
+
+  // Date Pickers on Screen 13
+  const startTrigger = document.getElementById('billStartDateTrigger');
+  const startNative = document.getElementById('bill-native-start-date');
+  const startDisplay = document.getElementById('bill-start-date-display');
+
+  const endTrigger = document.getElementById('billEndDateTrigger');
+  const endNative = document.getElementById('bill-native-end-date');
+  const endDisplay = document.getElementById('bill-end-date-display');
+
+  startTrigger?.addEventListener('click', () => {
+    try { startNative?.showPicker(); } catch (e) { startNative?.focus(); }
+  });
+  startNative?.addEventListener('change', (e) => {
+    if (e.target.value && startDisplay) {
+      const d = new Date(e.target.value + 'T00:00:00');
+      startDisplay.value = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+  });
+
+  endTrigger?.addEventListener('click', () => {
+    try { endNative?.showPicker(); } catch (e) { endNative?.focus(); }
+  });
+  endNative?.addEventListener('change', (e) => {
+    if (e.target.value && endDisplay) {
+      const d = new Date(e.target.value + 'T00:00:00');
+      endDisplay.value = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+  });
+
+  // Screen 13 Back
+  btnGenBillBack?.addEventListener('click', () => {
+    navigateToScreen(6);
+  });
+
+  // Calculate & Preview Bill -> Screen 14
+  btnToPreview?.addEventListener('click', () => {
+    const prevElec = parseFloat(document.getElementById('input-prev-elec')?.value) || 13187;
+    const currElec = parseFloat(document.getElementById('input-curr-elec')?.value) || 14187;
+    const units = Math.max(0, currElec - prevElec);
+    const elecPricePerUnit = 12;
+    const elecTotal = units * elecPricePerUnit;
+
+    const rent = 12000;
+    const internet = 500;
+    const water = 500;
+    const sewage = 500;
+    const subtotal = rent + elecTotal + internet + water + sewage;
+
+    const advance = parseFloat(document.getElementById('input-bill-advance')?.value) || 0;
+    const due = parseFloat(document.getElementById('input-bill-due')?.value) || 0;
+    const netPayable = Math.max(0, subtotal - advance + due);
+
+    const notesVal = document.getElementById('input-bill-notes')?.value || 'This is the notes mentioned on the bill generation page';
+
+    // Populate Screen 14 Review Bill
+    const elecSub = document.getElementById('review-elec-sub');
+    if (elecSub) elecSub.textContent = `${currElec} - ${prevElec} = ${units} units @ 12/unit`;
+    const elecVal = document.getElementById('review-elec-val');
+    if (elecVal) elecVal.textContent = `Rs. ${elecTotal.toLocaleString('en-IN')}`;
+
+    const subtotalVal = document.getElementById('review-subtotal-val');
+    if (subtotalVal) subtotalVal.textContent = `Rs. ${subtotal.toLocaleString('en-IN')}`;
+
+    const advVal = document.getElementById('review-advance-val');
+    if (advVal) advVal.textContent = `– Rs. ${advance.toLocaleString('en-IN')}`;
+
+    const netVal = document.getElementById('review-net-val');
+    if (netVal) netVal.textContent = `Rs. ${netPayable.toLocaleString('en-IN')}`;
+
+    const notesText = document.getElementById('review-notes-text');
+    if (notesText) notesText.textContent = notesVal;
+
+    navigateToScreen(14);
+  });
+
+  // Screen 14 Back
+  btnReviewBack?.addEventListener('click', () => {
+    navigateToScreen(13);
+  });
+
+  // Screen 14 Confirm & Generate -> Screen 15
+  btnConfirmGenBill?.addEventListener('click', () => {
+    const netVal = document.getElementById('review-net-val')?.textContent || 'Rs. 13,700';
+    showToast(`✅ Bill of ${netVal} generated for 2nd Floor, Lalitpur!`, 3000);
+
+    // Prepend to Dashboard Recent Bills list
+    const listBills = document.getElementById('list-recent-bills');
+    if (listBills) {
+      const newBillCard = document.createElement('div');
+      newBillCard.className = 'recent-item-card';
+      newBillCard.setAttribute('role', 'button');
+      newBillCard.setAttribute('tabindex', '0');
+      newBillCard.innerHTML = `
+        <div class="recent-item-left">
+          <strong class="recent-item-title">1 Falgun 2082 – 30 Falgun 2082</strong>
+          <span class="recent-item-timestamp">Generated on Today</span>
+        </div>
+        <div class="recent-item-right">
+          <strong class="recent-item-amount">${netVal}</strong>
+          <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </div>
+      `;
+      newBillCard.addEventListener('click', () => navigateToScreen(15));
+      listBills.insertBefore(newBillCard, listBills.firstChild);
+    }
+
+    navigateToScreen(15);
+  });
+
+  // Screen 15 Back
+  btnBillDetailsBack?.addEventListener('click', () => {
+    navigateToScreen(6);
+  });
+
+  // Invoice Sharing
+  const handleShareInvoice = () => {
+    showToast('📱 WhatsApp invoice link generated & copied to clipboard!', 3500);
+  };
+  btnShareInvoice?.addEventListener('click', handleShareInvoice);
+  btnShareWhatsappInvoice?.addEventListener('click', handleShareInvoice);
+}
+
+// ==========================================================================
+// SETTINGS & SYSTEM PREFERENCES (SCREEN 16)
+// ==========================================================================
+
+function initSettingsScreen() {
+  const btnSettingsBack = document.getElementById('btn-settings-back');
+  const itemArchived = document.getElementById('item-archived-tenancies');
+  const toggleHaptics = document.getElementById('toggle-haptics');
+  const toggleNotifs = document.getElementById('toggle-settings-notifications');
+  const itemBackup = document.getElementById('item-backup-restore');
+  const itemAbout = document.getElementById('item-about-app');
+  const itemContact = document.getElementById('item-contact-support');
+  const itemReport = document.getElementById('item-report-bug');
+  const itemRequest = document.getElementById('item-request-feature');
+
+  btnSettingsBack?.addEventListener('click', () => {
+    navigateToScreen(6);
+  });
+
+  itemArchived?.addEventListener('click', () => {
+    navigateToScreen(17);
+  });
+
+  toggleHaptics?.addEventListener('change', () => {
+    showToast(toggleHaptics.checked ? '📳 Haptic vibration feedback enabled' : 'Haptic feedback disabled', 2000);
+  });
+
+  toggleNotifs?.addEventListener('change', () => {
+    showToast(toggleNotifs.checked ? '🔔 Notification reminders enabled' : 'Notifications disabled', 2000);
+  });
+
+  itemBackup?.addEventListener('click', () => {
+    showToast('📦 Private ledger backup snapshot exported successfully (JSON)', 3000);
+  });
+
+  itemAbout?.addEventListener('click', () => {
+    showToast('Rental Buddy v1.0.0 — Modern mobile-first property ledger', 3000);
+  });
+
+  itemContact?.addEventListener('click', () => {
+    showToast('✉️ Support desk opened: support@rentalbuddy.app', 3000);
+  });
+
+  itemReport?.addEventListener('click', () => {
+    showToast('🐞 Bug report portal opened', 2500);
+  });
+
+  itemRequest?.addEventListener('click', () => {
+    showToast('✨ Feature request board opened', 2500);
+  });
+}
+
+// ==========================================================================
+// ARCHIVED TENANCIES FLOW (SCREENS 17 & 18)
+// ==========================================================================
+
+function initArchivedTenanciesFlow() {
+  const btnArchivedBack = document.getElementById('btn-archived-back');
+  const cardArchived = document.getElementById('card-archived-lalitpur');
+  const btnToggleArchEmpty = document.getElementById('btn-toggle-archived-empty');
+  const popState = document.getElementById('archived-populated-state');
+  const emptyState = document.getElementById('archived-empty-state');
+
+  const btnArchDetailsBack = document.getElementById('btn-archdetails-back');
+  const btnArchMenu = document.getElementById('btn-archdetails-menu');
+  const archMenuDropdown = document.getElementById('archdetails-menu-dropdown');
+  const menuUnarchive = document.getElementById('menu-action-unarchive');
+  const menuArchDelete = document.getElementById('menu-action-arch-delete');
+
+  // Screen 17 Back
+  btnArchivedBack?.addEventListener('click', () => {
+    navigateToScreen(16);
+  });
+
+  // Archived Tenancy Card click -> Screen 18
+  cardArchived?.addEventListener('click', () => {
+    navigateToScreen(18);
+  });
+
+  // Toggle Populated vs Empty Archived View
+  btnToggleArchEmpty?.addEventListener('click', () => {
+    const isPop = !popState?.classList.contains('hidden');
+    popState?.classList.toggle('hidden', isPop);
+    emptyState?.classList.toggle('hidden', !isPop);
+    showToast(isPop ? 'Showing Empty Archived Tenancies view' : 'Showing Populated Archived Tenancies view');
+  });
+
+  // Screen 18 Back
+  btnArchDetailsBack?.addEventListener('click', () => {
+    navigateToScreen(17);
+  });
+
+  // 3-Dots Menu Dropdown
+  btnArchMenu?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    archMenuDropdown?.classList.toggle('hidden');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (archMenuDropdown && !archMenuDropdown.contains(e.target) && e.target !== btnArchMenu) {
+      archMenuDropdown.classList.add('hidden');
+    }
+  });
+
+  // Unarchive Tenancy
+  menuUnarchive?.addEventListener('click', () => {
+    archMenuDropdown?.classList.add('hidden');
+    showToast('✨ "2nd Floor, Lalitpur" unarchived and restored to active tenancies!', 3500);
+    setTimeout(() => {
+      navigateToScreen(6);
+    }, 600);
+  });
+
+  // Delete Archived Tenancy
+  menuArchDelete?.addEventListener('click', () => {
+    archMenuDropdown?.classList.add('hidden');
+    showToast('🗑️ Archived tenancy permanently removed', 3000);
+    popState?.classList.add('hidden');
+    emptyState?.classList.remove('hidden');
+    setTimeout(() => {
+      navigateToScreen(17);
+    }, 600);
+  });
+
+  // Rent Bill History items on Screen 18 -> Screen 15
+  document.querySelectorAll('#archdetails-history-list .recent-item-card').forEach((card) => {
+    card.addEventListener('click', () => {
+      navigateToScreen(15);
+    });
+  });
+}
+
 // Initial Boot
 document.addEventListener('DOMContentLoaded', () => {
   initClock();
@@ -1614,6 +1880,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initEditTenancy();
   initRecordPaymentPage();
   setupRecordPaymentForm('lalitpur');
+  initBillGenerationFlow();
+  initSettingsScreen();
+  initArchivedTenanciesFlow();
   setDashboardState('state1');
 });
 

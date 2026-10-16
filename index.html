@@ -2224,6 +2224,696 @@
             </footer>
           </section>
 
+          <!-- SCREEN 13: Generate Bill Flow (Input meter readings, duration & adjustments) -->
+          <section class="screen" id="screen-13" data-screen="13">
+            <div class="screen-content">
+              <!-- Stepper Header -->
+              <nav class="stepper-header">
+                <button class="nav-back-btn" id="btn-genbill-back" aria-label="Go back">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+                <div class="stepper-titles">
+                  <h2 class="stepper-main-title">Generate Bill</h2>
+                  <span class="stepper-sub-title" id="genbill-subtitle">for 2nd Floor, Lalitpur</span>
+                </div>
+                <div class="stepper-spacer"></div>
+              </nav>
+
+              <form class="form-stack" id="form-generate-bill" onsubmit="return false;" style="margin-top: 10px;">
+                <!-- Bill Duration -->
+                <div class="form-group">
+                  <label class="form-label" style="font-weight: 700;">Bill Duration</label>
+                  <div class="form-row-split">
+                    <div class="form-group">
+                      <label class="form-label mini" for="input-bill-start-date">Start Date</label>
+                      <div class="input-with-icon date-picker-box" id="billStartDateTrigger">
+                        <input type="text" id="bill-start-date-display" class="form-input date-text mini" value="5 Mar 2026" readonly />
+                        <input type="date" id="bill-native-start-date" class="native-date-field" value="2026-03-05" aria-label="Start Date" />
+                        <div class="input-trailing-icon">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label mini" for="input-bill-end-date">End Date</label>
+                      <div class="input-with-icon date-picker-box" id="billEndDateTrigger">
+                        <input type="text" id="bill-end-date-display" class="form-input date-text mini" value="5 Apr 2026" readonly />
+                        <input type="date" id="bill-native-end-date" class="native-date-field" value="2026-04-05" aria-label="End Date" />
+                        <div class="input-trailing-icon">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Last Month Electricity Reading (Read-only) -->
+                <div class="form-group">
+                  <label class="form-label mini" for="input-prev-elec">Last Month's Electricity Reading</label>
+                  <input type="text" id="input-prev-elec" class="form-input mini" value="13187.00" readonly style="background: #F4F5FC; color: #52586E;" />
+                </div>
+
+                <!-- Current Electricity Reading -->
+                <div class="form-group">
+                  <label class="form-label mini" for="input-curr-elec">Current Electricity Reading</label>
+                  <input type="number" step="0.01" id="input-curr-elec" class="form-input mini" value="14187" placeholder="e.g. 15200" required />
+                </div>
+
+                <!-- Last Month Water Reading (Read-only) -->
+                <div class="form-group">
+                  <label class="form-label mini" for="input-prev-water">Last Month's Water Reading</label>
+                  <input type="text" id="input-prev-water" class="form-input mini" value="13187.00" readonly style="background: #F4F5FC; color: #52586E;" />
+                </div>
+
+                <!-- Current Water Reading -->
+                <div class="form-group">
+                  <label class="form-label mini" for="input-curr-water">Current Water Reading</label>
+                  <input type="number" step="0.01" id="input-curr-water" class="form-input mini" value="15200" placeholder="e.g. 15200" />
+                </div>
+
+                <!-- Advance Payment (Optional) -->
+                <div class="form-group">
+                  <div class="field-label-row">
+                    <label class="form-label mini" for="input-bill-advance" style="margin-bottom: 0;">Advance Payment(if any)</label>
+                    <span class="text-caption" style="color: #7D849B; font-style: italic;">Optional</span>
+                  </div>
+                  <input type="number" id="input-bill-advance" class="form-input mini" value="1000" placeholder="e.g., 500" />
+                </div>
+
+                <!-- Due Amount (Optional) -->
+                <div class="form-group">
+                  <div class="field-label-row">
+                    <label class="form-label mini" for="input-bill-due" style="margin-bottom: 0;">Due Amount(if any)</label>
+                    <span class="text-caption" style="color: #7D849B; font-style: italic;">Optional</span>
+                  </div>
+                  <input type="number" id="input-bill-due" class="form-input mini" placeholder="e.g., 500" />
+                </div>
+
+                <!-- Notes (Optional) -->
+                <div class="form-group">
+                  <div class="field-label-row">
+                    <label class="form-label mini" for="input-bill-notes" style="margin-bottom: 0;">Notes</label>
+                    <span class="text-caption" style="color: #7D849B; font-style: italic;">Optional</span>
+                  </div>
+                  <textarea id="input-bill-notes" class="form-input form-textarea" rows="3" placeholder="Write a message about due amount or advance...">This is the notes mentioned on the bill generation page</textarea>
+                </div>
+              </form>
+            </div>
+
+            <!-- Sticky Bottom Action Bar -->
+            <footer class="bottom-bar">
+              <button class="btn btn-primary btn-pill" id="btn-to-preview-bill">
+                Preview Bill
+              </button>
+            </footer>
+          </section>
+
+          <!-- SCREEN 14: Review Bill (Breakdown Calculation & Confirmation) -->
+          <section class="screen" id="screen-14" data-screen="14">
+            <div class="screen-content">
+              <!-- Stepper Header -->
+              <nav class="stepper-header">
+                <button class="nav-back-btn" id="btn-review-back" aria-label="Go back">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+                <div class="stepper-titles">
+                  <h2 class="stepper-main-title">Review Bill</h2>
+                </div>
+                <div class="stepper-spacer"></div>
+              </nav>
+
+              <!-- Top Tenancy & Duration Card -->
+              <div class="review-tenancy-card">
+                <div class="review-card-header">
+                  <span class="text-caption" style="font-size: 12px; color: #7D849B;">Tenancy</span>
+                  <h3 class="review-prop-title" id="review-prop-title">2nd Floor, Lalitpur</h3>
+                </div>
+                <div class="tenancy-card-divider" style="margin: 12px 0;"></div>
+                <div class="tenancy-metrics-grid">
+                  <div class="metric-col">
+                    <span class="metric-label">Bill Duration</span>
+                    <strong class="metric-title" id="review-duration-text" style="font-size: 13.5px; font-weight: 700; line-height: 1.35;">1 Falgun 2082 – 30 Falgun 2082</strong>
+                  </div>
+                  <div class="metric-col">
+                    <span class="metric-label">Bill Generated On</span>
+                    <strong class="metric-title" id="review-generated-date" style="font-size: 13.5px; font-weight: 700;">1 Chaitra 2082</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bill Breakdown Section -->
+              <div class="bill-breakdown-section" style="margin-top: 20px;">
+                <h3 class="section-label" style="margin-bottom: 10px; font-size: 14.5px; font-weight: 700; color: #0E1326;">Bill Breakdown</h3>
+                <div class="breakdown-card">
+                  <div class="breakdown-row">
+                    <span class="breakdown-label">Rent Amount</span>
+                    <strong class="breakdown-value" id="review-rent-val">Rs. 12,000</strong>
+                  </div>
+                  <div class="breakdown-row complex">
+                    <div class="breakdown-label-col">
+                      <span class="breakdown-label">Electricity</span>
+                      <span class="breakdown-subcalc" id="review-elec-sub">14187 - 13187 = 100 units @ 12/unit</span>
+                    </div>
+                    <strong class="breakdown-value" id="review-elec-val">Rs. 1,200</strong>
+                  </div>
+                  <div class="breakdown-row">
+                    <span class="breakdown-label">Internet</span>
+                    <strong class="breakdown-value" id="review-internet-val">Rs. 500</strong>
+                  </div>
+                  <div class="breakdown-row">
+                    <span class="breakdown-label">Water</span>
+                    <strong class="breakdown-value" id="review-water-val">Rs. 500</strong>
+                  </div>
+                  <div class="breakdown-row">
+                    <span class="breakdown-label">Sewage</span>
+                    <strong class="breakdown-value" id="review-sewage-val">Rs. 500</strong>
+                  </div>
+
+                  <div class="tenancy-card-divider" style="margin: 10px 0;"></div>
+
+                  <div class="breakdown-row subtotal">
+                    <strong class="breakdown-label" style="font-size: 15px; font-weight: 800; color: #0E1326;">Total</strong>
+                    <strong class="breakdown-value" id="review-subtotal-val" style="font-size: 15px; font-weight: 800; color: #0E1326;">Rs. 14,700</strong>
+                  </div>
+                  <div class="breakdown-row deduction">
+                    <span class="breakdown-label" style="color: #DC2626;">Advance Payment</span>
+                    <strong class="breakdown-value" id="review-advance-val" style="color: #DC2626; font-weight: 700;">– Rs. 1000</strong>
+                  </div>
+
+                  <div class="tenancy-card-divider" style="margin: 10px 0;"></div>
+
+                  <div class="breakdown-row net-payable">
+                    <strong class="breakdown-label" style="font-size: 16px; font-weight: 800; color: #0E1326;">Net Payable</strong>
+                    <strong class="breakdown-value" id="review-net-val" style="font-size: 17px; font-weight: 800; color: #0E1326;">Rs. 13,700</strong>
+                  </div>
+
+                  <!-- Notes in Breakdown -->
+                  <div class="breakdown-notes-block" id="review-notes-block" style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed #E2E4F2;">
+                    <span class="text-caption" style="font-size: 11.5px; color: #7D849B; font-weight: 600;">Notes</span>
+                    <p class="breakdown-notes-text" id="review-notes-text" style="font-size: 13px; color: #52586E; margin-top: 4px; line-height: 1.4;">
+                      This is the notes mentioned on the bill generation page
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sticky Bottom Action Bar -->
+            <footer class="bottom-bar">
+              <button class="btn btn-primary btn-pill" id="btn-confirm-generate-bill">
+                Generate Bill
+              </button>
+            </footer>
+          </section>
+
+          <!-- SCREEN 15: Bill Details (Saved Invoice View & Share) -->
+          <section class="screen" id="screen-15" data-screen="15">
+            <div class="screen-content">
+              <!-- Top Navigation Header with Share Button -->
+              <nav class="stepper-header">
+                <button class="nav-back-btn" id="btn-billdetails-back" aria-label="Go back">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+                <div class="stepper-titles">
+                  <h2 class="stepper-main-title">Bill details</h2>
+                </div>
+                <button class="icon-btn" id="btn-share-bill-invoice" aria-label="Download or share invoice">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                    <polyline points="9 15 12 18 15 15"></polyline>
+                  </svg>
+                </button>
+              </nav>
+
+              <!-- Top Tenancy & Duration Card -->
+              <div class="review-tenancy-card">
+                <div class="review-card-header">
+                  <span class="text-caption" style="font-size: 12px; color: #7D849B;">Tenancy</span>
+                  <h3 class="review-prop-title" id="details-bill-prop-title">2nd Floor, Lalitpur</h3>
+                </div>
+                <div class="tenancy-card-divider" style="margin: 12px 0;"></div>
+                <div class="tenancy-metrics-grid">
+                  <div class="metric-col">
+                    <span class="metric-label">Bill Duration</span>
+                    <strong class="metric-title" id="details-bill-duration" style="font-size: 13.5px; font-weight: 700; line-height: 1.35;">1 Falgun 2082 – 30 Falgun 2082</strong>
+                  </div>
+                  <div class="metric-col">
+                    <span class="metric-label">Bill Generated On</span>
+                    <strong class="metric-title" id="details-bill-gendate" style="font-size: 13.5px; font-weight: 700;">1 Chaitra 2082</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bill Breakdown (Corrected Typo from "Bill breBill Breakdownakdown") -->
+              <div class="bill-breakdown-section" style="margin-top: 20px;">
+                <h3 class="section-label" style="margin-bottom: 10px; font-size: 14.5px; font-weight: 700; color: #0E1326;">Bill Breakdown</h3>
+                <div class="breakdown-card">
+                  <div class="breakdown-row">
+                    <span class="breakdown-label">Rent Amount</span>
+                    <strong class="breakdown-value">Rs. 12,000</strong>
+                  </div>
+                  <div class="breakdown-row complex">
+                    <div class="breakdown-label-col">
+                      <span class="breakdown-label">Electricity</span>
+                      <span class="breakdown-subcalc">14187 - 13187 = 100 units @ 12/unit</span>
+                    </div>
+                    <strong class="breakdown-value">Rs. 1,200</strong>
+                  </div>
+                  <div class="breakdown-row">
+                    <span class="breakdown-label">Internet</span>
+                    <strong class="breakdown-value">Rs. 500</strong>
+                  </div>
+                  <div class="breakdown-row">
+                    <span class="breakdown-label">Water</span>
+                    <strong class="breakdown-value">Rs. 500</strong>
+                  </div>
+                  <div class="breakdown-row">
+                    <span class="breakdown-label">Sewage</span>
+                    <strong class="breakdown-value">Rs. 500</strong>
+                  </div>
+
+                  <div class="tenancy-card-divider" style="margin: 10px 0;"></div>
+
+                  <div class="breakdown-row subtotal">
+                    <strong class="breakdown-label" style="font-size: 15px; font-weight: 800; color: #0E1326;">Total</strong>
+                    <strong class="breakdown-value" style="font-size: 15px; font-weight: 800; color: #0E1326;">Rs. 14,700</strong>
+                  </div>
+                  <div class="breakdown-row deduction">
+                    <span class="breakdown-label" style="color: #DC2626;">Advance Payment</span>
+                    <strong class="breakdown-value" style="color: #DC2626; font-weight: 700;">– Rs. 1000</strong>
+                  </div>
+
+                  <div class="tenancy-card-divider" style="margin: 10px 0;"></div>
+
+                  <div class="breakdown-row net-payable">
+                    <strong class="breakdown-label" style="font-size: 16px; font-weight: 800; color: #0E1326;">Net Payable</strong>
+                    <strong class="breakdown-value" style="font-size: 17px; font-weight: 800; color: #0E1326;">Rs. 13,700</strong>
+                  </div>
+
+                  <!-- Notes in Breakdown -->
+                  <div class="breakdown-notes-block" style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed #E2E4F2;">
+                    <span class="text-caption" style="font-size: 11.5px; color: #7D849B; font-weight: 600;">Notes</span>
+                    <p class="breakdown-notes-text" style="font-size: 13px; color: #52586E; margin-top: 4px; line-height: 1.4;">
+                      This is the notes mentioned on the bill generation page
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sticky Bottom Action Bar with WhatsApp Invoice Share -->
+            <footer class="bottom-bar">
+              <button class="btn btn-primary btn-pill" id="btn-share-whatsapp-invoice">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; margin-right: 8px;">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                </svg>
+                Share Invoice via WhatsApp
+              </button>
+            </footer>
+          </section>
+
+          <!-- SCREEN 16: App Settings & System Preferences -->
+          <section class="screen" id="screen-16" data-screen="16">
+            <div class="screen-content">
+              <!-- Stepper Header -->
+              <nav class="stepper-header">
+                <button class="nav-back-btn" id="btn-settings-back" aria-label="Back to Dashboard">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+                <div class="stepper-titles"></div>
+                <div class="stepper-spacer"></div>
+              </nav>
+
+              <!-- Hero Heading -->
+              <div class="hero-block" style="margin-bottom: 20px;">
+                <h1 class="hero-title" style="font-size: 28px;">Settings</h1>
+              </div>
+
+              <!-- Settings Group 1: Preferences & Tenancies -->
+              <div class="settings-group-card">
+                <div class="settings-list-item" id="item-archived-tenancies" role="button" tabindex="0">
+                  <div class="settings-item-left">
+                    <div class="settings-item-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                      </svg>
+                    </div>
+                    <span class="settings-item-label">Archived Tenancies</span>
+                  </div>
+                  <svg class="settings-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </div>
+
+                <div class="settings-divider"></div>
+
+                <div class="settings-list-item">
+                  <div class="settings-item-left">
+                    <div class="settings-item-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                        <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                        <path d="M1 9l2 3-2 3"></path>
+                        <path d="M23 9l-2 3 2 3"></path>
+                      </svg>
+                    </div>
+                    <span class="settings-item-label">Haptics</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="toggle-haptics" checked />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div class="settings-divider"></div>
+
+                <div class="settings-list-item">
+                  <div class="settings-item-left">
+                    <div class="settings-item-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                      </svg>
+                    </div>
+                    <span class="settings-item-label">Notifications</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="toggle-settings-notifications" checked />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div class="settings-divider"></div>
+
+                <div class="settings-list-item" id="item-backup-restore" role="button" tabindex="0">
+                  <div class="settings-item-left">
+                    <div class="settings-item-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 16.9A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>
+                        <polyline points="8 17 12 21 16 17"></polyline>
+                        <line x1="12" y1="12" x2="12" y2="21"></line>
+                      </svg>
+                    </div>
+                    <span class="settings-item-label">Backup &amp; Restore</span>
+                  </div>
+                  <svg class="settings-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Settings Group 2: Support & About -->
+              <div class="settings-group-card" style="margin-top: 18px;">
+                <div class="settings-list-item" id="item-about-app" role="button" tabindex="0">
+                  <div class="settings-item-left">
+                    <div class="settings-item-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                      </svg>
+                    </div>
+                    <span class="settings-item-label">About The App</span>
+                  </div>
+                </div>
+
+                <div class="settings-divider"></div>
+
+                <div class="settings-list-item" id="item-contact-support" role="button" tabindex="0">
+                  <div class="settings-item-left">
+                    <div class="settings-item-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                      </svg>
+                    </div>
+                    <span class="settings-item-label">Contact Support</span>
+                  </div>
+                </div>
+
+                <div class="settings-divider"></div>
+
+                <div class="settings-list-item" id="item-report-bug" role="button" tabindex="0">
+                  <div class="settings-item-left">
+                    <div class="settings-item-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="6" y="8" width="12" height="12" rx="6"></rect>
+                        <path d="M12 2v6"></path>
+                        <path d="M4 10h4"></path>
+                        <path d="M16 10h4"></path>
+                        <path d="M4 16h4"></path>
+                        <path d="M16 16h4"></path>
+                      </svg>
+                    </div>
+                    <span class="settings-item-label">Report a Bug</span>
+                  </div>
+                </div>
+
+                <div class="settings-divider"></div>
+
+                <div class="settings-list-item" id="item-request-feature" role="button" tabindex="0">
+                  <div class="settings-item-left">
+                    <div class="settings-item-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"></path>
+                      </svg>
+                    </div>
+                    <span class="settings-item-label">Request Feature</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Footer Branding -->
+              <div class="settings-footer" style="margin-top: 36px; text-align: center;">
+                <p class="settings-version" style="font-size: 13px; color: #7D849B; font-weight: 500;">Rental Buddy v1.0.0</p>
+                <p class="settings-credit" style="font-size: 13px; color: #52586E; margin-top: 4px;">
+                  Crafted using <span style="color: #5452EC; font-weight: 600;">Vroxal Design</span>
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <!-- SCREEN 17: Archived Tenancies List (Populated & Empty States) -->
+          <section class="screen" id="screen-17" data-screen="17">
+            <div class="screen-content">
+              <!-- Stepper Header -->
+              <nav class="stepper-header">
+                <button class="nav-back-btn" id="btn-archived-back" aria-label="Back to Settings">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+                <div class="stepper-titles"></div>
+                <div class="stepper-spacer"></div>
+              </nav>
+
+              <!-- Hero Heading -->
+              <div class="hero-block" style="margin-bottom: 20px;">
+                <h1 class="hero-title" style="font-size: 28px;">Archived Tenancies</h1>
+              </div>
+
+              <!-- STATE A: Populated Archived Tenancy Cards -->
+              <div class="archived-list-container" id="archived-populated-state">
+                <div class="archived-tenancy-card" id="card-archived-lalitpur" role="button" tabindex="0">
+                  <div class="archived-card-top-row">
+                    <span class="badge-pill" style="background: #F1F2F9; color: #52586E; border: 1px solid #D6D8EC;">Archived</span>
+                    <span class="text-caption" style="font-size: 12px; color: #7D849B;">Archived 1 day ago</span>
+                  </div>
+                  <div class="archived-card-title-row" style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                      <h3 class="archived-prop-title" style="font-size: 18px; font-weight: 800; color: #0E1326;">2nd Floor, Lalitpur</h3>
+                      <span class="text-caption" style="font-size: 13.5px; color: #52586E; font-weight: 500;">Rs. 12,000 . Monthly</span>
+                    </div>
+                    <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                  </div>
+                  <div class="tenancy-card-divider" style="margin: 14px 0 10px;"></div>
+                  <div class="tenancy-metrics-grid">
+                    <div class="metric-col">
+                      <strong class="metric-title" style="font-size: 14px;">Rs. 12,034.12</strong>
+                      <span class="metric-label">Last Bill Amount</span>
+                    </div>
+                    <div class="metric-col">
+                      <strong class="metric-title" style="font-size: 14px;">1 bills</strong>
+                      <span class="metric-label">Total Generated</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- STATE B: Empty State (When no tenancies are archived) -->
+              <div class="empty-recent-card hidden" id="archived-empty-state" style="margin-top: 20px; border-style: solid; background: #FFFFFF;">
+                <div class="empty-recent-icon" style="width: 64px; height: 64px; border-radius: 18px; margin-bottom: 16px;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 30px; height: 30px;">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                  </svg>
+                </div>
+                <h3 class="empty-recent-heading" style="font-size: 19px;">No archived tenancies</h3>
+                <p class="empty-recent-copy" style="max-width: 260px; font-size: 13.5px; color: #52586E; line-height: 1.45;">
+                  Tenancies you archive will appear here. You can archive a tenancy from its details screen.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <!-- SCREEN 18: Archived Tenancy Details (Unarchive, Delete & Bill History) -->
+          <section class="screen" id="screen-18" data-screen="18">
+            <div class="screen-content details-screen-content">
+              <!-- Top Navigation Header with 3-Dots Menu -->
+              <nav class="details-nav-header">
+                <button class="nav-back-btn" id="btn-archdetails-back" aria-label="Back to Archived Tenancies">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+                <h1 class="details-page-title" id="archdetails-prop-title">2nd Floor, Lalitpur</h1>
+                <div class="menu-trigger-wrapper">
+                  <button class="icon-btn" id="btn-archdetails-menu" aria-label="Archived options menu" aria-haspopup="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="5" r="1.5"></circle>
+                      <circle cx="12" cy="12" r="1.5"></circle>
+                      <circle cx="12" cy="19" r="1.5"></circle>
+                    </svg>
+                  </button>
+                  <!-- 3-Dots Dropdown with Unarchive & Delete -->
+                  <div class="floating-action-menu hidden" id="archdetails-menu-dropdown" role="menu">
+                    <button class="menu-item" id="menu-action-unarchive" role="menuitem">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                        <rect x="1" y="3" width="22" height="5"></rect>
+                        <line x1="12" y1="12" x2="12" y2="18"></line>
+                        <polyline points="9 15 12 12 15 15"></polyline>
+                      </svg>
+                      <span>Unarchive</span>
+                    </button>
+                    <div class="menu-divider"></div>
+                    <button class="menu-item danger" id="menu-action-arch-delete" role="menuitem">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              </nav>
+
+              <!-- Top Summary Card (Total Bill Paid) -->
+              <div class="details-summary-card">
+                <div class="summary-card-top-row">
+                  <span class="summary-card-sublabel">Total Bill Paid</span>
+                </div>
+                <div class="summary-card-big-amount">
+                  Rs. 68,148.16
+                </div>
+                <div class="summary-card-meta-line">
+                  Rs. 12,000 . Monthly
+                </div>
+                <div class="tenancy-card-divider"></div>
+                <div class="tenancy-metrics-grid">
+                  <div class="metric-col">
+                    <span class="metric-title">Rs. 12,034.12</span>
+                    <span class="metric-label">Last Generated Bill</span>
+                  </div>
+                  <div class="metric-col right-align">
+                    <span class="metric-title">1 Baisakh 2083</span>
+                    <span class="metric-label">Next Billing</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Rent Bill History Stack -->
+              <section class="details-history-section">
+                <h3 class="details-section-title" style="margin-bottom: 14px; font-size: 18px;">Rent Bill History</h3>
+                <div class="history-list-stack" id="archdetails-history-list">
+                  <div class="recent-item-card" role="button" tabindex="0">
+                    <div class="recent-item-left">
+                      <strong class="recent-item-title" style="font-size: 13.5px;">1 Falgun 2082 – 30 Falgun 2082</strong>
+                      <span class="recent-item-timestamp">Generated on 1 Chaitra 2082</span>
+                    </div>
+                    <div class="recent-item-right">
+                      <strong class="recent-item-amount">Rs. 12,034.12</strong>
+                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div class="recent-item-card" role="button" tabindex="0">
+                    <div class="recent-item-left">
+                      <strong class="recent-item-title" style="font-size: 13.5px;">1 Magh 2082 – 29 Magh 2082</strong>
+                      <span class="recent-item-timestamp">Generated on 1 Falgun 2082</span>
+                    </div>
+                    <div class="recent-item-right">
+                      <strong class="recent-item-amount">Rs. 12,112.51</strong>
+                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div class="recent-item-card" role="button" tabindex="0">
+                    <div class="recent-item-left">
+                      <strong class="recent-item-title" style="font-size: 13.5px;">1 Poush 2082 – 30 Poush 2082</strong>
+                      <span class="recent-item-timestamp">Generated on 1 Magh 2082</span>
+                    </div>
+                    <div class="recent-item-right">
+                      <strong class="recent-item-amount">Rs. 12,066.82</strong>
+                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div class="recent-item-card" role="button" tabindex="0">
+                    <div class="recent-item-left">
+                      <strong class="recent-item-title" style="font-size: 13.5px;">1 Mangsir 2082 – 31 Mangsir 2082</strong>
+                      <span class="recent-item-timestamp">Generated on 1 Poush 2082</span>
+                    </div>
+                    <div class="recent-item-right">
+                      <strong class="recent-item-amount">Rs. 12,104.63</strong>
+                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div class="recent-item-card" role="button" tabindex="0">
+                    <div class="recent-item-left">
+                      <strong class="recent-item-title" style="font-size: 13.5px;">1 Kartik 2082 – 30 Kartik 2082</strong>
+                      <span class="recent-item-timestamp">Generated on 1 Mangsir 2082</span>
+                    </div>
+                    <div class="recent-item-right">
+                      <strong class="recent-item-amount">Rs. 12,034.12</strong>
+                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </section>
+
         </div>
 
         <!-- Toast notification popup (Native Gesture Bar strictly excluded) -->
@@ -2258,6 +2948,23 @@
           <button type="button" class="widget-btn" data-goto="7">7. Step 1</button>
           <button type="button" class="widget-btn" data-goto="8">8. Step 2</button>
           <button type="button" class="widget-btn" data-goto="9">9. Step 3</button>
+        </div>
+      </div>
+      <div class="widget-nav-group">
+        <span class="widget-group-label">Bill Generation Flow</span>
+        <div class="widget-buttons">
+          <button type="button" class="widget-btn" data-goto="13">13. Gen Bill</button>
+          <button type="button" class="widget-btn" data-goto="14">14. Review</button>
+          <button type="button" class="widget-btn" data-goto="15">15. Bill Details</button>
+        </div>
+      </div>
+      <div class="widget-nav-group">
+        <span class="widget-group-label">Settings &amp; Archives</span>
+        <div class="widget-buttons">
+          <button type="button" class="widget-btn" data-goto="16">16. Settings</button>
+          <button type="button" class="widget-btn" data-goto="17">17. Archived</button>
+          <button type="button" class="widget-btn" data-goto="18">18. Arch Details</button>
+          <button type="button" class="widget-btn mini-btn" id="btn-toggle-archived-empty" title="Toggle between Populated and Empty Archive views">Toggle Arch Empty</button>
         </div>
       </div>
       <div class="widget-nav-group">
