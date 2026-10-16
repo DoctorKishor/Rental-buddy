@@ -512,6 +512,28 @@ function initEventListeners() {
     }, 1200);
   });
 
+  // Navigate to Tenancy Details (Screen 10) from Dashboard Cards
+  document.getElementById('card-tenancy-lalitpur')?.querySelector('.tenancy-card-main-row')?.addEventListener('click', () => {
+    setDetailsState('monthwise');
+    navigateToScreen(10);
+  });
+  document.getElementById('card-tenancy-rams')?.querySelector('.tenancy-card-main-row')?.addEventListener('click', () => {
+    setDetailsState('monthwise');
+    navigateToScreen(10);
+  });
+  document.getElementById('card-tenancy-apartment11')?.querySelector('.tenancy-card-main-row')?.addEventListener('click', () => {
+    setDetailsState('monthwise');
+    navigateToScreen(10);
+  });
+
+  // Screen 10 Details Navigation
+  document.getElementById('btn-details-back')?.addEventListener('click', () => {
+    navigateToScreen(6);
+  });
+
+  // Initialize Tenancy Details (Screen 10)
+  initTenancyDetails();
+
   // Floating Review Widget buttons for Screen Navigation
   document.querySelectorAll('.widget-btn[data-goto]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -529,6 +551,18 @@ function initEventListeners() {
       setDashboardState(stateKey);
       navigateToScreen(6);
       showToast(`Switched to: ${btn.title}`);
+    });
+  });
+
+  // Floating Review Widget buttons for Tenancy Details States
+  document.querySelectorAll('.widget-btn[data-details-state]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.widget-btn[data-details-state]').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      const stateKey = btn.dataset.detailsState;
+      setDetailsState(stateKey);
+      navigateToScreen(10);
+      showToast(`Details View: ${btn.title}`);
     });
   });
 
@@ -916,6 +950,170 @@ function setDashboardState(stateKey) {
     listPayments?.classList.add('hidden');
     listBills?.classList.add('hidden');
     emptyPayments?.classList.remove('hidden');
+  }
+}
+
+// ==========================================================================
+// TENANCY DETAILS CONTROLLER & MONTH-WISE STATUS (SCREEN 10)
+// ==========================================================================
+
+function initTenancyDetails() {
+  const menuBtn = document.getElementById('btn-details-menu');
+  const menuDropdown = document.getElementById('details-menu-dropdown');
+  const actionEdit = document.getElementById('menu-action-edit');
+  const actionArchive = document.getElementById('menu-action-archive');
+  const actionDelete = document.getElementById('menu-action-delete');
+  const generateBillBtn = document.getElementById('btn-details-generate-bill');
+
+  // Toggle 3-Dots Menu Dropdown
+  menuBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    menuDropdown?.classList.toggle('hidden');
+  });
+
+  // Close dropdown when tapping anywhere else
+  document.addEventListener('click', (e) => {
+    if (menuDropdown && !menuDropdown.contains(e.target) && e.target !== menuBtn) {
+      menuDropdown.classList.add('hidden');
+    }
+  });
+
+  // Menu action handlers
+  actionEdit?.addEventListener('click', () => {
+    menuDropdown?.classList.add('hidden');
+    showToast('✏️ Edit Tenancy Details (Coming up in next flow)');
+  });
+
+  actionArchive?.addEventListener('click', () => {
+    menuDropdown?.classList.add('hidden');
+    showToast('🗃️ Tenancy "2nd Floor, Lalitpur" archived');
+  });
+
+  actionDelete?.addEventListener('click', () => {
+    menuDropdown?.classList.add('hidden');
+    showToast('🗑️ Tenancy deleted');
+    setTimeout(() => navigateToScreen(6), 1000);
+  });
+
+  // View Switcher: Month-wise vs Transaction History
+  const tabMonth = document.getElementById('tab-month-status');
+  const tabHistory = document.getElementById('tab-bill-history');
+  const viewMonth = document.getElementById('view-month-status');
+  const viewHistory = document.getElementById('view-bill-history');
+  const viewTitle = document.getElementById('details-view-title');
+  const emptyBills = document.getElementById('details-empty-bills');
+
+  tabMonth?.addEventListener('click', () => {
+    tabMonth.classList.add('active');
+    tabMonth.setAttribute('aria-selected', 'true');
+    tabHistory.classList.remove('active');
+    tabHistory.setAttribute('aria-selected', 'false');
+    if (viewTitle) viewTitle.textContent = 'Payment Status';
+
+    if (emptyBills?.classList.contains('hidden')) {
+      viewMonth?.classList.remove('hidden');
+      viewHistory?.classList.add('hidden');
+    }
+  });
+
+  tabHistory?.addEventListener('click', () => {
+    tabHistory.classList.add('active');
+    tabHistory.setAttribute('aria-selected', 'true');
+    tabMonth.classList.remove('active');
+    tabMonth.setAttribute('aria-selected', 'false');
+    if (viewTitle) viewTitle.textContent = 'Rent Payment History';
+
+    if (emptyBills?.classList.contains('hidden')) {
+      viewMonth?.classList.add('hidden');
+      viewHistory?.classList.remove('hidden');
+    }
+  });
+
+  // Year Dropdown change
+  const yearSelect = document.getElementById('details-year-select');
+  const yearIndicator = document.getElementById('details-year-indicator');
+  yearSelect?.addEventListener('change', () => {
+    const val = yearSelect.value;
+    if (yearIndicator) {
+      yearIndicator.textContent = val === '2082' ? 'Year 2082 BS (2025–26)' : 'Year 2081 BS (2024–25)';
+    }
+    showToast(`Showing payment records for Year ${val} BS`);
+  });
+
+  // Generate New Bill Button
+  generateBillBtn?.addEventListener('click', () => {
+    const modalBill = document.getElementById('modal-generate-bill');
+    const billTargetTenancy = document.getElementById('bill-target-tenancy');
+    const billTargetCycle = document.getElementById('bill-target-cycle');
+    const billCalculatedTotal = document.getElementById('bill-calculated-total');
+
+    if (billTargetTenancy) billTargetTenancy.textContent = '2nd Floor, Lalitpur';
+    if (billTargetCycle) billTargetCycle.textContent = 'Monthly - Baisakh 2083';
+    if (billCalculatedTotal) billCalculatedTotal.textContent = 'Rs. 12,034.12';
+    modalBill?.classList.remove('hidden');
+  });
+}
+
+function setDetailsState(stateKey) {
+  const countBadge = document.getElementById('details-bills-count');
+  const totalAmount = document.getElementById('details-total-amount');
+  const lastBillCol = document.getElementById('details-last-bill-col');
+  const tabMonth = document.getElementById('tab-month-status');
+  const tabHistory = document.getElementById('tab-bill-history');
+  const viewMonth = document.getElementById('view-month-status');
+  const viewHistory = document.getElementById('view-bill-history');
+  const emptyBills = document.getElementById('details-empty-bills');
+  const menuDropdown = document.getElementById('details-menu-dropdown');
+  const viewTitle = document.getElementById('details-view-title');
+
+  if (stateKey === 'monthwise') {
+    if (countBadge) countBadge.textContent = '12 bills';
+    if (totalAmount) totalAmount.textContent = 'Rs. 68,148.16';
+    lastBillCol?.classList.remove('hidden');
+    tabMonth?.classList.add('active');
+    tabHistory?.classList.remove('active');
+    if (viewTitle) viewTitle.textContent = 'Payment Status';
+    viewMonth?.classList.remove('hidden');
+    viewHistory?.classList.add('hidden');
+    emptyBills?.classList.add('hidden');
+    menuDropdown?.classList.add('hidden');
+
+  } else if (stateKey === 'history') {
+    // Figma Frame 2
+    if (countBadge) countBadge.textContent = '12 bills';
+    if (totalAmount) totalAmount.textContent = 'Rs. 68,148.16';
+    lastBillCol?.classList.remove('hidden');
+    tabHistory?.classList.add('active');
+    tabMonth?.classList.remove('active');
+    if (viewTitle) viewTitle.textContent = 'Rent Payment History';
+    viewMonth?.classList.add('hidden');
+    viewHistory?.classList.remove('hidden');
+    emptyBills?.classList.add('hidden');
+    menuDropdown?.classList.add('hidden');
+
+  } else if (stateKey === 'empty') {
+    // Figma Frame 1 (0 bills empty state)
+    if (countBadge) countBadge.textContent = '0 bill';
+    if (totalAmount) totalAmount.textContent = 'Rs. 0.00';
+    lastBillCol?.classList.add('hidden'); // Only next billing is shown
+    if (viewTitle) viewTitle.textContent = 'Rent Bill History';
+    viewMonth?.classList.add('hidden');
+    viewHistory?.classList.add('hidden');
+    emptyBills?.classList.remove('hidden');
+    menuDropdown?.classList.add('hidden');
+
+  } else if (stateKey === 'menu') {
+    // Figma Frame 3 (Menu open)
+    if (countBadge) countBadge.textContent = '12 bills';
+    if (totalAmount) totalAmount.textContent = 'Rs. 68,148.16';
+    lastBillCol?.classList.remove('hidden');
+    tabHistory?.classList.add('active');
+    tabMonth?.classList.remove('active');
+    if (viewTitle) viewTitle.textContent = 'Rent Payment History';
+    viewMonth?.classList.add('hidden');
+    viewHistory?.classList.remove('hidden');
+    emptyBills?.classList.add('hidden');
+    menuDropdown?.classList.remove('hidden');
   }
 }
 

@@ -269,5 +269,40 @@
 - **Record Payment Modal**: Quick bottom sheet allowing the landlord to select the tenancy, input the payment amount received, pick the payment mode (`Cash`, `GPay / UPI`, `Bank / NEFT`), select the date, and save.
 - **Generate Bill & Share Modal**: Calculation preview showing base rent + electricity units + water + garbage, with instant one-tap "Send Invoice via WhatsApp" and "Copy Bill Summary" actions.
 
+---
+
+## 17. Tenancy Details & Month-Wise / Year-Wise Payment Status Architecture
+
+### 1. Top Navigation & 3-Dots Action Menu
+- **Back Navigation**: Left chevron arrow `←` returning directly to Dashboard (`Screen 6`).
+- **Property Title**: Centered `18px` bold heading with text truncation guarantee.
+- **3-Dots Options Menu (`⋮`)**:
+  - Triggers floating dropdown card (`border-radius: 16px`, subtle border `#E2E4F2`, shadow `0 10px 30px rgba(14, 19, 38, 0.12)`).
+  - Actions: `✏️ Edit`, `🗃️ Archive`, and `🗑️ Delete` (danger red text `#DC2626`).
+
+### 2. Summary Overview Card
+- Displays `Total Bill Paid` with dynamic count pill (`12 bills` or `0 bill`).
+- Large amount display (`Rs. 68,148.16` or `Rs. 0.00` in `28px` ExtraBold `#0E1326`).
+- Rent rate line (`Rs. 12,000 . Monthly`).
+- Divider line with 2-column metrics: `Last Generated Bill` (hidden when 0 bills exist) and `Next Billing`.
+
+### 3. Month-Wise / Year-Wise Payment Status Ledger (Landlord Enhancement)
+- **Problem Resolved**: Standard ledger lists only show isolated transaction receipts; landlords cannot quickly identify which specific months are settled, skipped, or overdue.
+- **Segmented Control**: Pill toggle switching between `[ Month-wise | History ]`.
+- **Financial Year Picker**: Dropdown selector (`2082 BS (2025/26)` / `2081 BS (2024/25)`) with status summary chips:
+  - `✔ 9 Paid` (Green chip: `#DCFCE7` bg, `#16A34A` text).
+  - `⚠️ 2 Due` (Red chip: `#FEE2E2` bg, `#DC2626` text).
+  - `⏳ 1 Next` (Blue chip: `#E0F2FE` bg, `#0284C7` text).
+- **12-Month Card Stack**:
+  - **Settled / Paid Months**: Left accent border `4px solid #16A34A`, month badge (`Falgun`, `Magh`, etc.), payment method tag (`Cash`, `GPay`, `NEFT`), and amount.
+  - **Overdue / Pending Months**: Left accent border `4px solid #DC2626`, soft red gradient background, overdue warning caption (e.g. "3 days overdue"), amount in bold red, and status pill `Pending`.
+  - **Upcoming Months**: Left accent border `4px solid #0284C7`, cycle countdown label, and status pill `⏳ Upcoming`.
+
+### 4. Empty State Typo Correction (Frame 1)
+- Corrected Figma typo from *"you will see the here once they are generated."* to *"you will see them here once they are generated."*
+
+### 5. Sticky Bottom Action Bar
+- Full-width `Generate New Bill` pill button (`54px` min height, zero shrink, vibrant purple gradient).
+
 
 

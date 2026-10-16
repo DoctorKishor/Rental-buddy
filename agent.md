@@ -44,3 +44,11 @@ Please refer to the comprehensive design system and engineering specifications d
   - Recent Activity Ledger: Segmented toggle between `[ Payments | Bills ]` resolving the Figma mismatch and providing landlords complete visibility over cashflow and invoices.
   - Fixed Figma empty state typo: "see them here" instead of "see the here".
   - Interactive bottom sheets for "Record Payment" and "Generate Bill & Share" (with WhatsApp share link simulation).
+- **Tenancy Details & Month-Wise / Year-Wise Status (Screen 10)**:
+  - Top header with back arrow, centered property title, and 3-dots action menu (`Edit`, `Archive`, `Delete`).
+  - Total Summary Card: `Total Bill Paid` with count badge, big amount, monthly rent rate, and 2-column metrics.
+  - Landlord Month-Wise Status Grid: Replaces rigid flat history with a high-clarity 12-month visual payment tracker with year picker (`2082 BS (2025/26)`), summary chips (`Paid`, `Due`, `Upcoming`), and month cards with settlement details.
+  - Segmented toggle between `[ Month-wise | History ]` to support both monthly status and granular transaction logs.
+  - Fixed Figma empty state typo: "see them here once they are generated" instead of "see the here".
+  - Sticky bottom action bar with `Generate New Bill` button (`54px` min height).
+

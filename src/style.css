@@ -2309,3 +2309,402 @@ html, body {
   padding: 4px 8px;
 }
 
+/* ==========================================================================
+   Screen 10: Tenancy Details & Month-wise / Year-wise Status Ledger
+   ========================================================================== */
+.details-screen-content {
+  padding-bottom: 28px;
+}
+
+.details-nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  position: relative;
+}
+
+.details-page-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-heading);
+  text-align: center;
+  flex: 1;
+  margin: 0 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-trigger-wrapper {
+  position: relative;
+}
+
+/* 3-Dots Floating Menu */
+.floating-action-menu {
+  position: absolute;
+  top: 44px;
+  right: 0;
+  z-index: 60;
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  padding: 6px;
+  box-shadow: 0 10px 30px rgba(14, 19, 38, 0.12), 0 2px 6px rgba(14, 19, 38, 0.04);
+  border: 1px solid #E2E4F2;
+  min-width: 155px;
+  animation: popIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.floating-action-menu.hidden {
+  display: none;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-heading);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.12s ease;
+}
+
+.menu-item:hover {
+  background-color: #F4F5FC;
+}
+
+.menu-item svg {
+  width: 17px;
+  height: 17px;
+  color: var(--text-body);
+}
+
+.menu-item.danger {
+  color: #DC2626;
+}
+
+.menu-item.danger svg {
+  color: #DC2626;
+}
+
+.menu-divider {
+  height: 1px;
+  background-color: #EEF0F8;
+  margin: 4px 6px;
+}
+
+/* Summary Card */
+.details-summary-card {
+  background-color: var(--bg-surface);
+  border-radius: var(--radius-card);
+  padding: 20px 22px;
+  box-shadow: 0 4px 18px rgba(28, 33, 66, 0.04);
+  border: 1px solid rgba(226, 228, 242, 0.7);
+  margin-bottom: 24px;
+}
+
+.summary-card-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.summary-card-sublabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-body);
+}
+
+.bills-count-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background-color: var(--bg-accent-subtle);
+  color: var(--color-primary);
+}
+
+.summary-card-big-amount {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-heading);
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.summary-card-meta-line {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-body);
+}
+
+/* History / Month Section */
+.details-history-section {
+  margin-bottom: 20px;
+}
+
+.details-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.header-titles {
+  display: flex;
+  flex-direction: column;
+}
+
+.details-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-heading);
+  margin-bottom: 2px;
+}
+
+.details-section-subtitle {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* Month-wise Year Filter Bar */
+.year-filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.year-dropdown {
+  background-color: #FFFFFF;
+  border: 1.5px solid #E2E4F2;
+  border-radius: 9999px;
+  padding: 4px 12px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-heading);
+  outline: none;
+  cursor: pointer;
+}
+
+.status-summary-chips {
+  display: flex;
+  gap: 6px;
+}
+
+.status-chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.chip-paid {
+  background-color: #DCFCE7;
+  color: #16A34A;
+  border: 1px solid #BBF7D0;
+}
+
+.chip-due {
+  background-color: #FEE2E2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+}
+
+.chip-upcoming {
+  background-color: #E0F2FE;
+  color: #0284C7;
+  border: 1px solid #BAE6FD;
+}
+
+/* Month Cards Stack */
+.month-cards-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.month-card {
+  background-color: var(--bg-surface);
+  border-radius: 14px;
+  padding: 11px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid rgba(226, 228, 242, 0.7);
+  box-shadow: 0 2px 6px rgba(28, 33, 66, 0.02);
+  transition: transform 0.12s ease;
+}
+
+.month-card:hover {
+  transform: translateY(-1px);
+}
+
+.month-card.month-overdue {
+  border-left: 4px solid #DC2626;
+  background: linear-gradient(90deg, rgba(254, 226, 226, 0.28) 0%, #FFFFFF 35%);
+}
+
+.month-card.month-paid {
+  border-left: 4px solid #16A34A;
+}
+
+.month-card.month-upcoming {
+  border-left: 4px solid #0284C7;
+  opacity: 0.9;
+}
+
+.month-card-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.month-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 8px;
+  text-align: center;
+  min-width: 54px;
+  line-height: 1.2;
+}
+
+.month-badge.paid {
+  background-color: #E8F8EE;
+  color: #16A34A;
+}
+
+.month-badge.overdue {
+  background-color: #FEE2E2;
+  color: #DC2626;
+}
+
+.month-badge.upcoming {
+  background-color: #E0F2FE;
+  color: #0284C7;
+}
+
+.month-details-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.month-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.month-subtext {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.month-card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.month-amount {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.month-amount.danger {
+  color: #DC2626;
+}
+
+.month-amount.muted {
+  color: var(--text-subtle);
+}
+
+.month-status-pill {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  line-height: 1;
+}
+
+.month-status-pill.paid {
+  background-color: #DCFCE7;
+  color: #16A34A;
+}
+
+.month-status-pill.overdue {
+  background-color: #FEE2E2;
+  color: #DC2626;
+}
+
+.month-status-pill.upcoming {
+  background-color: #E0F2FE;
+  color: #0284C7;
+}
+
+/* 360px adjustments for Details */
+@media (max-width: 380px) {
+  .details-summary-card {
+    padding: 16px 16px;
+  }
+  .summary-card-big-amount {
+    font-size: 24px;
+  }
+  .month-card {
+    padding: 10px 10px;
+  }
+  .month-name {
+    font-size: 12.5px;
+  }
+  .month-subtext {
+    font-size: 10.5px;
+  }
+  .month-amount {
+    font-size: 12.5px;
+  }
+}
+
+.mobile-frame.width-360 .details-summary-card {
+  padding: 16px 16px;
+}
+
+.mobile-frame.width-360 .summary-card-big-amount {
+  font-size: 24px;
+}
+
+.mobile-frame.width-360 .month-card {
+  padding: 10px 10px;
+}
+
+.mobile-frame.width-360 .month-name {
+  font-size: 12.5px;
+}
+
+.mobile-frame.width-360 .month-subtext {
+  font-size: 10.5px;
+}
+
+.mobile-frame.width-360 .month-amount {
+  font-size: 12.5px;
+}
+
+

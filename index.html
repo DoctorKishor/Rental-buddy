@@ -1300,6 +1300,405 @@
             </footer>
           </section>
 
+          <!-- SCREEN 10: Tenancy Details & Month-wise / Year-wise Status Ledger -->
+          <section class="screen" id="screen-10" data-screen="10">
+            <div class="screen-content details-screen-content">
+              <!-- Top Navigation Header with 3-Dots Menu -->
+              <nav class="details-nav-header">
+                <button class="nav-back-btn" id="btn-details-back" aria-label="Back to Dashboard">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+                <h1 class="details-page-title" id="details-prop-title">2nd Floor, Lalitpur</h1>
+                <div class="menu-trigger-wrapper">
+                  <button class="icon-btn" id="btn-details-menu" aria-label="Tenancy options menu" aria-haspopup="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="5" r="1.5"></circle>
+                      <circle cx="12" cy="12" r="1.5"></circle>
+                      <circle cx="12" cy="19" r="1.5"></circle>
+                    </svg>
+                  </button>
+
+                  <!-- 3-Dots Floating Action Menu (from Figma Frame 3) -->
+                  <div class="floating-action-menu hidden" id="details-menu-dropdown" role="menu">
+                    <button class="menu-item" id="menu-action-edit" role="menuitem">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                      </svg>
+                      <span>Edit</span>
+                    </button>
+                    <button class="menu-item" id="menu-action-archive" role="menuitem">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                        <rect x="1" y="3" width="22" height="5"></rect>
+                        <line x1="10" y1="12" x2="14" y2="12"></line>
+                      </svg>
+                      <span>Archive</span>
+                    </button>
+                    <div class="menu-divider"></div>
+                    <button class="menu-item danger" id="menu-action-delete" role="menuitem">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              </nav>
+
+              <!-- Top Summary Card (Total Bill Paid & Next Billing) -->
+              <div class="details-summary-card">
+                <div class="summary-card-top-row">
+                  <span class="summary-card-sublabel">Total Bill Paid</span>
+                  <span class="bills-count-badge" id="details-bills-count">12 bills</span>
+                </div>
+                <div class="summary-card-big-amount" id="details-total-amount">
+                  Rs. 68,148.16
+                </div>
+                <div class="summary-card-meta-line" id="details-rent-rate">
+                  Rs. 12,000 . Monthly
+                </div>
+
+                <div class="tenancy-card-divider"></div>
+
+                <!-- 2-Column Metrics (Last Generated Bill + Next Billing) -->
+                <div class="tenancy-metrics-grid" id="details-stats-grid">
+                  <div class="metric-col" id="details-last-bill-col">
+                    <span class="metric-title" id="details-last-bill-amount">Rs. 12,034.12</span>
+                    <span class="metric-label">Last Generated Bill</span>
+                  </div>
+                  <div class="metric-col right-align" id="details-next-bill-col">
+                    <span class="metric-title" id="details-next-billing-date">1 Baisakh 2083</span>
+                    <span class="metric-label">Next Billing</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- LANDLORD PERSPECTIVE ENHANCEMENT: Month-wise & Year-wise Payment Status vs History -->
+              <section class="details-history-section">
+                <div class="details-section-header">
+                  <div class="header-titles">
+                    <h2 class="details-section-title" id="details-view-title">Payment Status</h2>
+                    <span class="details-section-subtitle" id="details-year-indicator">Year 2082 BS (2025–26)</span>
+                  </div>
+
+                  <!-- Segmented View Switcher: Month-wise Grid vs Transaction History -->
+                  <div class="segmented-control" role="tablist" aria-label="Tenancy view switcher">
+                    <button class="segment-btn active" id="tab-month-status" role="tab" aria-selected="true">
+                      Month-wise
+                    </button>
+                    <button class="segment-btn" id="tab-bill-history" role="tab" aria-selected="false">
+                      History
+                    </button>
+                  </div>
+                </div>
+
+                <!-- VIEW 1: MONTH-WISE / YEAR-WISE PAYMENT TRACKER (LANDLORD'S REQUESTED FEATURE) -->
+                <div class="month-status-container" id="view-month-status">
+                  <!-- Year Selector & Filter Counters -->
+                  <div class="year-filter-bar">
+                    <div class="year-select-pill">
+                      <select id="details-year-select" class="year-dropdown" aria-label="Select Financial Year">
+                        <option value="2082" selected>2082 BS (2025/26)</option>
+                        <option value="2081">2081 BS (2024/25)</option>
+                      </select>
+                    </div>
+                    <div class="status-summary-chips">
+                      <span class="status-chip chip-paid" title="9 months settled">✔ 9 Paid</span>
+                      <span class="status-chip chip-due" title="2 months pending/overdue">⚠️ 2 Due</span>
+                      <span class="status-chip chip-upcoming" title="1 month upcoming">⏳ 1 Next</span>
+                    </div>
+                  </div>
+
+                  <!-- 12-Month Payment Status Cards Stack -->
+                  <div class="month-cards-stack">
+                    <!-- Month: Chaitra (Current Overdue) -->
+                    <div class="month-card month-overdue">
+                      <div class="month-card-left">
+                        <div class="month-badge overdue">Chaitra</div>
+                        <div class="month-details-col">
+                          <strong class="month-name">Chaitra 2082 (Apr '26)</strong>
+                          <span class="month-subtext">Due 12 Chaitra • 3 days overdue</span>
+                        </div>
+                      </div>
+                      <div class="month-card-right">
+                        <span class="month-amount danger">Rs. 12,034.12</span>
+                        <span class="month-status-pill overdue">Pending</span>
+                      </div>
+                    </div>
+
+                    <!-- Month: Falgun (Paid) -->
+                    <div class="month-card month-paid">
+                      <div class="month-card-left">
+                        <div class="month-badge paid">Falgun</div>
+                        <div class="month-details-col">
+                          <strong class="month-name">Falgun 2082 (Mar '26)</strong>
+                          <span class="month-subtext">Paid on 12th Chaitra • Cash</span>
+                        </div>
+                      </div>
+                      <div class="month-card-right">
+                        <span class="month-amount">Rs. 12,034.12</span>
+                        <span class="month-status-pill paid">✔ Settled</span>
+                      </div>
+                    </div>
+
+                    <!-- Month: Magh (Paid) -->
+                    <div class="month-card month-paid">
+                      <div class="month-card-left">
+                        <div class="month-badge paid">Magh</div>
+                        <div class="month-details-col">
+                          <strong class="month-name">Magh 2082 (Feb '26)</strong>
+                          <span class="month-subtext">Paid on 1st Falgun • GPay</span>
+                        </div>
+                      </div>
+                      <div class="month-card-right">
+                        <span class="month-amount">Rs. 12,112.51</span>
+                        <span class="month-status-pill paid">✔ Settled</span>
+                      </div>
+                    </div>
+
+                    <!-- Month: Poush (Paid) -->
+                    <div class="month-card month-paid">
+                      <div class="month-card-left">
+                        <div class="month-badge paid">Poush</div>
+                        <div class="month-details-col">
+                          <strong class="month-name">Poush 2082 (Jan '26)</strong>
+                          <span class="month-subtext">Paid on 1st Magh • NEFT</span>
+                        </div>
+                      </div>
+                      <div class="month-card-right">
+                        <span class="month-amount">Rs. 12,066.82</span>
+                        <span class="month-status-pill paid">✔ Settled</span>
+                      </div>
+                    </div>
+
+                    <!-- Month: Mangsir (Paid) -->
+                    <div class="month-card month-paid">
+                      <div class="month-card-left">
+                        <div class="month-badge paid">Mangsir</div>
+                        <div class="month-details-col">
+                          <strong class="month-name">Mangsir 2082 (Dec '25)</strong>
+                          <span class="month-subtext">Paid on 1st Poush • Cash</span>
+                        </div>
+                      </div>
+                      <div class="month-card-right">
+                        <span class="month-amount">Rs. 12,104.63</span>
+                        <span class="month-status-pill paid">✔ Settled</span>
+                      </div>
+                    </div>
+
+                    <!-- Month: Kartik (Paid) -->
+                    <div class="month-card month-paid">
+                      <div class="month-card-left">
+                        <div class="month-badge paid">Kartik</div>
+                        <div class="month-details-col">
+                          <strong class="month-name">Kartik 2082 (Nov '25)</strong>
+                          <span class="month-subtext">Paid on 1st Mangsir • NEFT</span>
+                        </div>
+                      </div>
+                      <div class="month-card-right">
+                        <span class="month-amount">Rs. 12,034.12</span>
+                        <span class="month-status-pill paid">✔ Settled</span>
+                      </div>
+                    </div>
+
+                    <!-- Month: Ashwin (Paid) -->
+                    <div class="month-card month-paid">
+                      <div class="month-card-left">
+                        <div class="month-badge paid">Ashwin</div>
+                        <div class="month-details-col">
+                          <strong class="month-name">Ashwin 2082 (Oct '25)</strong>
+                          <span class="month-subtext">Paid on 1st Kartik • Cash</span>
+                        </div>
+                      </div>
+                      <div class="month-card-right">
+                        <span class="month-amount">Rs. 12,000.00</span>
+                        <span class="month-status-pill paid">✔ Settled</span>
+                      </div>
+                    </div>
+
+                    <!-- Month: Bhadra (Paid) -->
+                    <div class="month-card month-paid">
+                      <div class="month-card-left">
+                        <div class="month-badge paid">Bhadra</div>
+                        <div class="month-details-col">
+                          <strong class="month-name">Bhadra 2082 (Sep '25)</strong>
+                          <span class="month-subtext">Paid on 1st Ashwin • GPay</span>
+                        </div>
+                      </div>
+                      <div class="month-card-right">
+                        <span class="month-amount">Rs. 12,000.00</span>
+                        <span class="month-status-pill paid">✔ Settled</span>
+                      </div>
+                    </div>
+
+                    <!-- Month: Shrawan (Paid) -->
+                    <div class="month-card month-paid">
+                      <div class="month-card-left">
+                        <div class="month-badge paid">Shrawan</div>
+                        <div class="month-details-col">
+                          <strong class="month-name">Shrawan 2082 (Aug '25)</strong>
+                          <span class="month-subtext">Paid on 1st Bhadra • Cash</span>
+                        </div>
+                      </div>
+                      <div class="month-card-right">
+                        <span class="month-amount">Rs. 12,000.00</span>
+                        <span class="month-status-pill paid">✔ Settled</span>
+                      </div>
+                    </div>
+
+                    <!-- Month: Ashadh (Paid) -->
+                    <div class="month-card month-paid">
+                      <div class="month-card-left">
+                        <div class="month-badge paid">Ashadh</div>
+                        <div class="month-details-col">
+                          <strong class="month-name">Ashadh 2082 (Jul '25)</strong>
+                          <span class="month-subtext">Paid on 1st Shrawan • NEFT</span>
+                        </div>
+                      </div>
+                      <div class="month-card-right">
+                        <span class="month-amount">Rs. 12,000.00</span>
+                        <span class="month-status-pill paid">✔ Settled</span>
+                      </div>
+                    </div>
+
+                    <!-- Month: Jestha (Paid) -->
+                    <div class="month-card month-paid">
+                      <div class="month-card-left">
+                        <div class="month-badge paid">Jestha</div>
+                        <div class="month-details-col">
+                          <strong class="month-name">Jestha 2082 (Jun '25)</strong>
+                          <span class="month-subtext">Paid on 1st Ashadh • Cash</span>
+                        </div>
+                      </div>
+                      <div class="month-card-right">
+                        <span class="month-amount">Rs. 12,000.00</span>
+                        <span class="month-status-pill paid">✔ Settled</span>
+                      </div>
+                    </div>
+
+                    <!-- Month: Baisakh (Next Upcoming) -->
+                    <div class="month-card month-upcoming">
+                      <div class="month-card-left">
+                        <div class="month-badge upcoming">Baisakh</div>
+                        <div class="month-details-col">
+                          <strong class="month-name">Baisakh 2083 (May '26)</strong>
+                          <span class="month-subtext">Billing in 24 days • Next Cycle</span>
+                        </div>
+                      </div>
+                      <div class="month-card-right">
+                        <span class="month-amount muted">Rs. 12,000.00</span>
+                        <span class="month-status-pill upcoming">⏳ Upcoming</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- VIEW 2: RENT BILL & PAYMENT HISTORY LIST (FROM FIGMA MOCKUP) -->
+                <div class="recent-list hidden" id="view-bill-history">
+                  <!-- Row 1: Falgun -->
+                  <div class="recent-item-card" role="button" tabindex="0">
+                    <div class="recent-item-left">
+                      <strong class="recent-item-title">1 Falgun 2082 — 30 Falgun 2082</strong>
+                      <span class="recent-item-timestamp">Generated on 1 Chaitra 2082</span>
+                    </div>
+                    <div class="recent-item-right">
+                      <strong class="recent-item-amount">Rs. 12,034.12</strong>
+                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <!-- Row 2: Magh -->
+                  <div class="recent-item-card" role="button" tabindex="0">
+                    <div class="recent-item-left">
+                      <strong class="recent-item-title">1 Magh 2082 — 29 Magh 2082</strong>
+                      <span class="recent-item-timestamp">Generated on 1 Falgun 2082</span>
+                    </div>
+                    <div class="recent-item-right">
+                      <strong class="recent-item-amount">Rs. 12,112.51</strong>
+                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <!-- Row 3: Poush -->
+                  <div class="recent-item-card" role="button" tabindex="0">
+                    <div class="recent-item-left">
+                      <strong class="recent-item-title">1 Poush 2082 — 30 Poush 2082</strong>
+                      <span class="recent-item-timestamp">Generated on 1 Magh 2082</span>
+                    </div>
+                    <div class="recent-item-right">
+                      <strong class="recent-item-amount">Rs. 12,066.82</strong>
+                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <!-- Row 4: Mangsir -->
+                  <div class="recent-item-card" role="button" tabindex="0">
+                    <div class="recent-item-left">
+                      <strong class="recent-item-title">1 Mangisr 2082 — 31 Mangisr 2082</strong>
+                      <span class="recent-item-timestamp">Generated on 1 Poush 2082</span>
+                    </div>
+                    <div class="recent-item-right">
+                      <strong class="recent-item-amount">Rs. 12,104.63</strong>
+                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <!-- Row 5: Kartik -->
+                  <div class="recent-item-card" role="button" tabindex="0">
+                    <div class="recent-item-left">
+                      <strong class="recent-item-title">1 Kartik 2082 — 30 Kartik 2082</strong>
+                      <span class="recent-item-timestamp">Generated on 1 Mangisr 2082</span>
+                    </div>
+                    <div class="recent-item-right">
+                      <strong class="recent-item-amount">Rs. 12,034.12</strong>
+                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- VIEW 3: EMPTY BILLS STATE (FROM FIGMA FRAME 1, TYPO FIXED) -->
+                <div class="empty-recent-card hidden" id="details-empty-bills">
+                  <div class="empty-recent-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                      <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                  </div>
+                  <h3 class="empty-recent-heading">No Recent Bills</h3>
+                  <p class="empty-recent-copy">
+                    There are no bills to display at this time. You will see them here once they are generated.
+                  </p>
+                </div>
+
+              </section>
+            </div>
+
+            <!-- Sticky Bottom Action Bar (Generate New Bill) -->
+            <footer class="bottom-bar">
+              <button class="btn btn-primary btn-pill" id="btn-details-generate-bill">
+                Generate New Bill
+              </button>
+            </footer>
+          </section>
+
         </div>
 
         <!-- Toast notification popup (Native Gesture Bar strictly excluded) -->
@@ -1328,15 +1727,25 @@
         <span class="widget-group-label">Tenancy Flow</span>
         <div class="widget-buttons">
           <button type="button" class="widget-btn" data-goto="6">6. Dashboard</button>
-          <button type="button" class="widget-btn" data-goto="7">7. Step 1 (Info)</button>
-          <button type="button" class="widget-btn" data-goto="8">8. Step 2 (Utils)</button>
-          <button type="button" class="widget-btn" data-goto="9">9. Step 3 (Confirm)</button>
+          <button type="button" class="widget-btn" data-goto="10">10. Details</button>
+          <button type="button" class="widget-btn" data-goto="7">7. Step 1</button>
+          <button type="button" class="widget-btn" data-goto="8">8. Step 2</button>
+          <button type="button" class="widget-btn" data-goto="9">9. Step 3</button>
+        </div>
+      </div>
+      <div class="widget-nav-group">
+        <span class="widget-group-label">Tenancy Details States</span>
+        <div class="widget-buttons">
+          <button type="button" class="widget-btn mini-btn active" data-details-state="monthwise" title="Month-wise / Year-wise visual status grid">Month-wise</button>
+          <button type="button" class="widget-btn mini-btn" data-details-state="history" title="Figma Mockup 2: Rent Payment/Bill History list">History</button>
+          <button type="button" class="widget-btn mini-btn" data-details-state="empty" title="Figma Mockup 1: No Recent Bills empty state">0 Bills (Empty)</button>
+          <button type="button" class="widget-btn mini-btn" data-details-state="menu" title="Figma Mockup 3: 3-dots Edit/Archive/Delete menu open">3-Dots Menu</button>
         </div>
       </div>
       <div class="widget-nav-group">
         <span class="widget-group-label">Home Mockup States</span>
         <div class="widget-buttons">
-          <button type="button" class="widget-btn mini-btn active" data-home-state="state1" title="Mockup 1: Multi Tenancy + Overdue + Recent Payments">M1: Multi Pay</button>
+          <button type="button" class="widget-btn mini-btn" data-home-state="state1" title="Mockup 1: Multi Tenancy + Overdue + Recent Payments">M1: Multi Pay</button>
           <button type="button" class="widget-btn mini-btn" data-home-state="state2" title="Mockup 2: Single Tenancy + BS Bills">M2: Single BS</button>
           <button type="button" class="widget-btn mini-btn" data-home-state="state3" title="Mockup 3: Multi Tenancy + Generate Bills">M3: Gen Bills</button>
           <button type="button" class="widget-btn mini-btn" data-home-state="state4" title="Mockup 4: Single Tenancy + Empty Payments">M4: Empty Pay</button>
