@@ -362,6 +362,26 @@
 - WhatsApp receipt toggle switch queues automated digital acknowledgment.
 - Sticky bottom bar with full `54px` min-height `"Confirm & Save Receipt"` pill button and 360px viewport responsiveness.
 
+---
+
+## 20. Modal Lifecycle, Scoping & Universal Overlay Visibility Protocol (STRICT RULE)
+
+### 1. The Root Cause of Stuck Modals
+- When CSS specifies `.modal-overlay { display: flex; }`, dynamically toggling `.hidden` has **zero effect** unless `.hidden` is explicitly declared with `display: none !important;` and `.modal-overlay.hidden { display: none !important; pointer-events: none !important; visibility: hidden !important; }`. Without this, modals remain permanently rendered and block viewport interactivity.
+
+### 2. Strict Architectural Rules for Modals
+1. **DOM Scoping Inside Parent Screen**:
+   - Every modal sheet MUST be nested inside its parent `<section class="screen">` container rather than floating loosely in `.screens-slider`. When a screen is inactive (`opacity: 0; pointer-events: none;`), its modals are guaranteed to be dormant.
+2. **Universal Dismissal Vectors**:
+   - Every modal MUST support four independent closure methods:
+     1. Dedicated close button (`.modal-close-btn` with minimum 36px tap target, centered icon, hover/active scaling).
+     2. Background overlay backdrop tap (tapping on `.modal-overlay` outside `.modal-sheet`).
+     3. Sheet drag handle tap (`.modal-handle` cursor pointer).
+     4. Keyboard `Escape` key.
+3. **Screen Transition Auto-Cleanup**:
+   - The screen navigator (`navigateToScreen`) MUST automatically dismiss all active `.modal-overlay` elements and floating menus whenever the user transitions between screens, preventing orphaned modals across views.
+
+
 
 
 

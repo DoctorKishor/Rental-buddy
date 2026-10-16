@@ -79,6 +79,12 @@ function showToast(message, duration = 3000) {
 function navigateToScreen(targetScreenNumber) {
   state.currentScreen = targetScreenNumber;
 
+  // Auto-close any open modals and floating dropdown menus when transitioning screens
+  document.querySelectorAll('.modal-overlay').forEach((modal) => {
+    modal.classList.add('hidden');
+  });
+  document.getElementById('details-menu-dropdown')?.classList.add('hidden');
+
   screens.forEach((screen) => {
     const screenNum = parseInt(screen.dataset.screen, 10);
     screen.classList.remove('active', 'exit-left');
@@ -578,6 +584,35 @@ function initEventListeners() {
       viewportLabel.textContent = is360 ? 'Compact (360px)' : 'Standard (412px)';
     }
     showToast(is360 ? 'Viewport set to 360px (Compact Mobile)' : 'Viewport set to 412px (Standard Mobile)', 2000);
+  });
+
+  // Global Modal Overlay Dismissal (Backdrop click, Handle click, Close buttons)
+  document.querySelectorAll('.modal-overlay').forEach((overlay) => {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.classList.add('hidden');
+      }
+    });
+
+    overlay.querySelector('.modal-handle')?.addEventListener('click', () => {
+      overlay.classList.add('hidden');
+    });
+
+    overlay.querySelectorAll('.modal-close-btn').forEach((closeBtn) => {
+      closeBtn.addEventListener('click', () => {
+        overlay.classList.add('hidden');
+      });
+    });
+  });
+
+  // Global Escape key listener to close open modals & floating menus
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal-overlay').forEach((modal) => {
+        modal.classList.add('hidden');
+      });
+      document.getElementById('details-menu-dropdown')?.classList.add('hidden');
+    }
   });
 }
 

@@ -1819,6 +1819,11 @@ html, body {
   flex: 0 0 auto !important;
 }
 
+/* Universal Visibility Utility */
+.hidden {
+  display: none !important;
+}
+
 /* ==========================================================================
    Modals & Bottom Sheets
    ========================================================================== */
@@ -1835,6 +1840,12 @@ html, body {
   align-items: flex-end;
   justify-content: center;
   animation: fadeIn 0.2s ease;
+}
+
+.modal-overlay.hidden {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
 }
 
 .modal-sheet {
@@ -1854,6 +1865,12 @@ html, body {
   border-radius: 2px;
   background-color: #D6D9EE;
   margin: 0 auto 14px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.modal-handle:hover {
+  background-color: #A3AABF;
 }
 
 .modal-header {
@@ -1872,11 +1889,30 @@ html, body {
 .modal-close-btn {
   background: transparent;
   border: none;
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 700;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 6px;
   border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  line-height: 1;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.modal-close-btn:hover {
+  background-color: #F4F5FC;
+  color: var(--text-heading);
+}
+
+.modal-close-btn:active {
+  transform: scale(0.9);
 }
 
 .payment-methods-grid {

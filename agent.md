@@ -66,6 +66,12 @@ Please refer to the comprehensive design system and engineering specifications d
   - Interactive Date Picker: Native calendar integration with formatted human-readable date.
   - Amount shortcuts (`Full Due`, `Base Rent`, `Round amount`), WhatsApp receipt toggle, and instant synchronization to dashboard recent payments ledger.
   - Sticky bottom action bar with `Confirm & Save Receipt` pill button (`54px` min height, zero shrink).
+- **Modal Lifecycle, Scoping & Universal Overlay Visibility Protocol (Rule 20)**:
+  - Strict CSS: `.hidden` and `.modal-overlay.hidden` MUST have `display: none !important; pointer-events: none !important; visibility: hidden !important;`.
+  - DOM Scoping: Every modal sheet MUST be nested inside its parent `<section class="screen">` rather than loose in `.screens-slider`.
+  - 4 Dismissal Vectors: Close button (36px tap target), backdrop tap, handle click, and Escape key.
+  - Screen transitions automatically dismiss all modals and menus to prevent orphaned overlays.
+
 
 
 

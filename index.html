@@ -1898,60 +1898,60 @@
                 Save Changes
               </button>
             </footer>
-          </section>
 
-          <!-- MODAL: Revise Rent from Cycle Bottom Sheet -->
-          <div class="modal-overlay hidden" id="modal-revise-rent" role="dialog" aria-modal="true" aria-labelledby="modal-revise-title">
-            <div class="modal-sheet">
-              <div class="modal-handle"></div>
-              <div class="modal-header">
-                <h3 class="modal-title" id="modal-revise-title">Revise Rent from Cycle</h3>
-                <button class="modal-close-btn" id="btn-close-revise-modal" aria-label="Close dialog">✕</button>
+            <!-- MODAL: Revise Rent from Cycle Bottom Sheet -->
+            <div class="modal-overlay hidden" id="modal-revise-rent" role="dialog" aria-modal="true" aria-labelledby="modal-revise-title">
+              <div class="modal-sheet">
+                <div class="modal-handle"></div>
+                <div class="modal-header">
+                  <h3 class="modal-title" id="modal-revise-title">Revise Rent from Cycle</h3>
+                  <button class="modal-close-btn" id="btn-close-revise-modal" aria-label="Close dialog">✕</button>
+                </div>
+                <p class="hero-subtitle" style="margin-bottom: 16px; font-size: 13.5px;">
+                  Schedule a rent increment or discount. Past billing history will remain preserved.
+                </p>
+                <form class="form-stack" id="form-revise-rent" onsubmit="return false;">
+                  <div class="form-row-split">
+                    <div class="form-group">
+                      <label class="form-label mini">Current Rent</label>
+                      <input type="text" class="form-input mini" value="Rs. 12,000" readonly style="background: #F4F5FC;" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label mini" for="input-new-rent">New Rent (Rs.)</label>
+                      <input type="number" id="input-new-rent" class="form-input mini" value="14000" placeholder="14000" />
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label mini" for="select-revise-cycle">Effective From Cycle</label>
+                    <select id="select-revise-cycle" class="form-input mini">
+                      <option value="1 Baisakh 2083" selected>Next Cycle (1 Baisakh 2083 / May 2026)</option>
+                      <option value="1 Jestha 2083">In 2 Months (1 Jestha 2083 / June 2026)</option>
+                      <option value="1 Ashadh 2083">In 3 Months (1 Ashadh 2083 / July 2026)</option>
+                      <option value="Custom Date">Custom Date</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label mini" for="input-revise-reason">Revision Reason (Optional)</label>
+                    <input type="text" id="input-revise-reason" class="form-input mini" placeholder="e.g. Annual 10% increment per agreement" />
+                  </div>
+
+                  <div class="confirm-row" style="padding: 10px 0;">
+                    <span class="confirm-label" style="font-size: 13px;">Send WhatsApp notification to tenant</span>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="toggle-notify-tenant-revision" checked />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+
+                  <button class="btn btn-primary btn-pill" id="btn-confirm-rent-revision" style="margin-top: 8px;">
+                    Schedule Revision
+                  </button>
+                </form>
               </div>
-              <p class="hero-subtitle" style="margin-bottom: 16px; font-size: 13.5px;">
-                Schedule a rent increment or discount. Past billing history will remain preserved.
-              </p>
-              <form class="form-stack" id="form-revise-rent" onsubmit="return false;">
-                <div class="form-row-split">
-                  <div class="form-group">
-                    <label class="form-label mini">Current Rent</label>
-                    <input type="text" class="form-input mini" value="Rs. 12,000" readonly style="background: #F4F5FC;" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label mini" for="input-new-rent">New Rent (Rs.)</label>
-                    <input type="number" id="input-new-rent" class="form-input mini" value="14000" placeholder="14000" />
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label mini" for="select-revise-cycle">Effective From Cycle</label>
-                  <select id="select-revise-cycle" class="form-input mini">
-                    <option value="1 Baisakh 2083" selected>Next Cycle (1 Baisakh 2083 / May 2026)</option>
-                    <option value="1 Jestha 2083">In 2 Months (1 Jestha 2083 / June 2026)</option>
-                    <option value="1 Ashadh 2083">In 3 Months (1 Ashadh 2083 / July 2026)</option>
-                    <option value="Custom Date">Custom Date</option>
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label mini" for="input-revise-reason">Revision Reason (Optional)</label>
-                  <input type="text" id="input-revise-reason" class="form-input mini" placeholder="e.g. Annual 10% increment per agreement" />
-                </div>
-
-                <div class="confirm-row" style="padding: 10px 0;">
-                  <span class="confirm-label" style="font-size: 13px;">Send WhatsApp notification to tenant</span>
-                  <label class="toggle-switch">
-                    <input type="checkbox" id="toggle-notify-tenant-revision" checked />
-                    <span class="toggle-slider"></span>
-                  </label>
-                </div>
-
-                <button class="btn btn-primary btn-pill" id="btn-confirm-rent-revision" style="margin-top: 8px;">
-                  Schedule Revision
-                </button>
-              </form>
             </div>
-          </div>
+          </section>
 
           <!-- SCREEN 12: Dedicated Record Payment Page (Month-Wise Settlement Logic) -->
           <section class="screen" id="screen-12" data-screen="12">
