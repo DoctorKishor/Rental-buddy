@@ -90,6 +90,19 @@ Please refer to the comprehensive design system and engineering specifications d
   - Restore Card: File picker trigger for `.rhb` file upload, schema validation, and safe data restoration with user feedback toast.
   - Fixed Figma Typo: Changed `"You current preferences will be kept."` to `"Your current preferences will be kept."`.
   - 360px viewport guarantee and zero-shrink 54px pill buttons.
+- **English / Gregorian Calendar Standardization (100% Cleansed)**:
+  - Bikram Sambat (BS) calendar removed entirely across all screens.
+  - Standardized on English months (`Jan – Dec 2026`) across Screen 6 (Recent Bills), Screen 10 (12-month ledger), Screen 11 (Rent Revisions), Screen 12 (Month Settlement), and Screens 13-15 (Bill Generator & Review).
+- **Supabase Cloud Authentication & Role-Based Access (Screen 20)**:
+  - Admin (Landlord) primary login (`admin@rentalbuddy.app`) with full management and sharing controls.
+  - Family Member login (`family@rentalbuddy.app`) with viewer/manager permissions scoped via `family_shares` table and RLS.
+  - Quick demo role switcher chips, email/password inputs, 54px min-height primary button, sign-in/sign-up toggle.
+- **Family Sharing & Account Management (Screen 16 & Modal)**:
+  - Settings Screen 16 features `Family Sharing` row with count badge and Account card with active user info and sign-out.
+  - Interactive bottom sheet `#modal-family-sharing` allows landlord to invite members by email, assign `Viewer` vs `Manager` roles, view active members, and revoke access instantly.
+- **Master Backend Handover Artifact**:
+  - Full PostgreSQL DDL schema (7 tables), RLS policies, and token-safe 6-module implementation roadmap documented in `supabase_backend_architecture_handover.md`.
+
 
 
 

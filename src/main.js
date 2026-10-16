@@ -1294,10 +1294,10 @@ const tenancySettlementData = {
       { label: 'Round Rs. 10,000', amount: '10000.00' }
     ],
     pendingMonths: [
-      { label: 'Chaitra 2082 (March/April 2026)', sub: 'Overdue 3 days • Rs. 12,034.12', amount: 12034.12, checked: true },
-      { label: 'Baisakh 2083 (Current Month)', sub: 'Upcoming Cycle • Rs. 12,000.00', amount: 12000.00, checked: false }
+      { label: 'March 2026', sub: 'Overdue 3 days • Rs. 12,034.12', amount: 12034.12, checked: true },
+      { label: 'April 2026 (Current Month)', sub: 'Upcoming Cycle • Rs. 12,000.00', amount: 12000.00, checked: false }
     ],
-    currentMonthTitle: 'Baisakh 2083 (May 2026)'
+    currentMonthTitle: 'April 2026'
   },
   rams: {
     name: 'Ram’s Flat',
@@ -1311,11 +1311,11 @@ const tenancySettlementData = {
       { label: 'Round Rs. 5,000', amount: '5000.00' }
     ],
     pendingMonths: [
-      { label: 'Falgun 2082 (Feb/March 2026)', sub: 'Past Due • Rs. 2,000.00', amount: 2000.00, checked: true },
-      { label: 'Chaitra 2082 (March/April 2026)', sub: 'Past Due • Rs. 2,000.00', amount: 2000.00, checked: true },
-      { label: 'Baisakh 2083 (Current Month)', sub: 'Upcoming Cycle • Rs. 2,000.00', amount: 2000.00, checked: false }
+      { label: 'February 2026', sub: 'Past Due • Rs. 2,000.00', amount: 2000.00, checked: true },
+      { label: 'March 2026', sub: 'Past Due • Rs. 2,000.00', amount: 2000.00, checked: true },
+      { label: 'April 2026 (Current Month)', sub: 'Upcoming Cycle • Rs. 2,000.00', amount: 2000.00, checked: false }
     ],
-    currentMonthTitle: 'Baisakh 2083 (May 2026)'
+    currentMonthTitle: 'April 2026'
   },
   apt11: {
     name: 'Apartment 11, Bhakatapur',
@@ -1329,7 +1329,7 @@ const tenancySettlementData = {
       { label: 'Advance Rs. 35,000', amount: '35000.00' }
     ],
     pendingMonths: [],
-    currentMonthTitle: 'Baisakh 2083 (May 2026)'
+    currentMonthTitle: 'April 2026'
   }
 };
 
@@ -1541,7 +1541,7 @@ function initRecordPaymentPage() {
       }
     } else {
       if (customMonthPickerRow && !customMonthPickerRow.classList.contains('hidden')) {
-        const customVal = document.getElementById('select-custom-settle-month')?.value || 'Jestha 2083';
+        const customVal = document.getElementById('select-custom-settle-month')?.value || 'May 2026';
         settledMonthText = customVal.split(' ')[0] + ' (Advance)';
       } else {
         settledMonthText = data.currentMonthTitle.split(' ')[0];
@@ -1707,7 +1707,7 @@ function initBillGenerationFlow() {
       newBillCard.setAttribute('tabindex', '0');
       newBillCard.innerHTML = `
         <div class="recent-item-left">
-          <strong class="recent-item-title">1 Falgun 2082 – 30 Falgun 2082</strong>
+          <strong class="recent-item-title">1 Mar 2026 – 31 Mar 2026</strong>
           <span class="recent-item-timestamp">Generated on Today</span>
         </div>
         <div class="recent-item-right">
@@ -1982,6 +1982,197 @@ function initBackupRestoreScreen() {
   });
 }
 
+// ==========================================================================
+// SUPABASE AUTHENTICATION & ROLE SWITCHER (SCREEN 20)
+// ==========================================================================
+
+let currentUserSession = {
+  email: 'admin@rentalbuddy.app',
+  role: 'admin',
+  name: 'Dr. Kishor (Admin)'
+};
+
+function initAuthScreen() {
+  const chipAdmin = document.getElementById('chip-role-admin');
+  const chipFamily = document.getElementById('chip-role-family');
+  const inputEmail = document.getElementById('auth-email-input');
+  const inputPassword = document.getElementById('auth-password-input');
+  const btnToggleEye = document.getElementById('btn-toggle-password-visibility');
+  const formAuth = document.getElementById('auth-login-form');
+  const btnForgot = document.getElementById('btn-forgot-password');
+  const btnToggleMode = document.getElementById('btn-toggle-auth-mode');
+  const formTitle = document.getElementById('auth-form-title');
+  const btnSubmit = document.getElementById('btn-submit-auth');
+  const switchText = document.getElementById('auth-switch-text');
+
+  let isSignUpMode = false;
+
+  // Role chip: Admin
+  chipAdmin?.addEventListener('click', () => {
+    chipAdmin.classList.add('active');
+    chipFamily?.classList.remove('active');
+    if (inputEmail) inputEmail.value = 'admin@rentalbuddy.app';
+    if (inputPassword) inputPassword.value = 'supersecure123';
+  });
+
+  // Role chip: Family Member
+  chipFamily?.addEventListener('click', () => {
+    chipFamily.classList.add('active');
+    chipAdmin?.classList.remove('active');
+    if (inputEmail) inputEmail.value = 'family@rentalbuddy.app';
+    if (inputPassword) inputPassword.value = 'familyview123';
+  });
+
+  // Toggle Password Visibility
+  btnToggleEye?.addEventListener('click', () => {
+    if (inputPassword) {
+      const isPass = inputPassword.type === 'password';
+      inputPassword.type = isPass ? 'text' : 'password';
+      btnToggleEye.style.color = isPass ? '#5452EC' : '#7D849B';
+    }
+  });
+
+  // Toggle Sign In vs Create Account Mode
+  btnToggleMode?.addEventListener('click', () => {
+    isSignUpMode = !isSignUpMode;
+    if (formTitle) formTitle.textContent = isSignUpMode ? 'Create Your Account' : 'Sign In to Your Account';
+    if (btnSubmit) btnSubmit.textContent = isSignUpMode ? 'Sign Up with Supabase' : 'Sign In with Supabase';
+    if (switchText) switchText.textContent = isSignUpMode ? 'Already have an account?' : 'Don’t have an account?';
+    if (btnToggleMode) btnToggleMode.textContent = isSignUpMode ? 'Sign In' : 'Create Account';
+  });
+
+  // Forgot password
+  btnForgot?.addEventListener('click', () => {
+    const email = inputEmail?.value?.trim() || 'your email';
+    showToast(`🔑 Password reset link dispatched via Supabase to ${email}`, 3500);
+  });
+
+  // Sign In submit
+  formAuth?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = inputEmail?.value?.trim();
+    if (!email) {
+      showToast('⚠️ Please enter a valid email address');
+      return;
+    }
+
+    const isAdmin = email.toLowerCase().includes('admin') || chipAdmin?.classList.contains('active');
+    currentUserSession = {
+      email,
+      role: isAdmin ? 'admin' : 'family',
+      name: isAdmin ? 'Admin (Owner)' : 'Family Member (Viewer)'
+    };
+
+    // Update settings account display
+    const emailDisplay = document.getElementById('current-user-email-display');
+    const roleBadge = document.getElementById('current-user-role-badge');
+    const ownerEmail = document.getElementById('display-owner-email');
+
+    if (emailDisplay) emailDisplay.textContent = email;
+    if (roleBadge) {
+      roleBadge.textContent = isAdmin ? '👑 Admin (Owner)' : '👨‍👩‍👧 Family Member (Viewer)';
+      roleBadge.style.color = isAdmin ? '#16A34A' : '#0284C7';
+    }
+    if (ownerEmail && isAdmin) ownerEmail.textContent = email;
+
+    const actionWord = isSignUpMode ? 'Registered & signed in' : 'Signed in';
+    showToast(`⚡ ${actionWord} as ${email} (${currentUserSession.name})`, 3500);
+
+    setTimeout(() => {
+      navigateToScreen(6); // Return to Dashboard
+    }, 600);
+  });
+}
+
+// ==========================================================================
+// FAMILY SHARING & CLOUD COLLABORATION (SETTINGS MODAL)
+// ==========================================================================
+
+function initFamilySharingModal() {
+  const itemFamilySharing = document.getElementById('item-family-sharing');
+  const modalFamily = document.getElementById('modal-family-sharing');
+  const btnClose = document.getElementById('btnCloseFamilyModal');
+  const btnInvite = document.getElementById('btn-send-family-invite');
+  const inputEmail = document.getElementById('input-family-email');
+  const selectRole = document.getElementById('select-family-role');
+  const membersList = document.getElementById('family-members-list');
+  const badgeCount = document.getElementById('badge-family-count');
+  const btnLogout = document.getElementById('btn-settings-logout');
+
+  // Open modal from settings
+  itemFamilySharing?.addEventListener('click', () => {
+    modalFamily?.classList.remove('hidden');
+  });
+
+  // Universal close handlers
+  btnClose?.addEventListener('click', () => modalFamily?.classList.add('hidden'));
+  modalFamily?.addEventListener('click', (e) => {
+    if (e.target === modalFamily) modalFamily.classList.add('hidden');
+  });
+
+  // Send Family Invite
+  btnInvite?.addEventListener('click', () => {
+    const email = inputEmail?.value?.trim();
+    if (!email || !email.includes('@')) {
+      showToast('⚠️ Please enter a valid family email address');
+      return;
+    }
+
+    const role = selectRole?.value || 'viewer';
+    const roleLabel = role === 'editor' ? 'Manager • Can edit & record' : 'Viewer • Can view bills & payments';
+
+    // Append new member card
+    if (membersList) {
+      const newRow = document.createElement('div');
+      newRow.className = 'family-member-row';
+      newRow.innerHTML = `
+        <div class="member-avatar">👨‍👩‍👧</div>
+        <div class="member-info">
+          <strong class="member-email">${email}</strong>
+          <span class="member-role-tag">${roleLabel}</span>
+        </div>
+        <button type="button" class="btn-remove-member" title="Revoke access">✕</button>
+      `;
+
+      newRow.querySelector('.btn-remove-member')?.addEventListener('click', () => {
+        newRow.remove();
+        updateMemberCount();
+        showToast(`🗑️ Access revoked for ${email}`);
+      });
+
+      membersList.appendChild(newRow);
+    }
+
+    if (inputEmail) inputEmail.value = '';
+    updateMemberCount();
+    showToast(`✉️ Cloud invitation sent to ${email} via Supabase!`, 3500);
+  });
+
+  // Remove existing shared member
+  document.getElementById('btn-remove-family-1')?.addEventListener('click', (e) => {
+    const row = document.getElementById('row-family-member-1');
+    row?.remove();
+    updateMemberCount();
+    showToast('🗑️ Access revoked for family@rentalbuddy.app');
+  });
+
+  function updateMemberCount() {
+    const count = membersList?.querySelectorAll('.family-member-row').length || 1;
+    const sharedCount = Math.max(0, count - 1);
+    if (badgeCount) {
+      badgeCount.textContent = `${sharedCount} Shared`;
+    }
+  }
+
+  // Logout button
+  btnLogout?.addEventListener('click', () => {
+    showToast('🔒 Signed out of session');
+    setTimeout(() => {
+      navigateToScreen(20); // Go to Login
+    }, 400);
+  });
+}
+
 // Initial Boot
 document.addEventListener('DOMContentLoaded', () => {
   initClock();
@@ -1997,6 +2188,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initSettingsScreen();
   initArchivedTenanciesFlow();
   initBackupRestoreScreen();
+  initAuthScreen();
+  initFamilySharingModal();
   setDashboardState('state1');
 });
 

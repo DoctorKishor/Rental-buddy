@@ -497,6 +497,62 @@
 ### 3. Responsive Guarantee (360px Viewport)
 - On `<= 380px` viewports, card padding scales gracefully to `18px 16px`, gap to `14px`, and typography maintains crisp `text-wrap: balance;` with zero awkward line breaks or button crushing.
 
+---
+
+## 23. English Calendar Standardization, Supabase Auth (Screen 20), Family Sharing & Cloud Architecture Blueprint
+
+### 1. 100% Gregorian / English Calendar Standardization
+- **Universal Date Standard**:
+  - Permanently cleansed all screens, cards, modals, mock data, and generators of the traditional Bikram Sambat (BS) calendar (e.g., *Chaitra*, *Falgun*, *2082 BS*).
+  - Standardized entirely on the English / Gregorian calendar (`Jan – Dec 2026`) across:
+    - Screen 6 Recent Bills (`1 Mar 2026 – 31 Mar 2026`, etc.).
+    - Screen 10 Month-wise ledger (12-month English cards: `Apr 2026`, `Mar 2026`, `Feb 2026`, ..., `May 2026 Upcoming`).
+    - Screen 11 Rent Revision date chips (`1 May 2026`, `1 June 2026`, `1 July 2026`).
+    - Screen 12 Payment Settlement months (`March 2026`, `February 2026`, `April 2026`).
+    - Screen 13 & 14 Billing intervals (`1 Mar 2026 – 31 Mar 2026`, `Generated on 1 Apr 2026`, `Next Billing: 1 May 2026`).
+
+### 2. Screen 20: Supabase Cloud Authentication & Role-Based Access
+- **Purpose**: Cloud-first user authentication using Supabase Auth (Email & Password).
+- **Primary Role (Admin / Landlord)**:
+  - Landlord logs in with their admin credentials (e.g. `admin@rentalbuddy.app`).
+  - Holds full read/write privileges: creating/editing tenancies, revising rent, generating bills, settling payments, archiving/deleting properties, and managing family sharing permissions.
+- **Secondary Role (Family Member / Viewer / Manager)**:
+  - Family members log in using their own email addresses (e.g. `family@rentalbuddy.app`).
+  - Permissions are governed by the `family_shares` table and Supabase Row Level Security (RLS).
+  - Can view all property cards, month-wise payment ledgers, and download/share invoices; cannot delete tenancies or modify critical landlord configurations unless granted manager permissions.
+- **Component Geometry & Visual Depth**:
+  - Centered brand header with house icon and "Rental Buddy".
+  - Quick role demo selector chips (`👑 Admin (Landlord)` vs `👨‍👩‍👧 Family Member`) for instant testability.
+  - White surface input container (54px height, 16px radius) with password visibility toggle.
+  - Primary full-width pill button (`54px` min-height, `#5452EC`, `0 8px 24px rgba(84, 82, 236, 0.35)` shadow).
+  - Mode toggle: "Don't have an account? Sign Up" / "Already have an account? Sign In".
+
+### 3. Family Sharing in Settings (Screen 16 & Scoped Modal)
+- **Settings Integration**:
+  - Added `Family Sharing` list item with an active count badge (e.g., `"1 Shared"`) under Account preferences.
+  - Added Account Card displaying current logged-in user email with role badge and `"Sign Out"` action leading back to Screen 20.
+- **Interactive Scoped Modal (`#modal-family-sharing`)**:
+  - Displays list of active family members with status badges (`Admin / Owner`, `Family / Viewer`, `Manager`).
+  - Invite form: Email input field + Role selector (`Viewer (Read Only)` vs `Manager (Record Payments)`).
+  - Action buttons: `"Send Invite"` (queues invite in Supabase).
+  - Member card actions: One-tap `"Revoke Access"` trigger.
+
+### 4. Supabase Backend Architecture & AI Handover Protocol
+- **Master Blueprint Artifact**: Complete specifications, PostgreSQL schemas, RLS policies, and module-by-module implementation steps are documented in `supabase_backend_architecture_handover.md`.
+- **Database Schema (7 Core Tables)**:
+  1. `profiles`: User IDs, full names, default currencies, role types.
+  2. `tenancies`: Property names, tenant names, phones, base rents, advance deposits, billing recurrence day, status (`active`, `archived`).
+  3. `tenancy_utilities`: Utility types (`electricity`, `water`, `internet`, `sewage`, `garbage`), bill types (`meter_reading`, `flat`), rates, last readings.
+  4. `rent_revisions`: Tenancy ID, old rent, new rent, effective date, note, status (`scheduled`, `applied`, `cancelled`).
+  5. `bills`: Invoice numbers, duration start/end, rent amount, utility breakdowns (JSONB), advance applied, net payable, payment status (`unpaid`, `partially_paid`, `paid`).
+  6. `payments`: Amount, payment mode (`cash`, `online`), channel (`upi`, `bank`, `neft`), reference number, settlement months (ARRAY/JSONB), payment date.
+  7. `family_shares`: Admin user ID, member email, member user ID, permission role (`viewer`, `manager`), status (`pending`, `accepted`, `revoked`).
+- **Row Level Security (RLS)**:
+  - Enforces `has_family_access(tenancy_id, auth.uid())` so family members only see properties shared with them.
+- **Token-Safe Sequential Implementation**:
+  - Backend integration must be performed in sequential modules (Module 1: Auth & Profiles -> Module 2: Tenancies CRUD -> Module 3: Utilities & Revisions -> Module 4: Bills Engine -> Module 5: Payments & Month Settlement -> Module 6: Family Sharing & Realtime) so AI models never run out of tokens.
+
+
 
 
 
