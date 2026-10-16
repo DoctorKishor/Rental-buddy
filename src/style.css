@@ -2856,5 +2856,258 @@ html, body {
   font-size: 12px;
 }
 
+/* ==========================================================================
+   Screen 12: Dedicated Record Payment Page & Month-Wise Settlement
+   ========================================================================== */
+.amount-shortcut-chips {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.shortcut-chip {
+  background-color: #FFFFFF;
+  border: 1.5px solid #E2E4F2;
+  border-radius: 9999px;
+  padding: 5px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-body);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.shortcut-chip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.shortcut-chip.active {
+  background-color: var(--bg-accent-subtle);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.mode-pill-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.online-channel-subfields {
+  background-color: #F8F9FE;
+  border: 1px solid #E2E4F2;
+  border-radius: 14px;
+  padding: 12px;
+  margin-top: 10px;
+  animation: fadeIn 0.15s ease;
+}
+
+.online-channel-subfields.hidden {
+  display: none;
+}
+
+.channel-chips-row {
+  display: flex;
+  gap: 8px;
+}
+
+.channel-chip {
+  flex: 1;
+  text-align: center;
+  background-color: #FFFFFF;
+  border: 1.5px solid #E2E4F2;
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-body);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.channel-chip input {
+  display: none;
+}
+
+.channel-chip.selected {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background-color: rgba(84, 82, 236, 0.05);
+}
+
+/* Month Settle Card */
+.month-settle-card {
+  background-color: var(--bg-surface);
+  border: 1.5px solid #E2E4F2;
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-top: 6px;
+}
+
+.settle-card-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+.settle-card-alert.warning {
+  background-color: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+}
+
+.settle-card-alert.success {
+  background-color: #DCFCE7;
+  color: #16A34A;
+  border: 1px solid #BBF7D0;
+}
+
+.months-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.month-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1.5px solid #E2E4F2;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.month-select-option input {
+  display: none;
+}
+
+.month-select-option.selected {
+  border-color: var(--color-primary);
+  background-color: rgba(84, 82, 236, 0.04);
+}
+
+.month-opt-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.month-opt-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.month-opt-sub {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.custom-checkbox {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: 6px;
+  border: 1.5px solid #C4C8D8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.month-select-option.selected .custom-checkbox {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  background-size: 13px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* No Pending Months View */
+.current-month-settled-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background-color: #F8F9FE;
+  border-radius: 12px;
+  border: 1px solid #E2E4F2;
+}
+
+.current-month-icon {
+  font-size: 20px;
+  margin-right: 10px;
+}
+
+.current-month-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.current-month-text strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.current-month-text span {
+  font-size: 12px;
+  color: var(--text-body);
+}
+
+/* 360px adjustments for Record Payment Page */
+@media (max-width: 380px) {
+  .shortcut-chip {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+  .channel-chip {
+    font-size: 11px;
+    padding: 6px 4px;
+  }
+  .month-opt-title {
+    font-size: 12.5px;
+  }
+  .month-opt-sub {
+    font-size: 10.5px;
+  }
+}
+
+.mobile-frame.width-360 .shortcut-chip {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.mobile-frame.width-360 .channel-chip {
+  font-size: 11px;
+  padding: 6px 4px;
+}
+
+.mobile-frame.width-360 .month-opt-title {
+  font-size: 12.5px;
+}
+
+.mobile-frame.width-360 .month-opt-sub {
+  font-size: 10.5px;
+}
+
+
 
 

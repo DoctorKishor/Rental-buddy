@@ -651,13 +651,13 @@ function initDashboard() {
     if (e.target === modalRecord) modalRecord.classList.add('hidden');
   });
 
-  // Wire up Record buttons
+  // Wire up Record buttons to open dedicated Record Payment Page (Screen 12)
   document.getElementById('btn-lalitpur-action')?.addEventListener('click', () => {
     const actionText = document.getElementById('lalitpur-action-text')?.textContent;
     if (actionText?.includes('Generate Bill')) {
       openBillModal('2nd Floor, Lalitpur', 'Monthly - April 2026', '12,034.12');
     } else {
-      openRecordModal('2nd Floor, Lalitpur', '12000');
+      openRecordPaymentPage('lalitpur');
     }
   });
 
@@ -666,12 +666,12 @@ function initDashboard() {
     if (actionText?.includes('Generate Bill')) {
       openBillModal('Ram’s Flat', 'Weekly - April 2026', '2,540.00');
     } else {
-      openRecordModal('Ram’s Flat', '2000');
+      openRecordPaymentPage('rams');
     }
   });
 
   document.getElementById('btn-apt-record')?.addEventListener('click', () => {
-    openRecordModal('Apartment 11, Bhakatapur', '34150');
+    openRecordPaymentPage('apt11');
   });
 
   // Payment mode pills inside modal
@@ -1245,6 +1245,329 @@ function initEditTenancy() {
   });
 }
 
+// ==========================================================================
+// DEDICATED RECORD PAYMENT PAGE CONTROLLER (SCREEN 12)
+// ==========================================================================
+
+const tenancySettlementData = {
+  lalitpur: {
+    name: '2nd Floor, Lalitpur',
+    hasPending: true,
+    dueAmount: '12034.12',
+    dueHint: 'Due: Rs. 12,034.12',
+    rentAmount: '12000.00',
+    shortcuts: [
+      { label: 'Full Due (12,034)', amount: '12034.12' },
+      { label: 'Base Rent (12,000)', amount: '12000.00' },
+      { label: 'Round Rs. 10,000', amount: '10000.00' }
+    ],
+    pendingMonths: [
+      { label: 'Chaitra 2082 (March/April 2026)', sub: 'Overdue 3 days • Rs. 12,034.12', amount: 12034.12, checked: true },
+      { label: 'Baisakh 2083 (Current Month)', sub: 'Upcoming Cycle • Rs. 12,000.00', amount: 12000.00, checked: false }
+    ],
+    currentMonthTitle: 'Baisakh 2083 (May 2026)'
+  },
+  rams: {
+    name: 'Ram’s Flat',
+    hasPending: true,
+    dueAmount: '4000.00',
+    dueHint: 'Due: 2 Months (Rs. 4,000)',
+    rentAmount: '2000.00',
+    shortcuts: [
+      { label: 'Full Due (4,000)', amount: '4000.00' },
+      { label: '1 Month (2,000)', amount: '2000.00' },
+      { label: 'Round Rs. 5,000', amount: '5000.00' }
+    ],
+    pendingMonths: [
+      { label: 'Falgun 2082 (Feb/March 2026)', sub: 'Past Due • Rs. 2,000.00', amount: 2000.00, checked: true },
+      { label: 'Chaitra 2082 (March/April 2026)', sub: 'Past Due • Rs. 2,000.00', amount: 2000.00, checked: true },
+      { label: 'Baisakh 2083 (Current Month)', sub: 'Upcoming Cycle • Rs. 2,000.00', amount: 2000.00, checked: false }
+    ],
+    currentMonthTitle: 'Baisakh 2083 (May 2026)'
+  },
+  apt11: {
+    name: 'Apartment 11, Bhakatapur',
+    hasPending: false, // NO PENDING DUES!
+    dueAmount: '34150.00',
+    dueHint: 'No Past Dues • Next in 5 days',
+    rentAmount: '34150.00',
+    shortcuts: [
+      { label: 'Full Rent (34,150)', amount: '34150.00' },
+      { label: 'Round Rs. 34,000', amount: '34000.00' },
+      { label: 'Advance Rs. 35,000', amount: '35000.00' }
+    ],
+    pendingMonths: [],
+    currentMonthTitle: 'Baisakh 2083 (May 2026)'
+  }
+};
+
+function openRecordPaymentPage(tenancyKey = 'lalitpur') {
+  setupRecordPaymentForm(tenancyKey);
+  navigateToScreen(12);
+}
+
+function setupRecordPaymentForm(tenancyKey) {
+  const data = tenancySettlementData[tenancyKey] || tenancySettlementData.lalitpur;
+  
+  // Update tenancy selector
+  const selectTenancy = document.getElementById('record-page-tenancy');
+  if (selectTenancy) selectTenancy.value = tenancyKey;
+
+  // Update header subtitle
+  const subtitle = document.getElementById('record-page-subtitle');
+  if (subtitle) subtitle.textContent = data.name;
+
+  // Update due hint & amount
+  const dueHint = document.getElementById('record-due-hint');
+  if (dueHint) {
+    dueHint.textContent = data.dueHint;
+    dueHint.style.color = data.hasPending ? '#DC2626' : '#16A34A';
+  }
+
+  const amountInput = document.getElementById('record-page-amount');
+  if (amountInput) amountInput.value = data.dueAmount;
+
+  // Update shortcut chips
+  const chipsContainer = document.querySelector('.amount-shortcut-chips');
+  if (chipsContainer && data.shortcuts) {
+    chipsContainer.innerHTML = '';
+    data.shortcuts.forEach((chip, index) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `shortcut-chip ${index === 0 ? 'active' : ''}`;
+      btn.textContent = chip.label;
+      btn.addEventListener('click', () => {
+        chipsContainer.querySelectorAll('.shortcut-chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        if (amountInput) amountInput.value = chip.amount;
+      });
+      chipsContainer.appendChild(btn);
+    });
+  }
+
+  // Handle Month Settlement logic (State A vs State B)
+  const blockPending = document.getElementById('block-pending-months');
+  const blockNoPending = document.getElementById('block-no-pending-months');
+  const currentMonthTitle = document.getElementById('current-month-title');
+  const customMonthPickerRow = document.getElementById('custom-month-picker-row');
+
+  if (data.hasPending) {
+    blockPending?.classList.remove('hidden');
+    blockNoPending?.classList.add('hidden');
+
+    const monthsList = blockPending?.querySelector('.months-select-list');
+    if (monthsList) {
+      monthsList.innerHTML = '';
+      data.pendingMonths.forEach((item) => {
+        const label = document.createElement('label');
+        label.className = `month-select-option ${item.checked ? 'selected' : ''}`;
+        label.innerHTML = `
+          <input type="checkbox" name="settle-month" value="${item.label}" ${item.checked ? 'checked' : ''} />
+          <div class="month-opt-details">
+            <strong class="month-opt-title">${item.label}</strong>
+            <span class="month-opt-sub ${item.sub.includes('Overdue') || item.sub.includes('Past Due') ? 'status-overdue' : ''}">${item.sub}</span>
+          </div>
+          <span class="custom-checkbox"></span>
+        `;
+
+        const checkbox = label.querySelector('input[type="checkbox"]');
+        checkbox?.addEventListener('change', () => {
+          label.classList.toggle('selected', checkbox.checked);
+        });
+
+        label.addEventListener('click', (e) => {
+          if (e.target !== checkbox) {
+            e.preventDefault();
+            checkbox.checked = !checkbox.checked;
+            label.classList.toggle('selected', checkbox.checked);
+          }
+        });
+
+        monthsList.appendChild(label);
+      });
+    }
+  } else {
+    // State B: No pending dues, default to current month
+    blockPending?.classList.add('hidden');
+    blockNoPending?.classList.remove('hidden');
+    if (currentMonthTitle) currentMonthTitle.textContent = data.currentMonthTitle;
+    customMonthPickerRow?.classList.add('hidden');
+  }
+}
+
+function initRecordPaymentPage() {
+  const selectTenancy = document.getElementById('record-page-tenancy');
+  const btnBack = document.getElementById('btn-record-page-back');
+  const cardCash = document.getElementById('card-mode-cash');
+  const cardOnline = document.getElementById('card-mode-online');
+  const onlineSubfields = document.getElementById('online-channel-subfields');
+  const channelChips = document.querySelectorAll('.channel-chips-row .channel-chip');
+  const btnToggleCustomMonth = document.getElementById('btn-toggle-custom-month');
+  const customMonthPickerRow = document.getElementById('custom-month-picker-row');
+  const btnSave = document.getElementById('btn-save-full-payment');
+
+  // Tenancy selector change
+  selectTenancy?.addEventListener('change', (e) => {
+    setupRecordPaymentForm(e.target.value);
+  });
+
+  // Back button
+  btnBack?.addEventListener('click', () => {
+    navigateToScreen(6);
+  });
+
+  // Payment mode toggle (Cash vs Online)
+  const setPaymentMode = (mode) => {
+    if (mode === 'Online') {
+      cardCash?.classList.remove('selected');
+      cardOnline?.classList.add('selected');
+      onlineSubfields?.classList.remove('hidden');
+      const radio = document.querySelector('input[name="record-pay-mode"][value="Online"]');
+      if (radio) radio.checked = true;
+    } else {
+      cardOnline?.classList.remove('selected');
+      cardCash?.classList.add('selected');
+      onlineSubfields?.classList.add('hidden');
+      const radio = document.querySelector('input[name="record-pay-mode"][value="Cash"]');
+      if (radio) radio.checked = true;
+    }
+  };
+
+  cardCash?.addEventListener('click', () => setPaymentMode('Cash'));
+  cardOnline?.addEventListener('click', () => setPaymentMode('Online'));
+
+  // Online channel chips
+  channelChips.forEach((chip) => {
+    chip.addEventListener('click', () => {
+      channelChips.forEach((c) => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      const input = chip.querySelector('input');
+      if (input) input.checked = true;
+    });
+  });
+
+  // Date picker trigger
+  const trigger = document.getElementById('recordDatePickerTrigger');
+  const nativeDate = document.getElementById('record-native-payment-date');
+  const dateDisplay = document.getElementById('record-payment-date-display');
+
+  trigger?.addEventListener('click', () => {
+    if (nativeDate && typeof nativeDate.showPicker === 'function') {
+      try {
+        nativeDate.showPicker();
+      } catch (err) {
+        nativeDate.focus();
+      }
+    } else {
+      nativeDate?.focus();
+    }
+  });
+
+  nativeDate?.addEventListener('change', (e) => {
+    const val = e.target.value;
+    if (val && dateDisplay) {
+      const d = new Date(val + 'T00:00:00');
+      const formatted = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+      dateDisplay.value = formatted;
+      showToast(`Payment date set to ${formatted}`);
+    }
+  });
+
+  // Toggle custom advance month row
+  btnToggleCustomMonth?.addEventListener('click', () => {
+    customMonthPickerRow?.classList.toggle('hidden');
+  });
+
+  // Save full payment
+  btnSave?.addEventListener('click', () => {
+    const tenancyKey = selectTenancy?.value || 'lalitpur';
+    const data = tenancySettlementData[tenancyKey] || tenancySettlementData.lalitpur;
+    const amountVal = document.getElementById('record-page-amount')?.value?.trim();
+
+    if (!amountVal || parseFloat(amountVal) <= 0) {
+      showToast('⚠️ Please enter a valid payment amount', 3000);
+      return;
+    }
+
+    const payMode = document.querySelector('input[name="record-pay-mode"]:checked')?.value || 'Cash';
+    let modeLabel = payMode;
+    if (payMode === 'Online') {
+      const channel = document.querySelector('input[name="online-channel"]:checked')?.value || 'Online';
+      modeLabel = channel;
+      const ref = document.getElementById('input-online-ref')?.value?.trim();
+      if (ref) modeLabel += ` (Ref: ${ref})`;
+    }
+
+    // Determine settled month string
+    let settledMonthText = '';
+    if (data.hasPending) {
+      const checkedMonths = Array.from(document.querySelectorAll('input[name="settle-month"]:checked')).map(cb => cb.value.split(' ')[0]);
+      if (checkedMonths.length > 0) {
+        settledMonthText = checkedMonths.join(', ');
+      } else {
+        settledMonthText = 'Manual Settlement';
+      }
+    } else {
+      if (customMonthPickerRow && !customMonthPickerRow.classList.contains('hidden')) {
+        const customVal = document.getElementById('select-custom-settle-month')?.value || 'Jestha 2083';
+        settledMonthText = customVal.split(' ')[0] + ' (Advance)';
+      } else {
+        settledMonthText = data.currentMonthTitle.split(' ')[0];
+      }
+    }
+
+    const notes = document.getElementById('record-payment-notes')?.value?.trim();
+    const sendWhatsApp = document.getElementById('toggle-send-whatsapp-receipt')?.checked;
+    const dateText = dateDisplay?.value || 'Today';
+
+    // Prepend to Dashboard Recent Payments
+    const listPayments = document.getElementById('list-recent-payments');
+    if (listPayments) {
+      const newCard = document.createElement('div');
+      newCard.className = 'recent-item-card';
+      newCard.setAttribute('role', 'button');
+      newCard.setAttribute('tabindex', '0');
+      newCard.innerHTML = `
+        <div class="recent-item-left">
+          <span class="recent-prop-name">${data.name}</span>
+          <strong class="recent-item-title">${settledMonthText} — Paid via ${modeLabel}</strong>
+          <span class="recent-item-timestamp">Paid on ${dateText} ${notes ? '• ' + notes : ''}</span>
+        </div>
+        <div class="recent-item-right">
+          <strong class="recent-item-amount">Rs. ${parseFloat(amountVal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+          <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </div>
+      `;
+      listPayments.insertBefore(newCard, listPayments.firstChild);
+    }
+
+    // Informative toast
+    const toastMsg = sendWhatsApp
+      ? `✅ Rs. ${parseFloat(amountVal).toLocaleString('en-IN')} payment recorded for ${data.name} (${settledMonthText})! Receipt queued for WhatsApp.`
+      : `✅ Rs. ${parseFloat(amountVal).toLocaleString('en-IN')} payment recorded for ${data.name} (${settledMonthText})!`;
+
+    showToast(toastMsg, 3500);
+
+    // Navigate to dashboard
+    setTimeout(() => {
+      navigateToScreen(6);
+    }, 600);
+  });
+
+  // Also make overdue month card on Screen 10 clickable
+  const overdueMonthCard = document.querySelector('.month-card.month-overdue');
+  if (overdueMonthCard) {
+    overdueMonthCard.setAttribute('role', 'button');
+    overdueMonthCard.setAttribute('tabindex', '0');
+    overdueMonthCard.style.cursor = 'pointer';
+    overdueMonthCard.addEventListener('click', () => {
+      openRecordPaymentPage('lalitpur');
+    });
+  }
+}
+
 // Initial Boot
 document.addEventListener('DOMContentLoaded', () => {
   initClock();
@@ -1252,7 +1575,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initStep1Form();
   initUtilityToggles();
   initEventListeners();
+  initTenancyDetails();
   initEditTenancy();
+  initRecordPaymentPage();
+  setupRecordPaymentForm('lalitpur');
   setDashboardState('state1');
 });
 

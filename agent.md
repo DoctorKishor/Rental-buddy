@@ -57,5 +57,15 @@ Please refer to the comprehensive design system and engineering specifications d
   - Preserves Historical Ledger: Rent revisions are scheduled to take effect from a specific upcoming cycle (e.g. Next Cycle / 1 Baisakh 2083), protecting past billing records from corruption.
   - Scheduled Revision Banner: Displays scheduled increment amount, effective cycle, and instant cancel action.
   - Sticky bottom action bar with `Save Changes` button (`54px` min height).
+- **Dedicated Record Payment Page & Month Settlement (Screen 12)**:
+  - Opens dedicated full-page screen instead of simple modal.
+  - Dynamic Month Settlement Logic:
+    - *Pending Months Present*: Displays amber warning banner and selectable month checkboxes allowing landlord to manually select which overdue month(s) are settled.
+    - *No Past Dues*: Defaults to current billing cycle with green confirmation badge, plus `+ Settle for another month / Advance` expansion for upcoming cycles.
+  - Split Payment Mode: Cash vs Online, with dynamic online sub-channels (`GPay / UPI`, `Bank / NEFT`, `Other App`) and reference input.
+  - Interactive Date Picker: Native calendar integration with formatted human-readable date.
+  - Amount shortcuts (`Full Due`, `Base Rent`, `Round amount`), WhatsApp receipt toggle, and instant synchronization to dashboard recent payments ledger.
+  - Sticky bottom action bar with `Confirm & Save Receipt` pill button (`54px` min height, zero shrink).
+
 
 

@@ -1953,6 +1953,277 @@
             </div>
           </div>
 
+          <!-- SCREEN 12: Dedicated Record Payment Page (Month-Wise Settlement Logic) -->
+          <section class="screen" id="screen-12" data-screen="12">
+            <div class="screen-content">
+              <!-- Top Navigation Header -->
+              <nav class="stepper-header">
+                <button class="nav-back-btn" id="btn-record-page-back" aria-label="Go back">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+                <div class="stepper-titles">
+                  <h2 class="stepper-main-title">Record Payment</h2>
+                  <span class="stepper-sub-title" id="record-page-subtitle">2nd Floor, Lalitpur</span>
+                </div>
+                <div class="stepper-spacer"></div>
+              </nav>
+
+              <!-- Hero Heading -->
+              <div class="hero-block">
+                <h1 class="hero-title">Payment Details</h1>
+                <p class="hero-subtitle">
+                  Record incoming rent and select the settled billing month.
+                </p>
+              </div>
+
+              <!-- Record Payment Form Stack -->
+              <form class="form-stack" id="form-record-page" onsubmit="return false;">
+                
+                <!-- 1. Tenancy Selector -->
+                <div class="form-group">
+                  <label class="form-label" for="record-page-tenancy">Tenancy</label>
+                  <select id="record-page-tenancy" class="form-input">
+                    <option value="lalitpur" selected>2nd Floor, Lalitpur (Overdue 3 days)</option>
+                    <option value="rams">Ram’s Flat (2 months due)</option>
+                    <option value="apt11">Apartment 11, Bhakatapur (Billing in 5 days)</option>
+                  </select>
+                </div>
+
+                <!-- 2. Amount Paid Input -->
+                <div class="form-group">
+                  <div class="field-label-row">
+                    <label class="form-label" for="record-page-amount" style="margin-bottom: 0;">Amount Paid</label>
+                    <span class="text-caption" id="record-due-hint" style="color: #DC2626; font-weight: 600;">Due: Rs. 12,034.12</span>
+                  </div>
+                  <div class="input-with-icon" style="margin-top: 6px;">
+                    <input
+                      type="number"
+                      step="0.01"
+                      id="record-page-amount"
+                      class="form-input"
+                      value="12034.12"
+                      placeholder="0.00"
+                    />
+                    <div class="input-trailing-icon" style="font-weight: 700; color: #52586E;">Rs.</div>
+                  </div>
+
+                  <!-- Quick Amount Chips -->
+                  <div class="amount-shortcut-chips">
+                    <button type="button" class="shortcut-chip active" id="chip-amount-due">Full Due (12,034)</button>
+                    <button type="button" class="shortcut-chip" id="chip-amount-rent">Base Rent (12,000)</button>
+                    <button type="button" class="shortcut-chip" id="chip-amount-round">Rs. 10,000</button>
+                  </div>
+                </div>
+
+                <!-- 3. Payment Mode (Cash vs Online) -->
+                <div class="form-group">
+                  <label class="form-label">Payment Mode</label>
+                  <div class="split-radio-grid">
+                    <label class="radio-card mini-radio selected" id="card-mode-cash">
+                      <input type="radio" name="record-pay-mode" value="Cash" checked />
+                      <div class="mode-pill-content">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
+                          <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                          <circle cx="12" cy="12" r="2.5"></circle>
+                        </svg>
+                        <span>Cash</span>
+                      </div>
+                      <span class="custom-radio mini"></span>
+                    </label>
+
+                    <label class="radio-card mini-radio" id="card-mode-online">
+                      <input type="radio" name="record-pay-mode" value="Online" />
+                      <div class="mode-pill-content">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
+                          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                          <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                        </svg>
+                        <span>Online</span>
+                      </div>
+                      <span class="custom-radio mini"></span>
+                    </label>
+                  </div>
+
+                  <!-- Online Payment Sub-Channel (Conditional) -->
+                  <div class="online-channel-subfields hidden" id="online-channel-subfields">
+                    <div class="channel-chips-row">
+                      <label class="channel-chip selected" id="chip-channel-gpay">
+                        <input type="radio" name="online-channel" value="GPay / UPI" checked />
+                        <span>GPay / UPI</span>
+                      </label>
+                      <label class="channel-chip" id="chip-channel-neft">
+                        <input type="radio" name="online-channel" value="Bank / NEFT" />
+                        <span>Bank / NEFT</span>
+                      </label>
+                      <label class="channel-chip" id="chip-channel-other">
+                        <input type="radio" name="online-channel" value="Other Online" />
+                        <span>Other App</span>
+                      </label>
+                    </div>
+                    <input
+                      type="text"
+                      id="input-online-ref"
+                      class="form-input mini"
+                      placeholder="Transaction Reference / UPI Ref (Optional)"
+                      style="margin-top: 8px;"
+                    />
+                  </div>
+                </div>
+
+                <!-- 4. Payment Date Picker -->
+                <div class="form-group">
+                  <label class="form-label" for="record-payment-date-display">Payment Date</label>
+                  <div class="input-with-icon date-picker-box" id="recordDatePickerTrigger">
+                    <input
+                      type="text"
+                      id="record-payment-date-display"
+                      class="form-input date-text"
+                      value="Today, 17 Oct 2026"
+                      readonly
+                    />
+                    <input
+                      type="date"
+                      id="record-native-payment-date"
+                      class="native-date-field"
+                      value="2026-10-17"
+                      aria-label="Pick payment date"
+                    />
+                    <div class="input-trailing-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="12" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 5. PAYING FOR WHICH MONTH (CORE LANDLORD LOGIC) -->
+                <div class="form-group">
+                  <div class="field-label-row">
+                    <label class="form-label" style="margin-bottom: 0;">Paying for Month</label>
+                    <span class="text-caption" style="color: #52586E; font-size: 12px;">Settlement Cycle</span>
+                  </div>
+
+                  <!-- Dynamic Container: Changes based on Pending vs No Pending -->
+                  <div class="month-settle-card" id="month-settle-container">
+                    
+                    <!-- STATE A: Pending Months Available (Allows manual selection) -->
+                    <div class="pending-months-block" id="block-pending-months">
+                      <div class="settle-card-alert warning">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="12" y1="8" x2="12" y2="12"></line>
+                          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <span>Pending dues found. Select month(s) to settle:</span>
+                      </div>
+
+                      <div class="months-select-list">
+                        <!-- Pending Month 1 -->
+                        <label class="month-select-option selected" id="opt-month-chaitra">
+                          <input type="checkbox" name="settle-month" value="Chaitra 2082" checked />
+                          <div class="month-opt-details">
+                            <strong class="month-opt-title">Chaitra 2082 (March/April 2026)</strong>
+                            <span class="month-opt-sub status-overdue">Overdue 3 days • Rs. 12,034.12</span>
+                          </div>
+                          <span class="custom-checkbox"></span>
+                        </label>
+
+                        <!-- Pending Month 2 (for multi-pending tenancies like Ram's Flat) -->
+                        <label class="month-select-option" id="opt-month-falgun">
+                          <input type="checkbox" name="settle-month" value="Falgun 2082" />
+                          <div class="month-opt-details">
+                            <strong class="month-opt-title">Falgun 2082 (Feb/March 2026)</strong>
+                            <span class="month-opt-sub status-overdue">Past Due • Rs. 12,000.00</span>
+                          </div>
+                          <span class="custom-checkbox"></span>
+                        </label>
+
+                        <!-- Current / Next Month Option -->
+                        <label class="month-select-option" id="opt-month-current">
+                          <input type="checkbox" name="settle-month" value="Baisakh 2083" />
+                          <div class="month-opt-details">
+                            <strong class="month-opt-title">Baisakh 2083 (Current Month)</strong>
+                            <span class="month-opt-sub">Upcoming Cycle • Rs. 12,000.00</span>
+                          </div>
+                          <span class="custom-checkbox"></span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <!-- STATE B: No Pending Dues (Defaults to Current Month) -->
+                    <div class="no-pending-months-block hidden" id="block-no-pending-months">
+                      <div class="settle-card-alert success">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        <span>No past dues. Settling for Current Month:</span>
+                      </div>
+
+                      <div class="current-month-settled-pill">
+                        <div class="current-month-icon">📅</div>
+                        <div class="current-month-text">
+                          <strong id="current-month-title">Baisakh 2083 (May 2026)</strong>
+                          <span>Current billing cycle</span>
+                        </div>
+                        <span class="badge-pill" style="background: #DCFCE7; color: #16A34A;">Current</span>
+                      </div>
+
+                      <!-- Manual / Advance month toggle -->
+                      <button type="button" class="btn-text-action" id="btn-toggle-custom-month" style="margin-top: 8px;">
+                        <span>+ Settle for another month / Advance</span>
+                      </button>
+
+                      <div class="custom-month-picker-row hidden" id="custom-month-picker-row" style="margin-top: 8px;">
+                        <select id="select-custom-settle-month" class="form-input mini">
+                          <option value="Jestha 2083">Jestha 2083 (June 2026) - Advance</option>
+                          <option value="Ashadh 2083">Ashadh 2083 (July 2026) - Advance</option>
+                          <option value="Shrawan 2083">Shrawan 2083 (August 2026) - Advance</option>
+                        </select>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                <!-- 6. Optional Reference / Note -->
+                <div class="form-group">
+                  <label class="form-label" for="record-payment-notes">Notes / Reference (Optional)</label>
+                  <input
+                    type="text"
+                    id="record-payment-notes"
+                    class="form-input"
+                    placeholder="e.g. Received by father, or transaction remarks"
+                  />
+                </div>
+
+                <!-- 7. Send WhatsApp Receipt Toggle -->
+                <div class="confirm-row" style="padding: 10px 0;">
+                  <span class="confirm-label" style="font-size: 13.5px; color: #0E1326; font-weight: 600;">
+                    Send WhatsApp receipt to tenant
+                  </span>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="toggle-send-whatsapp-receipt" checked />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+              </form>
+            </div>
+
+            <!-- Sticky Bottom Action Bar -->
+            <footer class="bottom-bar">
+              <button class="btn btn-primary btn-pill" id="btn-save-full-payment">
+                Confirm & Save Receipt
+              </button>
+            </footer>
+          </section>
+
         </div>
 
         <!-- Toast notification popup (Native Gesture Bar strictly excluded) -->
@@ -1983,6 +2254,7 @@
           <button type="button" class="widget-btn" data-goto="6">6. Dashboard</button>
           <button type="button" class="widget-btn" data-goto="10">10. Details</button>
           <button type="button" class="widget-btn" data-goto="11">11. Edit</button>
+          <button type="button" class="widget-btn" data-goto="12">12. Record</button>
           <button type="button" class="widget-btn" data-goto="7">7. Step 1</button>
           <button type="button" class="widget-btn" data-goto="8">8. Step 2</button>
           <button type="button" class="widget-btn" data-goto="9">9. Step 3</button>

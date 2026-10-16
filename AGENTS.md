@@ -327,5 +327,41 @@
 - **Sticky Bottom Action Bar**:
   - Full-width `Save Changes` pill button (`height: 54px; min-height: 54px; flex-shrink: 0;`).
 
+---
+
+## 19. Dedicated Record Payment Page & Month Settlement Architecture (Screen 12)
+
+### 1. Landlord Payment Settlement Problem & Solution
+- **The Problem**: A basic quick modal only allows entering a raw number and payment mode without linking the cashflow to specific billing cycles. Landlords frequently deal with tenants paying for multiple overdue months simultaneously, paying partially, or paying in advance.
+- **The Solution (Screen 12)**: A dedicated, full-screen **Record Payment** flow that intelligently detects whether the property has past overdue months or is up to date, providing specialized settlement workflows for each.
+
+### 2. Dynamic Month Settlement Architecture (Pending vs Current)
+- **State A: Pending Months Available (Manual Selection)**:
+  - When the selected tenancy has arrears (e.g. *2nd Floor, Lalitpur* with 1 overdue cycle; *Ram’s Flat* with 2 overdue cycles):
+    - Amber alert banner: `"Pending dues found. Select month(s) to settle:"`.
+    - Interactive stack of month checkboxes (e.g. `Falgun 2082`, `Chaitra 2082`, `Baisakh 2083`).
+    - Landlords can check single or multiple months manually to explicitly declare which cycles are cleared.
+    - Status pills highlight overdue severity (e.g. `"Overdue 3 days • Rs. 12,034.12"`).
+- **State B: No Pending Dues (Current Month Default + Advance Option)**:
+  - When the tenant has zero past dues (e.g. *Apartment 11, Bhakatapur*):
+    - Green checkmark banner: `"No past dues. Settling for Current Month:"`.
+    - Defaults cleanly to the current billing cycle (`Baisakh 2083 / May 2026`) with a green `"Current"` badge.
+    - Provides a `+ Settle for another month / Advance` toggle button.
+    - Expanding reveals a select dropdown for future cycles (`Jestha 2083`, `Ashadh 2083`, `Shrawan 2083`) for advance rent collection.
+
+### 3. Payment Mode & Sub-Channels
+- **Split Selector**: Dual pill grid with `Cash` and `Online`.
+- **Dynamic Online Sub-Fields**: Selecting `Online` reveals radio chips for `GPay / UPI`, `Bank / NEFT`, and `Other App`, plus an optional text input for transaction reference or UTR number.
+
+### 4. Interactive Date Picker & Amount Shortcuts
+- **Date Picker**: Dedicated picker box (`#recordDatePickerTrigger`) invoking the native calendar picker, displaying formatted human-friendly dates (`"Today, 17 Oct 2026"`).
+- **Shortcut Amount Chips**: Quick pill buttons (`Full Due`, `Base Rent`, `Round Rs. 10,000`) allowing instant one-tap entry without typing.
+
+### 5. Ledger Synchronization & Tenant Receipt
+- Saving immediately prepends the transaction to the Dashboard's **Recent Payments** list with tenancy name, settled month tag, payment channel, and formatted currency.
+- WhatsApp receipt toggle switch queues automated digital acknowledgment.
+- Sticky bottom bar with full `54px` min-height `"Confirm & Save Receipt"` pill button and 360px viewport responsiveness.
+
+
 
 
