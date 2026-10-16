@@ -471,18 +471,8 @@ function initEventListeners() {
     navigateToScreen(6);
   });
 
-  // Screen 6: Dashboard
-  document.getElementById('btn-empty-create')?.addEventListener('click', () => {
-    navigateToScreen(7);
-  });
-
-  document.getElementById('btn-dashboard-add')?.addEventListener('click', () => {
-    navigateToScreen(7);
-  });
-
-  document.getElementById('btn-dashboard-settings')?.addEventListener('click', () => {
-    showToast('⚙️ App Settings & Preferences');
-  });
+  // Screen 6: Dashboard Controller & State Presets
+  initDashboard();
 
   // Screen 7: Step 1 (General Information)
   document.getElementById('btn-step1-back')?.addEventListener('click', () => {
@@ -517,15 +507,28 @@ function initEventListeners() {
     state.hasCreatedTenancy = true;
     showToast('🎉 Tenancy "2nd Floor, Lalitpur" created successfully!', 3500);
     setTimeout(() => {
+      setDashboardState('state1');
       navigateToScreen(6);
     }, 1200);
   });
 
-  // Floating Review Widget buttons
-  document.querySelectorAll('.widget-btn').forEach((btn) => {
+  // Floating Review Widget buttons for Screen Navigation
+  document.querySelectorAll('.widget-btn[data-goto]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const target = parseInt(btn.dataset.goto, 10);
       navigateToScreen(target);
+    });
+  });
+
+  // Floating Review Widget buttons for Dashboard Mockup States
+  document.querySelectorAll('.widget-btn[data-home-state]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.widget-btn[data-home-state]').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      const stateKey = btn.dataset.homeState;
+      setDashboardState(stateKey);
+      navigateToScreen(6);
+      showToast(`Switched to: ${btn.title}`);
     });
   });
 
@@ -544,6 +547,378 @@ function initEventListeners() {
   });
 }
 
+// ==========================================================================
+// HOME DASHBOARD CONTROLLER & MOCKUP STATES
+// ==========================================================================
+
+function initDashboard() {
+  const emptyCreateBtn = document.getElementById('btn-empty-create');
+  const addTenancyBtn = document.getElementById('btn-dashboard-add');
+  const settingsBtn = document.getElementById('btn-dashboard-settings');
+
+  emptyCreateBtn?.addEventListener('click', () => navigateToScreen(7));
+  addTenancyBtn?.addEventListener('click', () => navigateToScreen(7));
+  settingsBtn?.addEventListener('click', () => showToast('⚙️ App Settings & Preferences'));
+
+  // Segmented Ledger Switcher (Payments vs Bills)
+  const tabPayments = document.getElementById('tab-recent-payments');
+  const tabBills = document.getElementById('tab-recent-bills');
+  const heading = document.getElementById('recent-section-heading');
+  const listPayments = document.getElementById('list-recent-payments');
+  const listBills = document.getElementById('list-recent-bills');
+  const emptyPayments = document.getElementById('empty-recent-payments');
+
+  tabPayments?.addEventListener('click', () => {
+    tabPayments.classList.add('active');
+    tabPayments.setAttribute('aria-selected', 'true');
+    tabBills.classList.remove('active');
+    tabBills.setAttribute('aria-selected', 'false');
+    if (heading) heading.textContent = 'Recent Payments';
+
+    if (emptyPayments && !emptyPayments.classList.contains('hidden')) {
+      listPayments.classList.add('hidden');
+      listBills.classList.add('hidden');
+    } else {
+      listPayments.classList.remove('hidden');
+      listBills.classList.add('hidden');
+    }
+  });
+
+  tabBills?.addEventListener('click', () => {
+    tabBills.classList.add('active');
+    tabBills.setAttribute('aria-selected', 'true');
+    tabPayments.classList.remove('active');
+    tabPayments.setAttribute('aria-selected', 'false');
+    if (heading) heading.textContent = 'Recent Bills';
+
+    emptyPayments.classList.add('hidden');
+    listPayments.classList.add('hidden');
+    listBills.classList.remove('hidden');
+  });
+
+  // Modal: Record Payment
+  const modalRecord = document.getElementById('modal-record-payment');
+  const closeRecordModal = document.getElementById('btn-close-record-modal');
+  const submitRecord = document.getElementById('btn-submit-record-payment');
+  const recordSelect = document.getElementById('record-select-tenancy');
+  const recordAmountInput = document.getElementById('record-amount');
+
+  function openRecordModal(tenancyName = '2nd Floor, Lalitpur', defaultAmount = '12000') {
+    if (recordSelect) recordSelect.value = tenancyName;
+    if (recordAmountInput) recordAmountInput.value = defaultAmount;
+    modalRecord?.classList.remove('hidden');
+  }
+
+  closeRecordModal?.addEventListener('click', () => {
+    modalRecord?.classList.add('hidden');
+  });
+
+  modalRecord?.addEventListener('click', (e) => {
+    if (e.target === modalRecord) modalRecord.classList.add('hidden');
+  });
+
+  // Wire up Record buttons
+  document.getElementById('btn-lalitpur-action')?.addEventListener('click', () => {
+    const actionText = document.getElementById('lalitpur-action-text')?.textContent;
+    if (actionText?.includes('Generate Bill')) {
+      openBillModal('2nd Floor, Lalitpur', 'Monthly - April 2026', '12,034.12');
+    } else {
+      openRecordModal('2nd Floor, Lalitpur', '12000');
+    }
+  });
+
+  document.getElementById('btn-rams-action')?.addEventListener('click', () => {
+    const actionText = document.getElementById('rams-action-text')?.textContent;
+    if (actionText?.includes('Generate Bill')) {
+      openBillModal('Ram’s Flat', 'Weekly - April 2026', '2,540.00');
+    } else {
+      openRecordModal('Ram’s Flat', '2000');
+    }
+  });
+
+  document.getElementById('btn-apt-record')?.addEventListener('click', () => {
+    openRecordModal('Apartment 11, Bhakatapur', '34150');
+  });
+
+  // Payment mode pills inside modal
+  const paymentMethodCards = document.querySelectorAll('.payment-methods-grid .radio-card');
+  paymentMethodCards.forEach((card) => {
+    card.addEventListener('click', () => {
+      paymentMethodCards.forEach((c) => c.classList.remove('selected'));
+      card.classList.add('selected');
+      const input = card.querySelector('input');
+      if (input) input.checked = true;
+    });
+  });
+
+  submitRecord?.addEventListener('click', () => {
+    const tenancy = recordSelect ? recordSelect.value : '2nd Floor, Lalitpur';
+    const amount = recordAmountInput ? recordAmountInput.value : '12,000';
+    const selectedMethod = document.querySelector('input[name="pay-method"]:checked')?.value || 'Cash';
+
+    // Prepend new payment to recent payments list
+    if (listPayments) {
+      const newCard = document.createElement('div');
+      newCard.className = 'recent-item-card';
+      newCard.setAttribute('role', 'button');
+      newCard.setAttribute('tabindex', '0');
+      newCard.innerHTML = `
+        <div class="recent-item-left">
+          <span class="recent-prop-name">${tenancy}</span>
+          <strong class="recent-item-title">Just now — Paid via ${selectedMethod}</strong>
+          <span class="recent-item-timestamp">Paid on Today ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+        </div>
+        <div class="recent-item-right">
+          <strong class="recent-item-amount">Rs. ${parseFloat(amount).toLocaleString('en-IN')}</strong>
+          <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </div>
+      `;
+      listPayments.insertBefore(newCard, listPayments.firstChild);
+    }
+
+    modalRecord?.classList.add('hidden');
+    showToast(`✅ Payment of Rs. ${parseFloat(amount).toLocaleString('en-IN')} recorded for ${tenancy}!`, 3500);
+  });
+
+  // Modal: Generate Bill & Share
+  const modalBill = document.getElementById('modal-generate-bill');
+  const closeBillModal = document.getElementById('btn-close-bill-modal');
+  const billTargetTenancy = document.getElementById('bill-target-tenancy');
+  const billTargetCycle = document.getElementById('bill-target-cycle');
+  const billCalculatedTotal = document.getElementById('bill-calculated-total');
+
+  function openBillModal(tenancy = 'Apartment 11, Bhakatapur', cycle = 'Monthly - April 2026', total = '34,150.12') {
+    if (billTargetTenancy) billTargetTenancy.textContent = tenancy;
+    if (billTargetCycle) billTargetCycle.textContent = cycle;
+    if (billCalculatedTotal) billCalculatedTotal.textContent = `Rs. ${total}`;
+    modalBill?.classList.remove('hidden');
+  }
+
+  closeBillModal?.addEventListener('click', () => modalBill?.classList.add('hidden'));
+  modalBill?.addEventListener('click', (e) => {
+    if (e.target === modalBill) modalBill.classList.add('hidden');
+  });
+
+  document.getElementById('btn-apt-generate')?.addEventListener('click', () => {
+    openBillModal('Apartment 11, Bhakatapur', 'Monthly - April 2026', '34,150.12');
+  });
+
+  document.getElementById('btn-share-whatsapp')?.addEventListener('click', () => {
+    modalBill?.classList.add('hidden');
+    showToast('📱 WhatsApp invoice link generated & copied to clipboard!', 3500);
+  });
+
+  document.getElementById('btn-copy-invoice-link')?.addEventListener('click', () => {
+    modalBill?.classList.add('hidden');
+    showToast('📋 Bill summary copied to clipboard!', 3000);
+  });
+}
+
+// State Setter to recreate each of the 4 Figma Mockups faithfully
+function setDashboardState(stateKey) {
+  const title = document.getElementById('dashboard-main-title');
+  const emptyTenancies = document.getElementById('dashboard-empty-tenancies');
+  const cardLalitpur = document.getElementById('card-tenancy-lalitpur');
+  const cardRams = document.getElementById('card-tenancy-rams');
+  const cardApt11 = document.getElementById('card-tenancy-apartment11');
+  const recentSection = document.getElementById('dashboard-recent-section');
+  const tabPayments = document.getElementById('tab-recent-payments');
+  const tabBills = document.getElementById('tab-recent-bills');
+  const heading = document.getElementById('recent-section-heading');
+  const listPayments = document.getElementById('list-recent-payments');
+  const listBills = document.getElementById('list-recent-bills');
+  const emptyPayments = document.getElementById('empty-recent-payments');
+
+  // Lalitpur specific elements
+  const lalitpurPill = document.getElementById('lalitpur-status-pill');
+  const lalitpurSub = document.getElementById('lalitpur-sub');
+  const lalitpurLeftVal = document.getElementById('lalitpur-left-val');
+  const lalitpurLeftSub = document.getElementById('lalitpur-left-sub');
+  const lalitpurRightVal = document.getElementById('lalitpur-right-val');
+  const lalitpurRightSub = document.getElementById('lalitpur-right-sub');
+  const lalitpurHistory = document.getElementById('lalitpur-history-text');
+  const lalitpurActionText = document.getElementById('lalitpur-action-text');
+
+  // Ram's Flat specific elements
+  const ramsPill = document.getElementById('rams-status-pill');
+  const ramsSub = document.getElementById('rams-sub');
+  const ramsLeftVal = document.getElementById('rams-left-val');
+  const ramsLeftSub = document.getElementById('rams-left-sub');
+  const ramsRightVal = document.getElementById('rams-right-val');
+  const ramsRightSub = document.getElementById('rams-right-sub');
+  const ramsHistory = document.getElementById('rams-history-text');
+  const ramsActionText = document.getElementById('rams-action-text');
+
+  if (stateKey === 'empty') {
+    if (title) title.textContent = 'Your Tenancy';
+    emptyTenancies?.classList.remove('hidden');
+    cardLalitpur?.classList.add('hidden');
+    cardRams?.classList.add('hidden');
+    cardApt11?.classList.add('hidden');
+    recentSection?.classList.add('hidden');
+    return;
+  }
+
+  // Common active setup
+  emptyTenancies?.classList.add('hidden');
+  recentSection?.classList.remove('hidden');
+
+  if (stateKey === 'state1') {
+    // MOCKUP 1: Multi-Tenancies + Overdue + Recent Payments
+    if (title) title.textContent = 'Your Tenancies';
+    cardLalitpur?.classList.remove('hidden');
+    cardRams?.classList.remove('hidden');
+    cardApt11?.classList.remove('hidden');
+
+    // Lalitpur setup
+    if (lalitpurPill) {
+      lalitpurPill.className = 'status-pill status-overdue';
+      lalitpurPill.textContent = 'Payment overdue - 3 days';
+    }
+    if (lalitpurSub) lalitpurSub.textContent = 'Rs. 12,000 . Monthly - April';
+    if (lalitpurLeftVal) lalitpurLeftVal.textContent = 'Paid Till - March';
+    if (lalitpurLeftSub) {
+      lalitpurLeftSub.className = 'metric-tag success';
+      lalitpurLeftSub.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>No Past Dues</span>
+      `;
+    }
+    if (lalitpurRightVal) lalitpurRightVal.textContent = '12 May 2026';
+    if (lalitpurRightSub) lalitpurRightSub.textContent = 'Next Billing';
+    if (lalitpurHistory) lalitpurHistory.textContent = '13 total payments . Last Paid on March 12th';
+    if (lalitpurActionText) lalitpurActionText.textContent = 'Record Payment';
+
+    // Ram's Flat setup
+    if (ramsPill) {
+      ramsPill.className = 'status-pill status-due-today';
+      ramsPill.textContent = 'Due today';
+    }
+    if (ramsSub) ramsSub.textContent = 'Rs. 2,000 . Monthly - April';
+    if (ramsLeftVal) ramsLeftVal.textContent = 'Paid Till - Jan';
+    if (ramsLeftSub) {
+      ramsLeftSub.className = 'metric-tag danger';
+      ramsLeftSub.textContent = '2 months due';
+    }
+    if (ramsRightVal) ramsRightVal.textContent = '3 May 2026';
+    if (ramsRightSub) ramsRightSub.textContent = 'Next Billing';
+    if (ramsHistory) ramsHistory.textContent = '12 total payments . Last Paid on Feb 5th';
+    if (ramsActionText) ramsActionText.textContent = 'Record Payment';
+
+    // Recent Payments tab
+    tabPayments?.click();
+    emptyPayments?.classList.add('hidden');
+    listPayments?.classList.remove('hidden');
+
+  } else if (stateKey === 'state2') {
+    // MOCKUP 2: Single Tenancy + Bikram Sambat Bills Ledger
+    if (title) title.textContent = 'Your Tenancy';
+    cardLalitpur?.classList.remove('hidden');
+    cardRams?.classList.add('hidden');
+    cardApt11?.classList.add('hidden');
+
+    // Lalitpur setup
+    if (lalitpurPill) {
+      lalitpurPill.className = 'status-pill status-overdue';
+      lalitpurPill.textContent = 'Billing overdue - 3 days';
+    }
+    if (lalitpurSub) lalitpurSub.textContent = 'Rs. 12,000 . Monthly';
+    if (lalitpurLeftVal) lalitpurLeftVal.textContent = 'Paid Till - March';
+    if (lalitpurLeftSub) {
+      lalitpurLeftSub.className = 'metric-tag success';
+      lalitpurLeftSub.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>No Past Dues</span>
+      `;
+    }
+    if (lalitpurRightVal) lalitpurRightVal.textContent = '12 May 2026';
+    if (lalitpurRightSub) lalitpurRightSub.textContent = 'Next Billing';
+    if (lalitpurHistory) lalitpurHistory.textContent = '12 total bills . Last Paid on March 12th';
+    if (lalitpurActionText) lalitpurActionText.textContent = 'Record Payment';
+
+    // Show BS bills ledger
+    tabBills?.click();
+    emptyPayments?.classList.add('hidden');
+
+  } else if (stateKey === 'state3') {
+    // MOCKUP 3: Multi-Tenancies + Generate Bills CTAs
+    if (title) title.textContent = 'Your Tenancies';
+    cardLalitpur?.classList.remove('hidden');
+    cardRams?.classList.remove('hidden');
+    cardApt11?.classList.add('hidden');
+
+    // Lalitpur with Generate Bill CTA
+    if (lalitpurPill) {
+      lalitpurPill.className = 'status-pill status-overdue';
+      lalitpurPill.textContent = 'Billing overdue - 3 days';
+    }
+    if (lalitpurSub) lalitpurSub.textContent = 'Rs. 12,000 . Monthly';
+    if (lalitpurLeftVal) lalitpurLeftVal.textContent = 'Rs. 12,034.12';
+    if (lalitpurLeftSub) {
+      lalitpurLeftSub.className = 'metric-label';
+      lalitpurLeftSub.textContent = 'Last Generated Bill';
+    }
+    if (lalitpurRightVal) lalitpurRightVal.textContent = '1 Baisakh 2083';
+    if (lalitpurRightSub) lalitpurRightSub.textContent = 'Next Billing';
+    if (lalitpurHistory) lalitpurHistory.textContent = '12 total bills . Last generated on April 5';
+    if (lalitpurActionText) lalitpurActionText.textContent = 'Generate Bill';
+
+    // Ram's Flat with Weekly & Generate Bill CTA
+    if (ramsPill) {
+      ramsPill.className = 'status-pill status-due-today';
+      ramsPill.textContent = 'Billing today';
+    }
+    if (ramsSub) ramsSub.textContent = 'Rs. 2,000 . Weekly';
+    if (ramsLeftVal) ramsLeftVal.textContent = 'Rs. 2,540';
+    if (ramsLeftSub) {
+      ramsLeftSub.className = 'metric-label';
+      ramsLeftSub.textContent = 'Last generated bill';
+    }
+    if (ramsRightVal) ramsRightVal.textContent = '1 Baisakh 2083';
+    if (ramsRightSub) ramsRightSub.textContent = 'Next Billing';
+    if (ramsHistory) ramsHistory.textContent = '12 total bills . Last generated on April 5';
+    if (ramsActionText) ramsActionText.textContent = 'Generate Bill';
+
+    // Recent Bills tab active
+    tabBills?.click();
+    emptyPayments?.classList.add('hidden');
+
+  } else if (stateKey === 'state4') {
+    // MOCKUP 4: Single Tenancy + Empty Recent Payments Card
+    if (title) title.textContent = 'Your Tenancy';
+    cardLalitpur?.classList.remove('hidden');
+    cardRams?.classList.add('hidden');
+    cardApt11?.classList.add('hidden');
+
+    // Lalitpur setup
+    if (lalitpurPill) {
+      lalitpurPill.className = 'status-pill status-overdue';
+      lalitpurPill.textContent = 'Billing overdue - 3 days';
+    }
+    if (lalitpurSub) lalitpurSub.textContent = 'Rs. 12,000 . Monthly';
+    if (lalitpurLeftVal) lalitpurLeftVal.textContent = '';
+    if (lalitpurLeftSub) lalitpurLeftSub.textContent = '';
+    if (lalitpurRightVal) lalitpurRightVal.textContent = '1 Baisakh 2083';
+    if (lalitpurRightSub) lalitpurRightSub.textContent = 'Next Billing';
+    if (lalitpurHistory) lalitpurHistory.textContent = '';
+    if (lalitpurActionText) lalitpurActionText.textContent = 'Generate Bill';
+
+    // Empty Recent Payments
+    tabPayments?.classList.add('active');
+    tabBills?.classList.remove('active');
+    if (heading) heading.textContent = 'Recent Payments';
+    listPayments?.classList.add('hidden');
+    listBills?.classList.add('hidden');
+    emptyPayments?.classList.remove('hidden');
+  }
+}
+
 // Initial Boot
 document.addEventListener('DOMContentLoaded', () => {
   initClock();
@@ -551,4 +926,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initStep1Form();
   initUtilityToggles();
   initEventListeners();
+  setDashboardState('state1');
 });

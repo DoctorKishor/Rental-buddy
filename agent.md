@@ -37,3 +37,10 @@ Please refer to the comprehensive design system and engineering specifications d
   - MUST PUSH ONLY when the user gives an explicit command to push. Never push automatically.
 - **Self-Learning / Non-Destructive Update Rule**:
   - Whenever new user preferences, UI elements, or architecture rules are learned, agents MUST automatically add them to `AGENTS.md` non-destructively without removing or overwriting previous lines.
+- **Home Dashboard & Multi-Tenancy Cards**:
+  - Dynamic Screen Title: "Your Tenancy" (single/empty) vs "Your Tenancies" (multiple).
+  - Status Badges: Rose (Overdue), Amber (Due today/Billing today), Blue (Upcoming), Green check (No Past Dues).
+  - Action Buttons: Single lavender pill for Record Payment / Generate Bill; Dual side-by-side peach ("Generate Bill & Share") and lavender ("Record") with zero-wrap down to 360px.
+  - Recent Activity Ledger: Segmented toggle between `[ Payments | Bills ]` resolving the Figma mismatch and providing landlords complete visibility over cashflow and invoices.
+  - Fixed Figma empty state typo: "see them here" instead of "see the here".
+  - Interactive bottom sheets for "Record Payment" and "Generate Bill & Share" (with WhatsApp share link simulation).

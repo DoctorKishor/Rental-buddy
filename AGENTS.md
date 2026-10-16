@@ -234,5 +234,40 @@
   - AI agents MUST **NEVER** push commits to remote (`git push`) automatically.
   - Pushing to remote repository is strictly forbidden unless the USER gives an **explicit command** to push.
 
+---
+
+## 16. Home Dashboard Architecture, Multi-Tenancy Cards & Landlord Ledger
+
+### 1. Dynamic Title Hierarchy
+- **Single Tenancy or Initial State**: Display `"Your Tenancy"` (Singular).
+- **Multiple Tenancies**: Display `"Your Tenancies"` (Plural).
+
+### 2. Status Pill Badges
+- **Overdue (`.status-overdue`)**: Background `#FEE2E2`, text `#DC2626`, border `1px solid #FECACA` (e.g., "Payment overdue - 3 days", "Billing overdue - 3 days").
+- **Due Today (`.status-due-today`)**: Background `#FEF3C7`, text `#B45309`, border `1px solid #FDE68A` (e.g., "Due today", "Billing today").
+- **Upcoming (`.status-upcoming`)**: Background `#E0F2FE`, text `#0284C7`, border `1px solid #BAE6FD` (e.g., "Billing in 5 days").
+- **Metrics Badges**:
+  - `No Past Dues`: Inline green checkmark SVG (`#16A34A`), weight 600.
+  - Dues Alert: Red bold warning (`#DC2626`), e.g., "2 months due".
+
+### 3. Card Action Button Architecture
+- **Single Action Button (`.lavender-action`)**: Full-width pill (`height: 48px`, `#E8E7FB` background, `#5452EC` text, subtle border `rgba(84, 82, 236, 0.15)`). Used for "Record Payment" or "Generate Bill".
+- **Dual Side-by-Side Action Buttons (`.dual-action-row`)**:
+  - Left Button (`.peach-action`): Soft peach/coral background `#FFE4E6`, text `#E11D48`, document icon ("Generate Bill & Share", flex ratio 1.45).
+  - Right Button (`.lavender-action`): Lavender background `#E8E7FB`, text `#5452EC`, cash icon ("Record", flex ratio 1).
+  - 360px viewport guarantee: font-size scales to `12px - 12.5px`, padding `0 10px`, gap `8px`, zero wrapping.
+
+### 4. Recent Activity: Segmented Ledger Switcher (Payments vs Bills)
+- **Landlord Perspective Resolution**: Landlords require visibility into both collected cashflows and sent bills.
+- **Segmented Control**: Pill toggle `[ Payments | Bills ]` placed right in the section header.
+- **Recent Payments List**: Displays property name, payment method tag (`Paid Cash`, `Paid via Gpay`, `Paid via NEFT`), timestamp, formatted amount, and chevron `>`.
+- **Recent Bills List**: Displays billing period (supports both Gregorian and Bikram Sambat BS calendar formats, e.g., "19 Chaitra 2082 - 26 Chaitra 2082"), generation date, amount, and chevron `>`.
+- **Empty State & Typo Correction**:
+  - Corrected Figma typo from *"you will see the here"* to *"you will see them here once they are marked as paid."*
+
+### 5. Interactive Bottom Sheets / Modals
+- **Record Payment Modal**: Quick bottom sheet allowing the landlord to select the tenancy, input the payment amount received, pick the payment mode (`Cash`, `GPay / UPI`, `Bank / NEFT`), select the date, and save.
+- **Generate Bill & Share Modal**: Calculation preview showing base rent + electricity units + water + garbage, with instant one-tap "Send Invoice via WhatsApp" and "Copy Bill Summary" actions.
+
 
 
