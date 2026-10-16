@@ -51,4 +51,11 @@ Please refer to the comprehensive design system and engineering specifications d
   - Segmented toggle between `[ Month-wise | History ]` to support both monthly status and granular transaction logs.
   - Fixed Figma empty state typo: "see them here once they are generated" instead of "see the here".
   - Sticky bottom action bar with `Generate New Bill` button (`54px` min height).
+- **Edit Tenancy & Future Cycle Rent Revision (Screen 11)**:
+  - Navigation via "Edit" in 3-dots menu or review widget.
+  - Revise Rent Action: Button placed directly beside Rent Amount label.
+  - Preserves Historical Ledger: Rent revisions are scheduled to take effect from a specific upcoming cycle (e.g. Next Cycle / 1 Baisakh 2083), protecting past billing records from corruption.
+  - Scheduled Revision Banner: Displays scheduled increment amount, effective cycle, and instant cancel action.
+  - Sticky bottom action bar with `Save Changes` button (`54px` min height).
+
 

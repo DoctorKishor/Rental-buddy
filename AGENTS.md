@@ -304,5 +304,28 @@
 ### 5. Sticky Bottom Action Bar
 - Full-width `Generate New Bill` pill button (`54px` min height, zero shrink, vibrant purple gradient).
 
+---
+
+## 18. Edit Tenancy & Future Cycle Rent Revision Architecture
+
+### 1. Landlord Business Logic & Historical Ledger Protection
+- **The Financial Integrity Problem**: In rental management, naively editing a property's base rent value overwrites historical ledger calculations, breaking previous invoice records.
+- **The Solution**: A landlord can either edit current tenancy details or explicitly schedule a **Rent Revision** starting from a designated future billing cycle (e.g. *1 Baisakh 2083 / May 2026*). Historical billing receipts remain 100% intact.
+
+### 2. UI Components & Interaction Patterns
+- **Header Navigation**: Back arrow `←` returning to Tenancy Details, centered title ("Edit Tenancy"), and subtitle with property name.
+- **Revise Rent Action Button (`.btn-text-action`)**: Positioned directly on the field label row adjacent to "Rent Amount", featuring an upward trend line SVG icon and primary purple text.
+- **Revise Rent Bottom Sheet (`#modal-revise-rent`)**:
+  - Reference Current Rent (read-only card).
+  - New Rent input field.
+  - Effective Cycle Selector (`Next Cycle`, `In 2 Months`, `In 3 Months`, or `Custom Date`).
+  - Revision Reason / Note field (e.g. "Annual 10% increment").
+  - Tenant WhatsApp Notice toggle switch.
+- **Scheduled Revision Banner (`.scheduled-revision-banner`)**:
+  - Displays directly under the rent field with a blue info pill theme (`#EFF6FF` background, `#BFDBFE` border, `#1D4ED8` icon).
+  - Displays scheduled amount, effective date, and a quick cancel button (`✕`).
+- **Sticky Bottom Action Bar**:
+  - Full-width `Save Changes` pill button (`height: 54px; min-height: 54px; flex-shrink: 0;`).
+
 
 

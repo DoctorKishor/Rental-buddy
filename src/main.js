@@ -981,7 +981,7 @@ function initTenancyDetails() {
   // Menu action handlers
   actionEdit?.addEventListener('click', () => {
     menuDropdown?.classList.add('hidden');
-    showToast('✏️ Edit Tenancy Details (Coming up in next flow)');
+    navigateToScreen(11);
   });
 
   actionArchive?.addEventListener('click', () => {
@@ -1117,6 +1117,134 @@ function setDetailsState(stateKey) {
   }
 }
 
+// ==========================================================================
+// EDIT TENANCY & RENT REVISION CONTROLLER (SCREEN 11)
+// ==========================================================================
+
+function initEditTenancy() {
+  const btnEditBack = document.getElementById('btn-edit-back');
+  const btnSave = document.getElementById('btn-save-tenancy-changes');
+  const btnOpenRevise = document.getElementById('btn-open-revise-modal');
+  const modalRevise = document.getElementById('modal-revise-rent');
+  const btnCloseRevise = document.getElementById('btn-close-revise-modal');
+  const btnConfirmRevise = document.getElementById('btn-confirm-rent-revision');
+  const bannerRevision = document.getElementById('scheduled-revision-banner');
+  const btnCancelRevision = document.getElementById('btn-cancel-revision');
+  const bannerRevisionText = document.getElementById('banner-revision-text');
+
+  btnEditBack?.addEventListener('click', () => {
+    navigateToScreen(10);
+  });
+
+  // Open & Close Revise Rent Modal
+  btnOpenRevise?.addEventListener('click', () => {
+    modalRevise?.classList.remove('hidden');
+  });
+
+  btnCloseRevise?.addEventListener('click', () => {
+    modalRevise?.classList.add('hidden');
+  });
+
+  modalRevise?.addEventListener('click', (e) => {
+    if (e.target === modalRevise) modalRevise.classList.add('hidden');
+  });
+
+  // Confirm Rent Revision
+  btnConfirmRevise?.addEventListener('click', () => {
+    const newRent = document.getElementById('input-new-rent')?.value || '14000';
+    const cycle = document.getElementById('select-revise-cycle')?.value || '1 Baisakh 2083';
+    const notifyTenant = document.getElementById('toggle-notify-tenant-revision')?.checked;
+
+    if (bannerRevisionText) {
+      bannerRevisionText.textContent = `Rs. ${parseFloat(newRent).toLocaleString('en-IN')} scheduled from ${cycle}`;
+    }
+    bannerRevision?.classList.remove('hidden');
+    modalRevise?.classList.add('hidden');
+
+    const msg = notifyTenant 
+      ? `📈 Rent revision scheduled to Rs. ${parseFloat(newRent).toLocaleString('en-IN')} from ${cycle} (Tenant notified via WhatsApp)`
+      : `📈 Rent revision scheduled to Rs. ${parseFloat(newRent).toLocaleString('en-IN')} from ${cycle}`;
+    showToast(msg, 3500);
+  });
+
+  // Cancel Scheduled Revision
+  btnCancelRevision?.addEventListener('click', () => {
+    bannerRevision?.classList.add('hidden');
+    showToast('Scheduled rent revision cancelled');
+  });
+
+  // Save changes
+  btnSave?.addEventListener('click', () => {
+    const updatedName = document.getElementById('edit-tenancy-name')?.value?.trim();
+    const updatedRent = document.getElementById('edit-rent-amount')?.value?.trim();
+
+    if (updatedName) {
+      const detailsTitle = document.getElementById('details-prop-title');
+      if (detailsTitle) detailsTitle.textContent = updatedName;
+    }
+
+    if (updatedRent) {
+      const rentRate = document.getElementById('details-rent-rate');
+      if (rentRate) rentRate.textContent = `Rs. ${parseFloat(updatedRent).toLocaleString('en-IN')} . Monthly`;
+    }
+
+    showToast('✅ Tenancy details updated successfully!', 3000);
+    setTimeout(() => {
+      navigateToScreen(10);
+    }, 600);
+  });
+
+  // Date picker trigger
+  const trigger = document.getElementById('editDatePickerTrigger');
+  const nativeDate = document.getElementById('edit-native-billing-date');
+  const dateDisplay = document.getElementById('edit-billing-date-display');
+
+  trigger?.addEventListener('click', () => {
+    if (nativeDate && typeof nativeDate.showPicker === 'function') {
+      try {
+        nativeDate.showPicker();
+      } catch (err) {
+        nativeDate.focus();
+      }
+    } else {
+      nativeDate?.focus();
+    }
+  });
+
+  nativeDate?.addEventListener('change', (e) => {
+    const val = e.target.value;
+    if (val && dateDisplay) {
+      const day = parseInt(val.split('-')[2], 10);
+      const suffix = getOrdinal(day);
+      dateDisplay.value = `${day}${suffix} of every month`;
+      showToast(`Recurring billing date set to ${day}${suffix} of every month`);
+    }
+  });
+
+  // Billing cycle radios
+  const cycleRadios = document.querySelectorAll('input[name="edit-billing-cycle"]');
+  cycleRadios.forEach((radio) => {
+    radio.parentElement?.addEventListener('click', () => {
+      document.querySelectorAll('.radio-card.mini-radio[id^="edit-cycle-"]').forEach((c) => c.classList.remove('selected'));
+      radio.parentElement?.classList.add('selected');
+      radio.checked = true;
+    });
+  });
+
+  // Utility toggles
+  const toggleElec = document.getElementById('edit-toggle-elec');
+  const detailsElec = document.getElementById('edit-details-elec');
+  toggleElec?.addEventListener('change', () => {
+    detailsElec?.classList.toggle('hidden', !toggleElec.checked);
+  });
+
+  const toggleWater = document.getElementById('edit-toggle-water');
+  const detailsWater = document.getElementById('edit-details-water');
+  toggleWater?.addEventListener('change', () => {
+    detailsWater?.classList.toggle('hidden', !toggleWater.checked);
+  });
+}
+
 // Initial Boot
 document.addEventListener('DOMContentLoaded', () => {
   initClock();
@@ -1124,5 +1252,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initStep1Form();
   initUtilityToggles();
   initEventListeners();
+  initEditTenancy();
   setDashboardState('state1');
 });
+
