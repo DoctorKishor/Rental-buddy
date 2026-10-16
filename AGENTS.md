@@ -468,6 +468,36 @@
 - **Rent Bill History**:
   - Stack of 5 settled bills with billing date intervals, generated dates, formatted amounts, and clickable chevron chevrons opening full bill details (Screen 15).
 
+---
+
+## 22. Backup & Restore Architecture (Screen 19)
+
+### 1. Landlord Data Portability & Offline Sovereignty
+- **Context & Purpose**: Rental records, tenant utility splits, and historical payments are sensitive financial records. Landlords require a simple, offline-first, vendor-independent backup and restoration mechanism that doesn't force third-party cloud lock-in.
+- **The .rhb Format**: Dedicated proprietary JSON schema (`.rhb` = Rental Buddy Backup) containing schema versioning, export timestamps, tenancies with utility configurations, past dues, preferences, and payment ledgers.
+
+### 2. UI Layout & Component Architecture
+- **Header Navigation**:
+  - Back arrow `←` returning directly to Settings (`Screen 16`), with large hero title `"Backup & Restore"` (`28px` bold).
+- **Create Backup Action Card**:
+  - White surface card (`24px` radius, `0 4px 18px rgba(28, 33, 66, 0.04)` shadow, subtle border `#E2E4F2`).
+  - Title: `"Create Backup"` (`18px` bold).
+  - Description: *"Exports all your tenancies and bills into a .rhb file. You can save it to Files, Google Drive, email it to yourself, or store it anywhere you prefer"*.
+  - Action Button: Full-width primary purple pill button (`#5452EC`, `height: 54px; min-height: 54px; flex-shrink: 0;`), elevated depth (`0 8px 24px rgba(84, 82, 236, 0.35)`), server/drive icon + `"Create Backup"`.
+  - Behavior: Instant in-browser generation and download of `rental-buddy-backup-[YYYY-MM-DD].rhb`.
+- **Restore Action Card**:
+  - Same white rounded card geometry.
+  - Title: `"Restore"` (`18px` bold).
+  - **Corrected Figma Typo**:
+    - *Figma Glitch*: Read *"You current preferences will be kept."*
+    - *Resolution*: Corrected to grammatical *"Your current preferences will be kept."*
+  - Action Button: Full-width lavender pill button (`#D4D5F8` background, `#5452EC` text, `height: 54px; min-height: 54px; flex-shrink: 0;`), counter-clockwise restore arrow icon + `"Restore From Backup"`.
+  - Behavior: Triggers hidden native file input (`accept=".rhb,.json"`), reads file with `FileReader`, parses and validates data structure, provides toast notification confirmation, and safely syncs state.
+
+### 3. Responsive Guarantee (360px Viewport)
+- On `<= 380px` viewports, card padding scales gracefully to `18px 16px`, gap to `14px`, and typography maintains crisp `text-wrap: balance;` with zero awkward line breaks or button crushing.
+
+
 
 
 

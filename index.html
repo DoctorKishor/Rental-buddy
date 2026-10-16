@@ -2914,6 +2914,66 @@
             </div>
           </section>
 
+          <!-- SCREEN 19: Backup & Restore -->
+          <section class="screen" id="screen-19" data-screen="19">
+            <div class="screen-content">
+              <!-- Top Navigation Header -->
+              <nav class="stepper-header">
+                <button class="nav-back-btn" id="btn-backup-back" aria-label="Back to Settings">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+                <div class="stepper-titles"></div>
+                <div class="stepper-spacer"></div>
+              </nav>
+
+              <!-- Hero Title -->
+              <div class="hero-block" style="margin-bottom: 24px;">
+                <h1 class="hero-title" style="font-size: 28px;">Backup &amp; Restore</h1>
+              </div>
+
+              <!-- Card 1: Create Backup -->
+              <div class="backup-action-card">
+                <div class="backup-card-content">
+                  <h2 class="backup-card-title">Create Backup</h2>
+                  <p class="backup-card-desc">
+                    Exports all your tenancies and bills into a .rhb file. You can save it to Files, Google Drive, email it to yourself, or store it anywhere you prefer
+                  </p>
+                </div>
+                <button class="btn btn-primary btn-pill backup-btn" id="btn-trigger-create-backup">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px; margin-right: 8px;">
+                    <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                    <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                    <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                    <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                  </svg>
+                  Create Backup
+                </button>
+              </div>
+
+              <!-- Card 2: Restore (Typo 'You current preferences' corrected to 'Your current preferences') -->
+              <div class="backup-action-card">
+                <div class="backup-card-content">
+                  <h2 class="backup-card-title">Restore</h2>
+                  <p class="backup-card-desc">
+                    Select a .rhb backup file to restore your tenancies and bills. Your current preferences will be kept.
+                  </p>
+                </div>
+                <button class="btn btn-pill backup-btn btn-restore" id="btn-trigger-restore-backup">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px; margin-right: 8px;">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                  </svg>
+                  Restore From Backup
+                </button>
+                <!-- Hidden file input for .rhb restore -->
+                <input type="file" id="input-rhb-file" accept=".rhb,.json" class="hidden" />
+              </div>
+            </div>
+          </section>
+
         </div>
 
         <!-- Toast notification popup (Native Gesture Bar strictly excluded) -->
@@ -2962,6 +3022,7 @@
         <span class="widget-group-label">Settings &amp; Archives</span>
         <div class="widget-buttons">
           <button type="button" class="widget-btn" data-goto="16">16. Settings</button>
+          <button type="button" class="widget-btn" data-goto="19">19. Backup</button>
           <button type="button" class="widget-btn" data-goto="17">17. Archived</button>
           <button type="button" class="widget-btn" data-goto="18">18. Arch Details</button>
           <button type="button" class="widget-btn mini-btn" id="btn-toggle-archived-empty" title="Toggle between Populated and Empty Archive views">Toggle Arch Empty</button>

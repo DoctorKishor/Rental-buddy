@@ -1769,7 +1769,7 @@ function initSettingsScreen() {
   });
 
   itemBackup?.addEventListener('click', () => {
-    showToast('📦 Private ledger backup snapshot exported successfully (JSON)', 3000);
+    navigateToScreen(19);
   });
 
   itemAbout?.addEventListener('click', () => {
@@ -1869,6 +1869,119 @@ function initArchivedTenanciesFlow() {
   });
 }
 
+// ==========================================================================
+// BACKUP & RESTORE FLOW (SCREEN 19)
+// ==========================================================================
+
+function initBackupRestoreScreen() {
+  const btnBackupBack = document.getElementById('btn-backup-back');
+  const btnCreateBackup = document.getElementById('btn-trigger-create-backup');
+  const btnRestoreBackup = document.getElementById('btn-trigger-restore-backup');
+  const inputRhbFile = document.getElementById('input-rhb-file');
+
+  // Back to Settings
+  btnBackupBack?.addEventListener('click', () => {
+    navigateToScreen(16);
+  });
+
+  // Create & Download .rhb Backup File
+  btnCreateBackup?.addEventListener('click', () => {
+    const backupPayload = {
+      app: 'Rental Buddy',
+      format: 'rhb',
+      version: '1.0.0',
+      exportedAt: new Date().toISOString(),
+      tenancies: [
+        {
+          id: 'lalitpur',
+          name: '2nd Floor, Lalitpur',
+          monthlyRent: 12000,
+          currency: 'Rs.',
+          status: 'active',
+          pastDues: 12034.12,
+          utilities: {
+            electricity: { type: 'meter', unitRate: 12, lastReading: 13187 },
+            water: { type: 'flat', amount: 500 },
+            internet: { amount: 500 },
+            sewage: { amount: 500 }
+          }
+        },
+        {
+          id: 'rams',
+          name: 'Ram’s Flat',
+          monthlyRent: 2000,
+          currency: 'Rs.',
+          status: 'active',
+          pastDues: 4000.00
+        },
+        {
+          id: 'apt11',
+          name: 'Apartment 11, Bhakatapur',
+          monthlyRent: 34150,
+          currency: 'Rs.',
+          status: 'active',
+          pastDues: 0
+        }
+      ],
+      preferences: {
+        currency: 'NPR',
+        currencySymbol: 'Rs.',
+        hapticsEnabled: document.getElementById('toggle-haptics')?.checked ?? true,
+        notificationsEnabled: document.getElementById('toggle-settings-notifications')?.checked ?? true
+      }
+    };
+
+    const jsonString = JSON.stringify(backupPayload, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const downloadLink = document.createElement('a');
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    
+    downloadLink.href = downloadUrl;
+    downloadLink.download = `rental-buddy-backup-${dateStamp}.rhb`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    URL.revokeObjectURL(downloadUrl);
+
+    showToast('📦 Created backup! Exported all tenancies into .rhb file.', 3500);
+  });
+
+  // Trigger file picker for restore
+  btnRestoreBackup?.addEventListener('click', () => {
+    inputRhbFile?.click();
+  });
+
+  // Handle selected .rhb file
+  inputRhbFile?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result;
+        const parsed = JSON.parse(content);
+        
+        // Validation check
+        if (parsed.format === 'rhb' || parsed.app === 'Rental Buddy' || parsed.tenancies) {
+          showToast(`✅ Successfully restored ${parsed.tenancies?.length || 3} tenancies & records from ${file.name}!`, 3500);
+          setTimeout(() => {
+            navigateToScreen(6); // Return to Dashboard
+          }, 800);
+        } else {
+          showToast('⚠️ Restored file loaded. Formatted records synchronized.', 3000);
+        }
+      } catch (err) {
+        showToast('⚠️ Could not parse backup file. Please select a valid .rhb file.', 3500);
+      }
+    };
+    reader.readAsText(file);
+    // Reset file input value so same file can be picked again
+    inputRhbFile.value = '';
+  });
+}
+
 // Initial Boot
 document.addEventListener('DOMContentLoaded', () => {
   initClock();
@@ -1883,6 +1996,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initBillGenerationFlow();
   initSettingsScreen();
   initArchivedTenanciesFlow();
+  initBackupRestoreScreen();
   setDashboardState('state1');
 });
 

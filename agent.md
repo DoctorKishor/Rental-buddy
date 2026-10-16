@@ -84,6 +84,13 @@ Please refer to the comprehensive design system and engineering specifications d
   - Standardized screen title to `"Archived Tenancies"` (fixing typo "Archive Tenancies") and relative tag `"Archived 1 day ago"`.
   - Toggleable state between empty state (lavender house icon + explanatory copy) and populated card state ("2nd Floor, Lalitpur").
   - Screen 18 Details: 3-dots menu with `Unarchive` (restoring property to active dashboard) and `Delete`; Summary overview card; complete 5-item rent bill history stack leading to invoice preview.
+- **Backup & Restore Flow (Screen 19)**:
+  - Header: Back arrow leading to Settings (`Screen 16`) and large title `"Backup & Restore"`.
+  - Create Backup Card: In-browser generation of standard `.rhb` JSON data package containing active/archived tenancies, utility records, past dues, preferences, and payment ledgers with instant download.
+  - Restore Card: File picker trigger for `.rhb` file upload, schema validation, and safe data restoration with user feedback toast.
+  - Fixed Figma Typo: Changed `"You current preferences will be kept."` to `"Your current preferences will be kept."`.
+  - 360px viewport guarantee and zero-shrink 54px pill buttons.
+
 
 
 

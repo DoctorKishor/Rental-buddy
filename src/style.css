@@ -3352,6 +3352,16 @@ html, body {
   .settings-item-label {
     font-size: 14px;
   }
+  .backup-action-card {
+    padding: 18px 16px;
+    gap: 14px;
+  }
+  .backup-card-desc {
+    font-size: 13.5px;
+  }
+  .backup-btn {
+    font-size: 14.5px;
+  }
 }
 
 .mobile-frame.width-360 .review-prop-title {
@@ -3373,6 +3383,76 @@ html, body {
 .mobile-frame.width-360 .settings-item-label {
   font-size: 14px;
 }
+
+.mobile-frame.width-360 .backup-action-card {
+  padding: 18px 16px;
+  gap: 14px;
+}
+
+.mobile-frame.width-360 .backup-card-desc {
+  font-size: 13.5px;
+}
+
+.mobile-frame.width-360 .backup-btn {
+  font-size: 14.5px;
+}
+
+/* ==========================================================================
+   Screen 19: Backup & Restore
+   ========================================================================== */
+.backup-action-card {
+  background-color: var(--bg-surface);
+  border-radius: 24px;
+  padding: 24px 20px;
+  border: 1px solid rgba(226, 228, 242, 0.7);
+  box-shadow: 0 4px 18px rgba(28, 33, 66, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.backup-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-heading);
+  margin-bottom: 8px;
+}
+
+.backup-card-desc {
+  font-size: 14.5px;
+  line-height: 1.48;
+  color: var(--text-body);
+  text-wrap: balance;
+  text-wrap: pretty;
+}
+
+.backup-btn {
+  width: 100%;
+  height: 54px;
+  min-height: 54px;
+  font-size: 15.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-restore {
+  background-color: #D4D5F8;
+  color: var(--color-primary);
+  border: none;
+  box-shadow: 0 4px 14px rgba(84, 82, 236, 0.12);
+}
+
+.btn-restore:hover {
+  background-color: #C6C8F5;
+  color: var(--color-primary-active);
+}
+
+.btn-restore:active {
+  transform: scale(0.98);
+}
+
 
 
 
