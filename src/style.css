@@ -3696,10 +3696,73 @@ html, body {
   font-weight: 500;
 }
 
+/* App Splash Screen — Zero flicker on boot */
+.app-splash-screen {
+  position: absolute;
+  inset: 0;
+  background-color: var(--bg-canvas);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.25s ease-out, visibility 0.25s ease-out;
+}
 
+.app-splash-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
 
+.splash-brand-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
 
+.splash-spinner {
+  width: 26px;
+  height: 26px;
+  border: 3px solid rgba(84, 82, 236, 0.2);
+  border-top-color: #5452EC;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-top: 10px;
+}
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
+/* Month Card Future Cycle Styling */
+.month-card.month-future {
+  border-left: 4px solid #CBD5E1;
+  opacity: 0.85;
+}
 
+.month-badge.future {
+  background-color: #F1F5F9;
+  color: #64748B;
+}
 
+.month-status-pill.future {
+  background-color: #F1F5F9;
+  color: #64748B;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 9999px;
+}
+
+/* Floating Action Menu Elevation & Safety */
+.floating-action-menu {
+  z-index: 1000 !important;
+}
+
+/* Danger Zone Cards */
+.settings-group-card.danger-zone {
+  border-color: #FECACA !important;
+  background: #FFFBFB;
+}

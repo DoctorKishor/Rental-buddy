@@ -608,6 +608,81 @@
   - All tenancies created by the landlord are tied to their unique `owner_id = auth.uid()` under Row Level Security (RLS).
   - When family members are invited via Settings Screen 16, they log in with their own email addresses and receive scoped viewer or manager permissions.
 
+---
+
+## 26. Tab Mutual Exclusivity, 12-Month Calendar Ledger, Email Verification & Account Deletion Protocol
+
+### 1. Dashboard Recent Activity: Mutual Exclusivity Guarantee (Screenshot 1 Fix)
+- **The Bug**: Previously, `syncDashboardFromCloud()` unhid both `#empty-recent-payments` and `#empty-recent-bills` simultaneously when both collections were empty, causing dual stacked empty cards on screen.
+- **The Architectural Fix**:
+  - Created centralized `renderRecentActivityView(activeTab)` controller.
+  - When viewing `payments`: `#empty-recent-bills` and `#list-recent-bills` are strictly hidden; only the payments list or payments empty state can be displayed.
+  - When viewing `bills`: `#empty-recent-payments` and `#list-recent-payments` are strictly hidden; only the bills list or bills empty state can be displayed.
+  - Zero possibility of dual empty states coexisting on screen.
+
+### 2. Tenancy Details Month-Wise 12-Month Calendar Stack (Screenshot 2 Fix)
+- **The Bug**: On Screen 10, when viewing `Payment Status [Month-wise | History]`, a newly created tenancy with 0 recorded payments emptied the month stack and displayed `No bills or payments yet` over the Month-wise view.
+- **The Architectural Fix**:
+  - The Month-wise view is designed to track 12 billing cycles across the financial year (`Jan–Dec 2026`).
+  - `bindTenancyToDetails(t)` dynamically populates `#details-month-cards-stack` with all 12 calendar months:
+    - Settled months: `month-card month-paid` with checkmark, green pill, settled date.
+    - Due/unpaid bills: `month-card month-due` with red due pill and invoice total.
+    - Current/next billing cycle: `month-card month-upcoming` with `⏳ Next` badge and property rent.
+    - Future cycles: `month-card month-future` with `Upcoming` badge and scheduled cycle date.
+    - Summary counter chips (`✔ X Paid`, `⚠️ Y Due`, `⏳ Z Next`) update dynamically.
+  - `#details-empty-bills` is strictly segregated to the `History` tab when 0 payment transactions exist, and NEVER covers the Month-wise calendar view.
+
+### 3. Tenancy Details 3-Dots Menu Listener Deduplication (Screenshot 3 Fix)
+- **The Bug**: `initTenancyDetails()` was registered twice (in `initEventListeners()` and `DOMContentLoaded`), causing clicking the 3-dots button to toggle `.hidden` twice simultaneously, instantly closing the dropdown. Additionally, clicking SVG child elements caused document click listeners to falsely identify the event as an outside click.
+- **The Architectural Fix**:
+  - Deduplicated `initTenancyDetails()` so it registers exactly once during application boot.
+  - Menu button click stops event propagation (`e.stopPropagation()`).
+  - Outside-click dismiss checks `!menuBtn.contains(e.target)` to safely handle SVG child elements.
+  - Added elevated z-index (`.floating-action-menu { z-index: 1000 !important; }`).
+
+### 4. Account Creation Email Verification Gatekeeper & Confirmatory Screen
+- **The Security & UX Problem**: When users created an account, unverified users were previously redirected straight into the app without a persisted Supabase session token, causing an abrupt logout on page refresh.
+- **The Fix**:
+  - `signUpUser()` checks if email confirmation is required (`needsEmailConfirmation: !data.session`).
+  - App displays `#auth-confirm-box` inside `#screen-20`:
+    - Clean emerald verification checkmark icon.
+    - Title: "Account Created!"
+    - Displays user's registered email with prominent styling.
+    - Explains that a verification link was sent, advising users to check inbox and spam/junk folders.
+    - "Proceed to Sign In" button: seamlessly restores Sign In form with email pre-filled.
+    - "Resend Email" button: triggers `resendVerificationEmail(email)` with immediate toast feedback.
+  - The app strictly prevents entry until the user verifies their email and signs in.
+
+### 5. Session Persistence & Zero-Flicker Boot Protocol
+- **Zero-Flicker Boot**:
+  - Removed initial `.active` class from `#screen-1` in `index.html`.
+  - Added full-frame `#app-splash-screen` (`z-index: 9999`) with clean brand logo and CSS spinner.
+  - Screen 1 never flashes on page reload or app launch.
+- **Session Persistence**:
+  - Subscribed to `supabase.auth.onAuthStateChange` (`SIGNED_IN`, `TOKEN_REFRESHED`, `SIGNED_OUT`) to sync session state across tabs and prevent automatic logouts.
+  - Supabase client configured with `persistSession: true, autoRefreshToken: true, detectSessionInUrl: true`.
+
+### 6. Functional First-Time Onboarding
+- **The Flow**:
+  - Returning users who have already set up their profile go straight to Screen 6 (Dashboard).
+  - First-time users logging in after email verification are guided through functional onboarding:
+    - Screen 2: Choose Currency (stores preference in user profile).
+    - Screen 4: Notification preferences.
+    - Screen 5 / Screen 6: Finalizes setup, writes `onboarding_completed: true` to Supabase `profiles` and localStorage.
+
+### 7. Danger Zone: Complete Account & Cloud Data Deletion
+- **Location**: Settings (Screen 16) -> Danger Zone.
+- **Components**: `#item-delete-account` and `#modal-delete-account`.
+- **Backend Service**: `deleteUserAccountAndData()` deletes all associated:
+  - `payments`
+  - `bills`
+  - `tenancy_utilities`
+  - `rent_revisions`
+  - `tenancies`
+  - `family_shares`
+  - `profiles`
+  - Signs out from Supabase Auth and clears local application storage.
+
 
 
 

@@ -69,22 +69,95 @@ export async function signUpUser(email, password, fullName = '') {
       },
     });
     if (error) throw error;
-    cloudSession.user = data.user;
-    cloudSession.isCloudConnected = true;
 
-    // Ensure profile row exists
-    if (data.user) {
-      await supabase.from('profiles').upsert({
-        id: data.user.id,
-        email: data.user.email,
-        full_name: fullName || email.split('@')[0],
-      });
+    // Only establish active session if Supabase returned a session immediately
+    if (data.session) {
+      cloudSession.user = data.user;
+      cloudSession.isCloudConnected = true;
+      if (data.user) {
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          email: data.user.email,
+          full_name: fullName || email.split('@')[0],
+        });
+      }
     }
 
-    return { success: true, user: data.user };
+    return {
+      success: true,
+      user: data.user,
+      session: data.session,
+      needsEmailConfirmation: !data.session,
+    };
   } catch (err) {
     console.error('Supabase Sign Up Error:', err);
     return { success: false, error: err.message };
+  }
+}
+
+export async function resendVerificationEmail(email) {
+  try {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+    });
+    if (error) throw error;
+    return { success: true };
+  } catch (err) {
+    console.error('Resend Verification Error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function updateUserProfile(updates) {
+  if (!cloudSession.user) return null;
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', cloudSession.user.id)
+      .select()
+      .single();
+    if (error) throw error;
+    cloudSession.profile = data;
+    return data;
+  } catch (err) {
+    console.warn('Update Profile Error:', err);
+    return null;
+  }
+}
+
+export async function deleteUserAccountAndData() {
+  await ensureAuthenticated();
+  if (!cloudSession.user) return false;
+  const userId = cloudSession.user.id;
+  try {
+    const { data: userTenancies } = await supabase
+      .from('tenancies')
+      .select('id')
+      .eq('owner_id', userId);
+
+    const tenancyIds = (userTenancies || []).map((t) => t.id);
+
+    if (tenancyIds.length > 0) {
+      await supabase.from('payments').delete().in('tenancy_id', tenancyIds);
+      await supabase.from('bills').delete().in('tenancy_id', tenancyIds);
+      await supabase.from('tenancy_utilities').delete().in('tenancy_id', tenancyIds);
+      await supabase.from('rent_revisions').delete().in('tenancy_id', tenancyIds);
+      await supabase.from('tenancies').delete().eq('owner_id', userId);
+    }
+
+    await supabase.from('family_shares').delete().eq('admin_id', userId);
+    await supabase.from('profiles').delete().eq('id', userId);
+    await supabase.auth.signOut();
+
+    cloudSession.user = null;
+    cloudSession.profile = null;
+    cloudSession.isCloudConnected = false;
+    return true;
+  } catch (err) {
+    console.error('Delete User Account Error:', err);
+    throw err;
   }
 }
 

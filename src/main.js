@@ -26,6 +26,9 @@ import {
   fetchCloudFamilyMembers,
   inviteCloudFamilyMember,
   revokeCloudFamilyMember,
+  resendVerificationEmail,
+  updateUserProfile,
+  deleteUserAccountAndData,
 } from './supabase.js';
 
 const state = {
@@ -500,8 +503,15 @@ function initEventListeners() {
     navigateToScreen(1);
   });
 
-  document.getElementById('btn-goto-dashboard')?.addEventListener('click', () => {
+  document.getElementById('btn-goto-dashboard')?.addEventListener('click', async () => {
     if (cloudSession.user) {
+      try {
+        await updateUserProfile({ onboarding_completed: true });
+        localStorage.setItem(`rb_onboarding_completed_${cloudSession.user.id}`, 'true');
+      } catch (err) {
+        console.warn('Save onboarding error:', err);
+      }
+      showToast('🎉 Onboarding completed! Welcome to Rental Buddy.', 3000);
       navigateToScreen(6);
     } else {
       showToast('🎉 Setup complete! Please sign in or create an account to start.', 3500);
@@ -586,9 +596,6 @@ function initEventListeners() {
     navigateToScreen(6);
   });
 
-  // Initialize Tenancy Details (Screen 10)
-  initTenancyDetails();
-
   // Toggle 360px Viewport Simulation
   const toggle360Btn = document.getElementById('toggle360Btn');
   const viewportLabel = document.getElementById('viewportLabel');
@@ -637,6 +644,59 @@ function initEventListeners() {
 // HOME DASHBOARD CONTROLLER & MOCKUP STATES
 // ==========================================================================
 
+export let currentRecentTab = 'payments';
+
+export function renderRecentActivityView(activeTab = currentRecentTab) {
+  currentRecentTab = activeTab;
+  const tabPayments = document.getElementById('tab-recent-payments');
+  const tabBills = document.getElementById('tab-recent-bills');
+  const heading = document.getElementById('recent-section-heading');
+  const listPayments = document.getElementById('list-recent-payments');
+  const listBills = document.getElementById('list-recent-bills');
+  const emptyPayments = document.getElementById('empty-recent-payments');
+  const emptyBills = document.getElementById('empty-recent-bills');
+
+  if (activeTab === 'payments') {
+    tabPayments?.classList.add('active');
+    tabPayments?.setAttribute('aria-selected', 'true');
+    tabBills?.classList.remove('active');
+    tabBills?.setAttribute('aria-selected', 'false');
+    if (heading) heading.textContent = 'Recent Payments';
+
+    // Strictly hide Bills list & Bills empty state
+    emptyBills?.classList.add('hidden');
+    listBills?.classList.add('hidden');
+
+    // Show Payments list OR Payments empty state
+    if (cloudPaymentsList && cloudPaymentsList.length > 0) {
+      emptyPayments?.classList.add('hidden');
+      listPayments?.classList.remove('hidden');
+    } else {
+      listPayments?.classList.add('hidden');
+      emptyPayments?.classList.remove('hidden');
+    }
+  } else {
+    tabBills?.classList.add('active');
+    tabBills?.setAttribute('aria-selected', 'true');
+    tabPayments?.classList.remove('active');
+    tabPayments?.setAttribute('aria-selected', 'false');
+    if (heading) heading.textContent = 'Recent Bills';
+
+    // Strictly hide Payments list & Payments empty state
+    emptyPayments?.classList.add('hidden');
+    listPayments?.classList.add('hidden');
+
+    // Show Bills list OR Bills empty state
+    if (cloudBillsList && cloudBillsList.length > 0) {
+      emptyBills?.classList.add('hidden');
+      listBills?.classList.remove('hidden');
+    } else {
+      listBills?.classList.add('hidden');
+      emptyBills?.classList.remove('hidden');
+    }
+  }
+}
+
 function initDashboard() {
   const emptyCreateBtn = document.getElementById('btn-empty-create');
   const addTenancyBtn = document.getElementById('btn-dashboard-add');
@@ -654,37 +714,13 @@ function initDashboard() {
   // Segmented Ledger Switcher (Payments vs Bills)
   const tabPayments = document.getElementById('tab-recent-payments');
   const tabBills = document.getElementById('tab-recent-bills');
-  const heading = document.getElementById('recent-section-heading');
-  const listPayments = document.getElementById('list-recent-payments');
-  const listBills = document.getElementById('list-recent-bills');
-  const emptyPayments = document.getElementById('empty-recent-payments');
 
   tabPayments?.addEventListener('click', () => {
-    tabPayments.classList.add('active');
-    tabPayments.setAttribute('aria-selected', 'true');
-    tabBills.classList.remove('active');
-    tabBills.setAttribute('aria-selected', 'false');
-    if (heading) heading.textContent = 'Recent Payments';
-
-    if (emptyPayments && !emptyPayments.classList.contains('hidden')) {
-      listPayments.classList.add('hidden');
-      listBills.classList.add('hidden');
-    } else {
-      listPayments.classList.remove('hidden');
-      listBills.classList.add('hidden');
-    }
+    renderRecentActivityView('payments');
   });
 
   tabBills?.addEventListener('click', () => {
-    tabBills.classList.add('active');
-    tabBills.setAttribute('aria-selected', 'true');
-    tabPayments.classList.remove('active');
-    tabPayments.setAttribute('aria-selected', 'false');
-    if (heading) heading.textContent = 'Recent Bills';
-
-    emptyPayments.classList.add('hidden');
-    listPayments.classList.add('hidden');
-    listBills.classList.remove('hidden');
+    renderRecentActivityView('bills');
   });
 
   // Modal: Record Payment
@@ -922,71 +958,66 @@ export async function syncDashboardFromCloud() {
     const cloudBills = await fetchCloudBills();
     cloudBillsList = cloudBills || [];
     const listBills = document.getElementById('list-recent-bills');
-    const emptyBills = document.getElementById('empty-recent-bills');
-    if (cloudBills && cloudBills.length > 0 && listBills) {
-      emptyBills?.classList.add('hidden');
-      listBills.classList.remove('hidden');
+    if (listBills) {
       listBills.innerHTML = '';
-      cloudBills.forEach((b) => {
-        const item = document.createElement('div');
-        item.className = 'recent-item-card';
-        item.setAttribute('role', 'button');
-        item.setAttribute('tabindex', '0');
-        item.innerHTML = `
-          <div class="recent-item-left">
-            <span class="recent-prop-name">Cloud Invoice: ${b.invoice_number || 'INV'}</span>
-            <strong class="recent-item-title">${b.duration_start} – ${b.duration_end}</strong>
-            <span class="recent-item-timestamp">Generated on ${b.generated_date} • ${b.status}</span>
-          </div>
-          <div class="recent-item-right">
-            <strong class="recent-item-amount">Rs. ${parseFloat(b.net_payable).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
-            <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-          </div>
-        `;
-        item.addEventListener('click', () => navigateToScreen(15));
-        listBills.appendChild(item);
-      });
-    } else {
-      listBills?.classList.add('hidden');
-      emptyBills?.classList.remove('hidden');
+      if (cloudBillsList.length > 0) {
+        cloudBillsList.forEach((b) => {
+          const item = document.createElement('div');
+          item.className = 'recent-item-card';
+          item.setAttribute('role', 'button');
+          item.setAttribute('tabindex', '0');
+          item.innerHTML = `
+            <div class="recent-item-left">
+              <span class="recent-prop-name">Cloud Invoice: ${b.invoice_number || 'INV'}</span>
+              <strong class="recent-item-title">${b.duration_start} – ${b.duration_end}</strong>
+              <span class="recent-item-timestamp">Generated on ${b.generated_date} • ${b.status}</span>
+            </div>
+            <div class="recent-item-right">
+              <strong class="recent-item-amount">Rs. ${parseFloat(b.net_payable).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+              <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </div>
+          `;
+          item.addEventListener('click', () => navigateToScreen(15));
+          listBills.appendChild(item);
+        });
+      }
     }
 
     // 3. Fetch real payments from Supabase
     const cloudPayments = await fetchCloudPayments();
     cloudPaymentsList = cloudPayments || [];
     const listPayments = document.getElementById('list-recent-payments');
-    const emptyPayments = document.getElementById('empty-recent-payments');
-    if (cloudPayments && cloudPayments.length > 0 && listPayments) {
-      emptyPayments?.classList.add('hidden');
-      listPayments.classList.remove('hidden');
+    if (listPayments) {
       listPayments.innerHTML = '';
-      cloudPayments.forEach((p) => {
-        const item = document.createElement('div');
-        item.className = 'recent-item-card';
-        item.setAttribute('role', 'button');
-        item.setAttribute('tabindex', '0');
-        const months = Array.isArray(p.settled_months) ? p.settled_months.join(', ') : 'Settled';
-        item.innerHTML = `
-          <div class="recent-item-left">
-            <span class="recent-prop-name">${p.tenancies?.property_name || 'Property'}</span>
-            <strong class="recent-item-title">${months} — Paid via ${p.payment_mode.toUpperCase()}</strong>
-            <span class="recent-item-timestamp">Paid on ${p.payment_date} ${p.reference_no ? '• Ref: ' + p.reference_no : ''}</span>
-          </div>
-          <div class="recent-item-right">
-            <strong class="recent-item-amount">Rs. ${parseFloat(p.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
-            <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-          </div>
-        `;
-        listPayments.appendChild(item);
-      });
-    } else {
-      listPayments?.classList.add('hidden');
-      emptyPayments?.classList.remove('hidden');
+      if (cloudPaymentsList.length > 0) {
+        cloudPaymentsList.forEach((p) => {
+          const item = document.createElement('div');
+          item.className = 'recent-item-card';
+          item.setAttribute('role', 'button');
+          item.setAttribute('tabindex', '0');
+          const months = Array.isArray(p.settled_months) ? p.settled_months.join(', ') : 'Settled';
+          item.innerHTML = `
+            <div class="recent-item-left">
+              <span class="recent-prop-name">${p.tenancies?.property_name || 'Property'}</span>
+              <strong class="recent-item-title">${months} — Paid via ${p.payment_mode.toUpperCase()}</strong>
+              <span class="recent-item-timestamp">Paid on ${p.payment_date} ${p.reference_no ? '• Ref: ' + p.reference_no : ''}</span>
+            </div>
+            <div class="recent-item-right">
+              <strong class="recent-item-amount">Rs. ${parseFloat(p.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+              <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </div>
+          `;
+          listPayments.appendChild(item);
+        });
+      }
     }
+
+    // Refresh mutually exclusive recent activity view
+    renderRecentActivityView();
 
     // 4. Update Family sharing list
     const members = await fetchCloudFamilyMembers();
@@ -1075,9 +1106,6 @@ export async function bindTenancyToDetails(t) {
     if (billsCount) billsCount.textContent = `${tenancyPayments.length} paid`;
     if (totalAmount) totalAmount.textContent = `Rs. ${totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
-    if (chipPaid) chipPaid.textContent = `✔ ${tenancyPayments.length} Paid`;
-    if (chipDue) chipDue.textContent = `⚠️ ${tenancyBills.filter(b => b.status === 'unpaid').length} Due`;
-
     if (tenancyBills.length > 0 && lastBillCol && lastBillAmount) {
       lastBillCol.classList.remove('hidden');
       lastBillAmount.textContent = `Rs. ${parseFloat(tenancyBills[0].net_payable).toLocaleString('en-IN')}`;
@@ -1085,59 +1113,161 @@ export async function bindTenancyToDetails(t) {
       lastBillCol.classList.add('hidden');
     }
 
-    if (tenancyPayments.length === 0 && tenancyBills.length === 0) {
-      emptyBills?.classList.remove('hidden');
-      if (monthStack) monthStack.innerHTML = '';
-      if (historyList) historyList.innerHTML = '';
-    } else {
-      emptyBills?.classList.add('hidden');
-      // Render payment history list
-      if (historyList) {
-        historyList.innerHTML = '';
-        tenancyPayments.forEach(p => {
-          const item = document.createElement('div');
-          item.className = 'recent-item-card';
-          item.setAttribute('role', 'button');
-          item.setAttribute('tabindex', '0');
-          const months = Array.isArray(p.settled_months) ? p.settled_months.join(', ') : 'Settled';
-          item.innerHTML = `
-            <div class="recent-item-left">
-              <strong class="recent-item-title">${months} — Paid via ${(p.payment_mode || 'Cash').toUpperCase()}</strong>
-              <span class="recent-item-timestamp">Paid on ${p.payment_date} ${p.reference_no ? '• Ref: ' + p.reference_no : ''}</span>
-            </div>
-            <div class="recent-item-right">
-              <strong class="recent-item-amount">Rs. ${parseFloat(p.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
-              <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </div>
-          `;
-          historyList.appendChild(item);
-        });
-      }
+    // 1. Populate Month-wise 12-Month Stack (Jan–Dec for selected Year 2026)
+    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const now = new Date();
+    const currentMonthIdx = now.getMonth(); // 0-indexed (9 for October)
+    let paidCount = 0;
+    let dueCount = 0;
+    let upcomingCount = 0;
 
-      // Render month-wise cards stack
-      if (monthStack) {
-        monthStack.innerHTML = '';
-        tenancyPayments.forEach(p => {
-          const monthText = (Array.isArray(p.settled_months) && p.settled_months[0]) ? p.settled_months[0] : 'Paid';
-          const card = document.createElement('div');
+    if (monthStack) {
+      monthStack.innerHTML = '';
+      MONTHS.forEach((monthName, idx) => {
+        // Check if settled in payments
+        const matchedPayment = tenancyPayments.find(p => {
+          if (Array.isArray(p.settled_months)) {
+            return p.settled_months.some(m => m.toLowerCase().includes(monthName.toLowerCase()) || monthName.toLowerCase().includes(m.toLowerCase()));
+          }
+          return p.payment_date && new Date(p.payment_date).getMonth() === idx;
+        });
+
+        // Check if unpaid bill exists
+        const matchedBill = tenancyBills.find(b => {
+          return b.status === 'unpaid' && (
+            (b.duration_start && new Date(b.duration_start).getMonth() === idx) ||
+            (b.duration_end && new Date(b.duration_end).getMonth() === idx)
+          );
+        });
+
+        const card = document.createElement('div');
+        if (matchedPayment) {
+          paidCount++;
           card.className = 'month-card month-paid';
           card.innerHTML = `
             <div class="month-card-left">
               <div class="month-badge paid">✔</div>
               <div class="month-details-col">
-                <strong class="month-name">${monthText}</strong>
-                <span class="month-subtext">Paid on ${p.payment_date} • ${(p.channel || p.payment_mode || 'Cash').toUpperCase()}</span>
+                <strong class="month-name">${monthName} 2026</strong>
+                <span class="month-subtext">Paid on ${matchedPayment.payment_date} • ${(matchedPayment.payment_mode || 'Cash').toUpperCase()}</span>
               </div>
             </div>
             <div class="month-card-right">
-              <span class="month-amount">Rs. ${parseFloat(p.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              <span class="month-amount">Rs. ${parseFloat(matchedPayment.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
               <span class="month-status-pill paid">✔ Settled</span>
             </div>
           `;
-          monthStack.appendChild(card);
-        });
+        } else if (matchedBill) {
+          dueCount++;
+          card.className = 'month-card month-due';
+          card.innerHTML = `
+            <div class="month-card-left">
+              <div class="month-badge due">⚠️</div>
+              <div class="month-details-col">
+                <strong class="month-name">${monthName} 2026</strong>
+                <span class="month-subtext">Billing overdue • Unpaid</span>
+              </div>
+            </div>
+            <div class="month-card-right">
+              <span class="month-amount" style="color: #DC2626;">Rs. ${parseFloat(matchedBill.net_payable).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              <span class="month-status-pill due">⚠️ Due</span>
+            </div>
+          `;
+        } else if (idx === currentMonthIdx) {
+          upcomingCount++;
+          card.className = 'month-card month-upcoming';
+          card.innerHTML = `
+            <div class="month-card-left">
+              <div class="month-badge upcoming">⏳</div>
+              <div class="month-details-col">
+                <strong class="month-name">${monthName} 2026</strong>
+                <span class="month-subtext">Next billing on ${t.billing_day || 1}${getOrdinal(t.billing_day || 1)}</span>
+              </div>
+            </div>
+            <div class="month-card-right">
+              <span class="month-amount">Rs. ${rentNum.toLocaleString('en-IN')}</span>
+              <span class="month-status-pill upcoming">⏳ Next</span>
+            </div>
+          `;
+        } else if (idx > currentMonthIdx) {
+          card.className = 'month-card month-future';
+          card.innerHTML = `
+            <div class="month-card-left">
+              <div class="month-badge future">📅</div>
+              <div class="month-details-col">
+                <strong class="month-name">${monthName} 2026</strong>
+                <span class="month-subtext">Scheduled cycle • ${t.billing_day || 1}${getOrdinal(t.billing_day || 1)}</span>
+              </div>
+            </div>
+            <div class="month-card-right">
+              <span class="month-amount">Rs. ${rentNum.toLocaleString('en-IN')}</span>
+              <span class="month-status-pill future">Upcoming</span>
+            </div>
+          `;
+        } else {
+          card.className = 'month-card month-settled';
+          card.innerHTML = `
+            <div class="month-card-left">
+              <div class="month-badge paid">✔</div>
+              <div class="month-details-col">
+                <strong class="month-name">${monthName} 2026</strong>
+                <span class="month-subtext">No pending dues</span>
+              </div>
+            </div>
+            <div class="month-card-right">
+              <span class="month-amount">Rs. 0.00</span>
+              <span class="month-status-pill paid">Clear</span>
+            </div>
+          `;
+        }
+        monthStack.appendChild(card);
+      });
+    }
+
+    if (chipPaid) chipPaid.textContent = `✔ ${paidCount} Paid`;
+    if (chipDue) chipDue.textContent = `⚠️ ${dueCount} Due`;
+    if (chipUpcoming) chipUpcoming.textContent = `⏳ ${upcomingCount || 1} Next`;
+
+    // 2. Populate History list
+    if (historyList) {
+      historyList.innerHTML = '';
+      tenancyPayments.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'recent-item-card';
+        item.setAttribute('role', 'button');
+        item.setAttribute('tabindex', '0');
+        const months = Array.isArray(p.settled_months) ? p.settled_months.join(', ') : 'Settled';
+        item.innerHTML = `
+          <div class="recent-item-left">
+            <strong class="recent-item-title">${months} — Paid via ${(p.payment_mode || 'Cash').toUpperCase()}</strong>
+            <span class="recent-item-timestamp">Paid on ${p.payment_date} ${p.reference_no ? '• Ref: ' + p.reference_no : ''}</span>
+          </div>
+          <div class="recent-item-right">
+            <strong class="recent-item-amount">Rs. ${parseFloat(p.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+            <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </div>
+        `;
+        historyList.appendChild(item);
+      });
+    }
+
+    // Default to Month-wise view: monthStack visible, emptyBills & historyList hidden
+    const tabMonth = document.getElementById('tab-month-status');
+    const tabHistory = document.getElementById('tab-bill-history');
+    if (tabMonth?.classList.contains('active')) {
+      viewMonth?.classList.remove('hidden');
+      viewHistory?.classList.add('hidden');
+      emptyBills?.classList.add('hidden');
+    } else if (tabHistory?.classList.contains('active')) {
+      viewMonth?.classList.add('hidden');
+      if (tenancyPayments.length > 0) {
+        viewHistory?.classList.remove('hidden');
+        emptyBills?.classList.add('hidden');
+      } else {
+        viewHistory?.classList.add('hidden');
+        emptyBills?.classList.remove('hidden');
       }
     }
   } catch (err) {
@@ -1153,15 +1283,15 @@ function initTenancyDetails() {
   const actionDelete = document.getElementById('menu-action-delete');
   const generateBillBtn = document.getElementById('btn-details-generate-bill');
 
-  // Toggle 3-Dots Menu Dropdown
+  // Toggle 3-Dots Menu Dropdown reliably
   menuBtn?.addEventListener('click', (e) => {
     e.stopPropagation();
     menuDropdown?.classList.toggle('hidden');
   });
 
-  // Close dropdown when tapping anywhere else
+  // Close dropdown when clicking outside
   document.addEventListener('click', (e) => {
-    if (menuDropdown && !menuDropdown.contains(e.target) && e.target !== menuBtn) {
+    if (menuDropdown && !menuDropdown.contains(e.target) && !menuBtn?.contains(e.target)) {
       menuDropdown.classList.add('hidden');
     }
   });
@@ -1215,26 +1345,29 @@ function initTenancyDetails() {
   tabMonth?.addEventListener('click', () => {
     tabMonth.classList.add('active');
     tabMonth.setAttribute('aria-selected', 'true');
-    tabHistory.classList.remove('active');
-    tabHistory.setAttribute('aria-selected', 'false');
+    tabHistory?.classList.remove('active');
+    tabHistory?.setAttribute('aria-selected', 'false');
     if (viewTitle) viewTitle.textContent = 'Payment Status';
 
-    if (emptyBills?.classList.contains('hidden')) {
-      viewMonth?.classList.remove('hidden');
-      viewHistory?.classList.add('hidden');
-    }
+    viewMonth?.classList.remove('hidden');
+    viewHistory?.classList.add('hidden');
+    emptyBills?.classList.add('hidden');
   });
 
   tabHistory?.addEventListener('click', () => {
     tabHistory.classList.add('active');
     tabHistory.setAttribute('aria-selected', 'true');
-    tabMonth.classList.remove('active');
-    tabMonth.setAttribute('aria-selected', 'false');
+    tabMonth?.classList.remove('active');
+    tabMonth?.setAttribute('aria-selected', 'false');
     if (viewTitle) viewTitle.textContent = 'Rent Payment History';
 
-    if (emptyBills?.classList.contains('hidden')) {
-      viewMonth?.classList.add('hidden');
-      viewHistory?.classList.remove('hidden');
+    viewMonth?.classList.add('hidden');
+    if (viewHistory && viewHistory.children.length > 0) {
+      viewHistory.classList.remove('hidden');
+      emptyBills?.classList.add('hidden');
+    } else {
+      viewHistory?.classList.add('hidden');
+      emptyBills?.classList.remove('hidden');
     }
   });
 
@@ -1972,6 +2105,44 @@ function initSettingsScreen() {
   itemRequest?.addEventListener('click', () => {
     showToast('✨ Feature request board opened', 2500);
   });
+
+  // Danger Zone: Delete Account & Cloud Data
+  const itemDeleteAccount = document.getElementById('item-delete-account');
+  const modalDeleteAccount = document.getElementById('modal-delete-account');
+  const btnCloseDeleteModal = document.getElementById('btnCloseDeleteModal');
+  const btnCancelDeleteAccount = document.getElementById('btnCancelDeleteAccount');
+  const btnConfirmDeleteAccount = document.getElementById('btnConfirmDeleteAccount');
+
+  itemDeleteAccount?.addEventListener('click', () => {
+    modalDeleteAccount?.classList.remove('hidden');
+  });
+
+  const closeDeleteModal = () => {
+    modalDeleteAccount?.classList.add('hidden');
+  };
+
+  btnCloseDeleteModal?.addEventListener('click', closeDeleteModal);
+  btnCancelDeleteAccount?.addEventListener('click', closeDeleteModal);
+
+  btnConfirmDeleteAccount?.addEventListener('click', async () => {
+    btnConfirmDeleteAccount.disabled = true;
+    btnConfirmDeleteAccount.textContent = 'Deleting Everything...';
+    try {
+      await deleteUserAccountAndData();
+      modalDeleteAccount?.classList.add('hidden');
+      updateAuthUI(null);
+      localStorage.clear();
+      showToast('🗑️ Account and all cloud data permanently deleted from Supabase', 4000);
+      setTimeout(() => {
+        navigateToScreen(20);
+      }, 600);
+    } catch (err) {
+      showToast(`❌ Failed to delete account: ${err.message}`, 4500);
+    } finally {
+      btnConfirmDeleteAccount.disabled = false;
+      btnConfirmDeleteAccount.textContent = 'Delete Everything';
+    }
+  });
 }
 
 // ==========================================================================
@@ -2317,23 +2488,48 @@ function initAuthScreen() {
       let authResult;
       if (isSignUpMode) {
         authResult = await signUpUser(email, password, fullName);
+        if (!authResult || !authResult.success) {
+          showToast(`❌ ${authResult?.error || 'Account creation failed.'}`, 4500);
+          return;
+        }
+
+        // Check if email confirmation is required (standard Supabase Auth configuration)
+        if (authResult.needsEmailConfirmation) {
+          formAuth?.classList.add('hidden');
+          const authToggle = document.getElementById('auth-toggle-container');
+          authToggle?.classList.add('hidden');
+          const confirmBox = document.getElementById('auth-confirm-box');
+          const emailDisplay = document.getElementById('auth-confirm-email-display');
+          if (emailDisplay) emailDisplay.textContent = email;
+          confirmBox?.classList.remove('hidden');
+          showToast('📧 Verification email sent! Please confirm your email before signing in.', 5000);
+          return;
+        }
       } else {
         authResult = await signInUser(email, password);
-      }
-
-      if (!authResult || !authResult.success) {
-        showToast(`❌ ${authResult?.error || 'Authentication failed. Please check credentials.'}`, 4500);
-        return;
+        if (!authResult || !authResult.success) {
+          showToast(`❌ ${authResult?.error || 'Authentication failed. Please check credentials.'}`, 4500);
+          return;
+        }
       }
 
       updateAuthUI(authResult.user);
       const actionWord = isSignUpMode ? 'Admin account created & registered in Supabase Cloud' : 'Signed in successfully';
       showToast(`⚡ ${actionWord}!`, 3500);
 
+      // Check whether user has completed functional onboarding
+      const user = authResult.user;
+      const isCompleted = cloudSession.profile?.onboarding_completed || localStorage.getItem(`rb_onboarding_completed_${user.id}`) === 'true';
+
       await syncDashboardFromCloud();
 
       setTimeout(() => {
-        navigateToScreen(6);
+        if (!isCompleted) {
+          window.rbFirstTimeOnboarding = true;
+          navigateToScreen(2); // Start functional onboarding
+        } else {
+          navigateToScreen(6);
+        }
       }, 500);
     } catch (err) {
       showToast(`❌ Auth error: ${err.message}`, 4000);
@@ -2342,6 +2538,47 @@ function initAuthScreen() {
         btnSubmit.disabled = false;
         btnSubmit.textContent = isSignUpMode ? 'Create Account with Supabase' : 'Sign In with Supabase';
       }
+    }
+  });
+
+  // Confirmatory screen listeners
+  const btnConfirmToSignIn = document.getElementById('btn-confirm-to-signin');
+  const btnResendVerification = document.getElementById('btn-resend-verification');
+  const confirmBox = document.getElementById('auth-confirm-box');
+  const authToggle = document.getElementById('auth-toggle-container');
+
+  btnConfirmToSignIn?.addEventListener('click', () => {
+    confirmBox?.classList.add('hidden');
+    formAuth?.classList.remove('hidden');
+    authToggle?.classList.remove('hidden');
+    // Switch to Sign In mode
+    isSignUpMode = false;
+    if (nameGroup) nameGroup.classList.add('hidden');
+    if (formTitle) formTitle.textContent = 'Sign In to Your Account';
+    if (btnSubmit) btnSubmit.textContent = 'Sign In with Supabase';
+    if (switchText) switchText.textContent = 'Don’t have an account?';
+    if (btnToggleMode) btnToggleMode.textContent = 'Create Account';
+    if (inputPassword) inputPassword.value = '';
+    inputPassword?.focus();
+  });
+
+  btnResendVerification?.addEventListener('click', async () => {
+    const email = document.getElementById('auth-confirm-email-display')?.textContent?.trim() || inputEmail?.value?.trim();
+    if (!email) return;
+    btnResendVerification.disabled = true;
+    btnResendVerification.textContent = 'Resending...';
+    try {
+      const res = await resendVerificationEmail(email);
+      if (res.success) {
+        showToast('📨 Verification email resent! Please check your inbox and spam folder.', 4500);
+      } else {
+        showToast(`❌ ${res.error || 'Failed to resend'}`);
+      }
+    } catch (e) {
+      showToast(`❌ ${e.message}`);
+    } finally {
+      btnResendVerification.disabled = false;
+      btnResendVerification.textContent = "Didn't receive it? Resend Email";
     }
   });
 }
@@ -2425,6 +2662,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Check Supabase Cloud Session on Boot
   const session = await getCurrentSession();
 
+  // Dismiss splash screen smoothly after session state resolves
+  const splash = document.getElementById('app-splash-screen');
+  if (splash) {
+    splash.classList.add('hidden');
+  }
+
+  // Subscribe to auth state changes to guarantee session persistence across refreshes & token renewals
+  supabase.auth.onAuthStateChange(async (event, currentAuthSession) => {
+    if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && currentAuthSession?.user) {
+      cloudSession.user = currentAuthSession.user;
+      cloudSession.isCloudConnected = true;
+      updateAuthUI(currentAuthSession.user);
+    } else if (event === 'SIGNED_OUT') {
+      cloudSession.user = null;
+      cloudSession.profile = null;
+      cloudSession.isCloudConnected = false;
+      updateAuthUI(null);
+    }
+  });
+
   if (!session || !session.user) {
     // STRICT PRODUCTION AUTH GUARD: User is not logged in!
     updateAuthUI(null);
@@ -2432,18 +2689,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else {
     // User is authenticated!
     updateAuthUI(session.user);
-    await syncDashboardFromCloud();
 
-    const hash = window.location.hash;
-    if (hash && hash.startsWith('#screen-')) {
-      const screenNum = parseInt(hash.replace('#screen-', ''), 10);
-      if (!isNaN(screenNum) && screenNum >= 1 && screenNum <= 20) {
-        navigateToScreen(screenNum);
+    // Check if user has completed functional onboarding
+    const isCompleted = cloudSession.profile?.onboarding_completed || localStorage.getItem(`rb_onboarding_completed_${session.user.id}`) === 'true';
+
+    if (!isCompleted) {
+      window.rbFirstTimeOnboarding = true;
+      navigateToScreen(2); // Direct first-time user to functional onboarding
+    } else {
+      await syncDashboardFromCloud();
+      const hash = window.location.hash;
+      if (hash && hash.startsWith('#screen-')) {
+        const screenNum = parseInt(hash.replace('#screen-', ''), 10);
+        if (!isNaN(screenNum) && screenNum >= 1 && screenNum <= 20) {
+          navigateToScreen(screenNum);
+        } else {
+          navigateToScreen(6);
+        }
       } else {
         navigateToScreen(6);
       }
-    } else {
-      navigateToScreen(6);
     }
   }
 });
