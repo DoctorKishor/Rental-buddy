@@ -32,12 +32,10 @@ export const cloudSession = {
 export async function ensureAuthenticated() {
   if (cloudSession.user) return cloudSession.user;
   const session = await getCurrentSession();
-  if (session && session.user) return session.user;
-
-  // Auto-connect with confirmed admin account so live data is immediately queried
-  const res = await signInUser('admin@rentalbuddy.app', 'supersecure123');
-  if (res.success) {
-    return res.user;
+  if (session && session.user) {
+    cloudSession.user = session.user;
+    cloudSession.isCloudConnected = true;
+    return session.user;
   }
   return null;
 }

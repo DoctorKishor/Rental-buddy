@@ -5,6 +5,7 @@
 import {
   supabase,
   cloudSession,
+  ensureAuthenticated,
   signInUser,
   signUpUser,
   signOutUser,
@@ -36,31 +37,31 @@ const state = {
   notificationsAllowed: false,
   hasCreatedTenancy: false,
   tenancy: {
-    name: '2nd Floor, Lalitpur',
-    rentAmount: '12,000',
-    advanceAmount: '55,000',
-    phone: '9876543210',
+    name: '',
+    rentAmount: '',
+    advanceAmount: '',
+    phone: '',
     billingCycle: 'Monthly',
-    billingDate: '12th of every month',
+    billingDate: '1st of every month',
     utilities: {
       electricity: {
-        enabled: true,
+        enabled: false,
         billType: 'Meter Reading',
-        pricePerUnit: '12',
-        meterReading: '12341.12',
+        pricePerUnit: '',
+        meterReading: '',
       },
       water: {
-        enabled: true,
+        enabled: false,
         billType: 'Flat',
-        amount: '300',
+        amount: '',
       },
       garbage: {
-        enabled: true,
-        amount: '200',
+        enabled: false,
+        amount: '',
       },
       internet: {
         enabled: false,
-        amount: '1000',
+        amount: '',
       },
       notes: '',
     },
@@ -100,8 +101,15 @@ function showToast(message, duration = 3000) {
   }, duration);
 }
 
-// Screen Transition Navigator
+// Screen Transition Navigator with Strict Auth Guard
 function navigateToScreen(targetScreenNumber) {
+  // STRICT PRODUCTION AUTH GUARD:
+  // Disallow screens 6 through 19 if the user is not authenticated!
+  if (targetScreenNumber >= 6 && targetScreenNumber <= 19 && !cloudSession.user) {
+    showToast('🔒 Please sign in or create an account to access Rental Buddy', 3000);
+    targetScreenNumber = 20;
+  }
+
   state.currentScreen = targetScreenNumber;
 
   // Auto-close any open modals and floating dropdown menus when transitioning screens
@@ -119,12 +127,6 @@ function navigateToScreen(targetScreenNumber) {
     } else if (screenNum < targetScreenNumber) {
       screen.classList.add('exit-left');
     }
-  });
-
-  // Sync floating review widget buttons
-  document.querySelectorAll('.widget-btn').forEach((btn) => {
-    const goto = parseInt(btn.dataset.goto, 10);
-    btn.classList.toggle('active', goto === targetScreenNumber);
   });
 
   // Update specific screens if needed
@@ -499,7 +501,12 @@ function initEventListeners() {
   });
 
   document.getElementById('btn-goto-dashboard')?.addEventListener('click', () => {
-    navigateToScreen(6);
+    if (cloudSession.user) {
+      navigateToScreen(6);
+    } else {
+      showToast('🎉 Setup complete! Please sign in or create an account to start.', 3500);
+      navigateToScreen(20);
+    }
   });
 
   // Screen 6: Dashboard Controller & State Presets
@@ -536,43 +543,42 @@ function initEventListeners() {
 
   document.getElementById('btn-step3-confirm')?.addEventListener('click', async () => {
     state.hasCreatedTenancy = true;
-    const nameVal = document.getElementById('input-tenancy-name')?.value?.trim() || '2nd Floor, Lalitpur';
-    const rentVal = parseFloat(document.getElementById('input-rent-amount')?.value?.replace(/[^0-9.]/g, '')) || 12000;
+    const nameVal = document.getElementById('input-tenancy-name')?.value?.trim();
+    const rentVal = parseFloat(document.getElementById('input-rent-amount')?.value?.replace(/[^0-9.]/g, ''));
     const advanceVal = parseFloat(document.getElementById('input-advance-amount')?.value?.replace(/[^0-9.]/g, '')) || 0;
-    const phoneVal = document.getElementById('input-tenant-phone')?.value?.trim() || '';
+    const phoneVal = document.getElementById('input-phone-number')?.value?.trim() || '';
+
+    if (!nameVal || isNaN(rentVal) || rentVal <= 0) {
+      showToast('⚠️ Please enter a valid Tenancy Name and Rent Amount');
+      navigateToScreen(7);
+      return;
+    }
+
+    const nativeDate = document.getElementById('native-billing-date')?.value;
+    let billingDay = 1;
+    if (nativeDate) {
+      billingDay = parseInt(nativeDate.split('-')[2], 10) || 1;
+    }
 
     try {
-      await createCloudTenancy({
+      const created = await createCloudTenancy({
         propertyName: nameVal,
-        tenantName: 'Primary Tenant',
+        tenantName: 'Tenant',
         tenantPhone: phoneVal,
         baseRent: rentVal,
         advanceAmount: advanceVal,
-        billingDay: 12,
+        billingDay: billingDay,
       });
+      currentActiveTenancy = created;
       await syncDashboardFromCloud();
+      showToast(`🎉 Tenancy "${nameVal}" created & synced to Supabase Cloud!`, 3500);
+      setTimeout(() => {
+        navigateToScreen(6);
+      }, 800);
     } catch (e) {
-      console.warn('Cloud create tenancy notice:', e);
+      console.warn('Cloud create tenancy error:', e);
+      showToast(`❌ Failed to save tenancy: ${e.message}`, 4000);
     }
-
-    showToast(`🎉 Tenancy "${nameVal}" created & synced to Supabase Cloud!`, 3500);
-    setTimeout(() => {
-      navigateToScreen(6);
-    }, 1000);
-  });
-
-  // Navigate to Tenancy Details (Screen 10) from Dashboard Cards
-  document.getElementById('card-tenancy-lalitpur')?.querySelector('.tenancy-card-main-row')?.addEventListener('click', () => {
-    setDetailsState('monthwise');
-    navigateToScreen(10);
-  });
-  document.getElementById('card-tenancy-rams')?.querySelector('.tenancy-card-main-row')?.addEventListener('click', () => {
-    setDetailsState('monthwise');
-    navigateToScreen(10);
-  });
-  document.getElementById('card-tenancy-apartment11')?.querySelector('.tenancy-card-main-row')?.addEventListener('click', () => {
-    setDetailsState('monthwise');
-    navigateToScreen(10);
   });
 
   // Screen 10 Details Navigation
@@ -582,38 +588,6 @@ function initEventListeners() {
 
   // Initialize Tenancy Details (Screen 10)
   initTenancyDetails();
-
-  // Floating Review Widget buttons for Screen Navigation
-  document.querySelectorAll('.widget-btn[data-goto]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const target = parseInt(btn.dataset.goto, 10);
-      navigateToScreen(target);
-    });
-  });
-
-  // Floating Review Widget buttons for Dashboard Mockup States
-  document.querySelectorAll('.widget-btn[data-home-state]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.widget-btn[data-home-state]').forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      const stateKey = btn.dataset.homeState;
-      setDashboardState(stateKey);
-      navigateToScreen(6);
-      showToast(`Switched to: ${btn.title}`);
-    });
-  });
-
-  // Floating Review Widget buttons for Tenancy Details States
-  document.querySelectorAll('.widget-btn[data-details-state]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.widget-btn[data-details-state]').forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      const stateKey = btn.dataset.detailsState;
-      setDetailsState(stateKey);
-      navigateToScreen(10);
-      showToast(`Details View: ${btn.title}`);
-    });
-  });
 
   // Toggle 360px Viewport Simulation
   const toggle360Btn = document.getElementById('toggle360Btn');
@@ -734,33 +708,6 @@ function initDashboard() {
     if (e.target === modalRecord) modalRecord.classList.add('hidden');
   });
 
-  // Wire up Record & Generate Bill buttons
-  document.getElementById('btn-lalitpur-action')?.addEventListener('click', () => {
-    const actionText = document.getElementById('lalitpur-action-text')?.textContent;
-    if (actionText?.includes('Generate Bill')) {
-      navigateToScreen(13);
-    } else {
-      openRecordPaymentPage('lalitpur');
-    }
-  });
-
-  document.getElementById('btn-rams-action')?.addEventListener('click', () => {
-    const actionText = document.getElementById('rams-action-text')?.textContent;
-    if (actionText?.includes('Generate Bill')) {
-      navigateToScreen(13);
-    } else {
-      openRecordPaymentPage('rams');
-    }
-  });
-
-  document.getElementById('btn-apt-record')?.addEventListener('click', () => {
-    openRecordPaymentPage('apt11');
-  });
-
-  document.getElementById('btn-apt-generate')?.addEventListener('click', () => {
-    navigateToScreen(13);
-  });
-
   // Payment mode pills inside modal
   const paymentMethodCards = document.querySelectorAll('.payment-methods-grid .radio-card');
   paymentMethodCards.forEach((card) => {
@@ -772,35 +719,33 @@ function initDashboard() {
     });
   });
 
-  submitRecord?.addEventListener('click', () => {
-    const tenancy = recordSelect ? recordSelect.value : '2nd Floor, Lalitpur';
-    const amount = recordAmountInput ? recordAmountInput.value : '12,000';
+  submitRecord?.addEventListener('click', async () => {
+    const tenancyId = recordSelect ? recordSelect.value : currentActiveTenancy?.id;
+    const amount = recordAmountInput ? recordAmountInput.value : '12000';
     const selectedMethod = document.querySelector('input[name="pay-method"]:checked')?.value || 'Cash';
 
-    // Prepend new payment to recent payments list
-    if (listPayments) {
-      const newCard = document.createElement('div');
-      newCard.className = 'recent-item-card';
-      newCard.setAttribute('role', 'button');
-      newCard.setAttribute('tabindex', '0');
-      newCard.innerHTML = `
-        <div class="recent-item-left">
-          <span class="recent-prop-name">${tenancy}</span>
-          <strong class="recent-item-title">Just now — Paid via ${selectedMethod}</strong>
-          <span class="recent-item-timestamp">Paid on Today ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-        </div>
-        <div class="recent-item-right">
-          <strong class="recent-item-amount">Rs. ${parseFloat(amount).toLocaleString('en-IN')}</strong>
-          <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-        </div>
-      `;
-      listPayments.insertBefore(newCard, listPayments.firstChild);
+    if (!amount || parseFloat(amount) <= 0) {
+      showToast('⚠️ Please enter a valid payment amount');
+      return;
     }
 
-    modalRecord?.classList.add('hidden');
-    showToast(`✅ Payment of Rs. ${parseFloat(amount).toLocaleString('en-IN')} recorded for ${tenancy}!`, 3500);
+    try {
+      if (tenancyId) {
+        await recordCloudPayment({
+          tenancyId: tenancyId,
+          amount: parseFloat(amount),
+          paymentMode: selectedMethod.toLowerCase(),
+          channel: selectedMethod.toLowerCase(),
+          settledMonths: [new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })],
+          paymentDate: new Date().toISOString().split('T')[0],
+        });
+      }
+      modalRecord?.classList.add('hidden');
+      await syncDashboardFromCloud();
+      showToast(`✅ Payment of Rs. ${parseFloat(amount).toLocaleString('en-IN')} recorded & saved to Supabase!`, 3500);
+    } catch (err) {
+      showToast(`❌ Error recording payment: ${err.message}`);
+    }
   });
 
   // Modal: Generate Bill & Share
@@ -810,7 +755,7 @@ function initDashboard() {
   const billTargetCycle = document.getElementById('bill-target-cycle');
   const billCalculatedTotal = document.getElementById('bill-calculated-total');
 
-  function openBillModal(tenancy = 'Apartment 11, Bhakatapur', cycle = 'Monthly - April 2026', total = '34,150.12') {
+  function openBillModal(tenancy = 'Property', cycle = 'Monthly', total = '12,000.00') {
     if (billTargetTenancy) billTargetTenancy.textContent = tenancy;
     if (billTargetCycle) billTargetCycle.textContent = cycle;
     if (billCalculatedTotal) billCalculatedTotal.textContent = `Rs. ${total}`;
@@ -820,10 +765,6 @@ function initDashboard() {
   closeBillModal?.addEventListener('click', () => modalBill?.classList.add('hidden'));
   modalBill?.addEventListener('click', (e) => {
     if (e.target === modalBill) modalBill.classList.add('hidden');
-  });
-
-  document.getElementById('btn-apt-generate')?.addEventListener('click', () => {
-    openBillModal('Apartment 11, Bhakatapur', 'Monthly - April 2026', '34,150.12');
   });
 
   document.getElementById('btn-share-whatsapp')?.addEventListener('click', () => {
@@ -837,268 +778,82 @@ function initDashboard() {
   });
 }
 
-// State Setter to recreate each of the 4 Figma Mockups faithfully
-function setDashboardState(stateKey) {
-  const title = document.getElementById('dashboard-main-title');
-  const emptyTenancies = document.getElementById('dashboard-empty-tenancies');
-  const cardLalitpur = document.getElementById('card-tenancy-lalitpur');
-  const cardRams = document.getElementById('card-tenancy-rams');
-  const cardApt11 = document.getElementById('card-tenancy-apartment11');
-  const recentSection = document.getElementById('dashboard-recent-section');
-  const tabPayments = document.getElementById('tab-recent-payments');
-  const tabBills = document.getElementById('tab-recent-bills');
-  const heading = document.getElementById('recent-section-heading');
-  const listPayments = document.getElementById('list-recent-payments');
-  const listBills = document.getElementById('list-recent-bills');
-  const emptyPayments = document.getElementById('empty-recent-payments');
-
-  // Lalitpur specific elements
-  const lalitpurPill = document.getElementById('lalitpur-status-pill');
-  const lalitpurSub = document.getElementById('lalitpur-sub');
-  const lalitpurLeftVal = document.getElementById('lalitpur-left-val');
-  const lalitpurLeftSub = document.getElementById('lalitpur-left-sub');
-  const lalitpurRightVal = document.getElementById('lalitpur-right-val');
-  const lalitpurRightSub = document.getElementById('lalitpur-right-sub');
-  const lalitpurHistory = document.getElementById('lalitpur-history-text');
-  const lalitpurActionText = document.getElementById('lalitpur-action-text');
-
-  // Ram's Flat specific elements
-  const ramsPill = document.getElementById('rams-status-pill');
-  const ramsSub = document.getElementById('rams-sub');
-  const ramsLeftVal = document.getElementById('rams-left-val');
-  const ramsLeftSub = document.getElementById('rams-left-sub');
-  const ramsRightVal = document.getElementById('rams-right-val');
-  const ramsRightSub = document.getElementById('rams-right-sub');
-  const ramsHistory = document.getElementById('rams-history-text');
-  const ramsActionText = document.getElementById('rams-action-text');
-
-  if (stateKey === 'empty') {
-    if (title) title.textContent = 'Your Tenancy';
-    emptyTenancies?.classList.remove('hidden');
-    cardLalitpur?.classList.add('hidden');
-    cardRams?.classList.add('hidden');
-    cardApt11?.classList.add('hidden');
-    recentSection?.classList.add('hidden');
-    return;
-  }
-
-  // Common active setup
-  emptyTenancies?.classList.add('hidden');
-  recentSection?.classList.remove('hidden');
-
-  if (stateKey === 'state1') {
-    // MOCKUP 1: Multi-Tenancies + Overdue + Recent Payments
-    if (title) title.textContent = 'Your Tenancies';
-    cardLalitpur?.classList.remove('hidden');
-    cardRams?.classList.remove('hidden');
-    cardApt11?.classList.remove('hidden');
-
-    // Lalitpur setup
-    if (lalitpurPill) {
-      lalitpurPill.className = 'status-pill status-overdue';
-      lalitpurPill.textContent = 'Payment overdue - 3 days';
-    }
-    if (lalitpurSub) lalitpurSub.textContent = 'Rs. 12,000 . Monthly - April';
-    if (lalitpurLeftVal) lalitpurLeftVal.textContent = 'Paid Till - March';
-    if (lalitpurLeftSub) {
-      lalitpurLeftSub.className = 'metric-tag success';
-      lalitpurLeftSub.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-        <span>No Past Dues</span>
-      `;
-    }
-    if (lalitpurRightVal) lalitpurRightVal.textContent = '12 May 2026';
-    if (lalitpurRightSub) lalitpurRightSub.textContent = 'Next Billing';
-    if (lalitpurHistory) lalitpurHistory.textContent = '13 total payments . Last Paid on March 12th';
-    if (lalitpurActionText) lalitpurActionText.textContent = 'Record Payment';
-
-    // Ram's Flat setup
-    if (ramsPill) {
-      ramsPill.className = 'status-pill status-due-today';
-      ramsPill.textContent = 'Due today';
-    }
-    if (ramsSub) ramsSub.textContent = 'Rs. 2,000 . Monthly - April';
-    if (ramsLeftVal) ramsLeftVal.textContent = 'Paid Till - Jan';
-    if (ramsLeftSub) {
-      ramsLeftSub.className = 'metric-tag danger';
-      ramsLeftSub.textContent = '2 months due';
-    }
-    if (ramsRightVal) ramsRightVal.textContent = '3 May 2026';
-    if (ramsRightSub) ramsRightSub.textContent = 'Next Billing';
-    if (ramsHistory) ramsHistory.textContent = '12 total payments . Last Paid on Feb 5th';
-    if (ramsActionText) ramsActionText.textContent = 'Record Payment';
-
-    // Recent Payments tab
-    tabPayments?.click();
-    emptyPayments?.classList.add('hidden');
-    listPayments?.classList.remove('hidden');
-
-  } else if (stateKey === 'state2') {
-    // MOCKUP 2: Single Tenancy + Bikram Sambat Bills Ledger
-    if (title) title.textContent = 'Your Tenancy';
-    cardLalitpur?.classList.remove('hidden');
-    cardRams?.classList.add('hidden');
-    cardApt11?.classList.add('hidden');
-
-    // Lalitpur setup
-    if (lalitpurPill) {
-      lalitpurPill.className = 'status-pill status-overdue';
-      lalitpurPill.textContent = 'Billing overdue - 3 days';
-    }
-    if (lalitpurSub) lalitpurSub.textContent = 'Rs. 12,000 . Monthly';
-    if (lalitpurLeftVal) lalitpurLeftVal.textContent = 'Paid Till - March';
-    if (lalitpurLeftSub) {
-      lalitpurLeftSub.className = 'metric-tag success';
-      lalitpurLeftSub.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-        <span>No Past Dues</span>
-      `;
-    }
-    if (lalitpurRightVal) lalitpurRightVal.textContent = '12 May 2026';
-    if (lalitpurRightSub) lalitpurRightSub.textContent = 'Next Billing';
-    if (lalitpurHistory) lalitpurHistory.textContent = '12 total bills . Last Paid on March 12th';
-    if (lalitpurActionText) lalitpurActionText.textContent = 'Record Payment';
-
-    // Show BS bills ledger
-    tabBills?.click();
-    emptyPayments?.classList.add('hidden');
-
-  } else if (stateKey === 'state3') {
-    // MOCKUP 3: Multi-Tenancies + Generate Bills CTAs
-    if (title) title.textContent = 'Your Tenancies';
-    cardLalitpur?.classList.remove('hidden');
-    cardRams?.classList.remove('hidden');
-    cardApt11?.classList.add('hidden');
-
-    // Lalitpur with Generate Bill CTA
-    if (lalitpurPill) {
-      lalitpurPill.className = 'status-pill status-overdue';
-      lalitpurPill.textContent = 'Billing overdue - 3 days';
-    }
-    if (lalitpurSub) lalitpurSub.textContent = 'Rs. 12,000 . Monthly';
-    if (lalitpurLeftVal) lalitpurLeftVal.textContent = 'Rs. 12,034.12';
-    if (lalitpurLeftSub) {
-      lalitpurLeftSub.className = 'metric-label';
-      lalitpurLeftSub.textContent = 'Last Generated Bill';
-    }
-    if (lalitpurRightVal) lalitpurRightVal.textContent = '1 May 2026';
-    if (lalitpurRightSub) lalitpurRightSub.textContent = 'Next Billing';
-    if (lalitpurHistory) lalitpurHistory.textContent = '12 total bills . Last generated on April 5';
-    if (lalitpurActionText) lalitpurActionText.textContent = 'Generate Bill';
-
-    // Ram's Flat with Weekly & Generate Bill CTA
-    if (ramsPill) {
-      ramsPill.className = 'status-pill status-due-today';
-      ramsPill.textContent = 'Billing today';
-    }
-    if (ramsSub) ramsSub.textContent = 'Rs. 2,000 . Weekly';
-    if (ramsLeftVal) ramsLeftVal.textContent = 'Rs. 2,540';
-    if (ramsLeftSub) {
-      ramsLeftSub.className = 'metric-label';
-      ramsLeftSub.textContent = 'Last generated bill';
-    }
-    if (ramsRightVal) ramsRightVal.textContent = '1 May 2026';
-    if (ramsRightSub) ramsRightSub.textContent = 'Next Billing';
-    if (ramsHistory) ramsHistory.textContent = '12 total bills . Last generated on April 5';
-    if (ramsActionText) ramsActionText.textContent = 'Generate Bill';
-
-    // Recent Bills tab active
-    tabBills?.click();
-    emptyPayments?.classList.add('hidden');
-
-  } else if (stateKey === 'state4') {
-    // MOCKUP 4: Single Tenancy + Empty Recent Payments Card
-    if (title) title.textContent = 'Your Tenancy';
-    cardLalitpur?.classList.remove('hidden');
-    cardRams?.classList.add('hidden');
-    cardApt11?.classList.add('hidden');
-
-    // Lalitpur setup
-    if (lalitpurPill) {
-      lalitpurPill.className = 'status-pill status-overdue';
-      lalitpurPill.textContent = 'Billing overdue - 3 days';
-    }
-    if (lalitpurSub) lalitpurSub.textContent = 'Rs. 12,000 . Monthly';
-    if (lalitpurLeftVal) lalitpurLeftVal.textContent = '';
-    if (lalitpurLeftSub) lalitpurLeftSub.textContent = '';
-    if (lalitpurRightVal) lalitpurRightVal.textContent = '1 May 2026';
-    if (lalitpurRightSub) lalitpurRightSub.textContent = 'Next Billing';
-    if (lalitpurHistory) lalitpurHistory.textContent = '';
-    if (lalitpurActionText) lalitpurActionText.textContent = 'Generate Bill';
-
-    // Empty Recent Payments
-    tabPayments?.classList.add('active');
-    tabBills?.classList.remove('active');
-    if (heading) heading.textContent = 'Recent Payments';
-    listPayments?.classList.add('hidden');
-    listBills?.classList.add('hidden');
-    emptyPayments?.classList.remove('hidden');
-  }
-}
-
 // ==========================================================================
 // DYNAMIC SUPABASE CLOUD SYNC & REALTIME RENDERER
 // ==========================================================================
+
+export let cloudTenanciesList = [];
+export let cloudBillsList = [];
+export let cloudPaymentsList = [];
+export let currentActiveTenancy = null;
 
 export async function syncDashboardFromCloud() {
   try {
     const user = await ensureAuthenticated();
     const cloudEmail = document.getElementById('cloud-banner-user-email');
-    if (cloudEmail && user) {
-      cloudEmail.textContent = user.email;
+    if (cloudEmail) {
+      cloudEmail.textContent = user ? user.email : 'Not Signed In';
+    }
+
+    const wrapper = document.getElementById('tenancies-list-wrapper');
+    const emptyState = document.getElementById('dashboard-empty-tenancies');
+    const recentSection = document.getElementById('dashboard-recent-section');
+    const title = document.getElementById('dashboard-main-title');
+    const recordSelect = document.getElementById('record-select-tenancy');
+
+    if (!user) {
+      if (title) title.textContent = 'Your Tenancy';
+      emptyState?.classList.remove('hidden');
+      recentSection?.classList.add('hidden');
+      if (wrapper) wrapper.innerHTML = '';
+      return;
     }
 
     // 1. Fetch live active tenancies from Supabase
     const cloudTenancies = await fetchCloudTenancies('active');
-    const wrapper = document.getElementById('tenancies-list-wrapper');
-    const emptyState = document.getElementById('dashboard-empty-tenancies');
-    const title = document.getElementById('dashboard-main-title');
+    cloudTenanciesList = cloudTenancies || [];
 
-    if (cloudTenancies && cloudTenancies.length > 0) {
+    // Populate quick record modal select
+    if (recordSelect) {
+      recordSelect.innerHTML = '';
+      cloudTenanciesList.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.property_name;
+        recordSelect.appendChild(opt);
+      });
+    }
+
+    if (cloudTenanciesList.length > 0) {
       emptyState?.classList.add('hidden');
+      recentSection?.classList.remove('hidden');
       if (title) {
-        title.textContent = cloudTenancies.length === 1 ? 'Your Tenancy' : 'Your Tenancies';
+        title.textContent = cloudTenanciesList.length === 1 ? 'Your Tenancy' : 'Your Tenancies';
       }
 
-      // Update the primary tenancy card dynamically
-      const primary = cloudTenancies[0];
-      const lalitpurCard = document.getElementById('card-tenancy-lalitpur');
-      lalitpurCard?.classList.remove('hidden');
-
-      const lalitpurName = lalitpurCard?.querySelector('.tenancy-name');
-      const lalitpurSub = document.getElementById('lalitpur-sub');
-      const lalitpurRightVal = document.getElementById('lalitpur-right-val');
-      const lalitpurPill = document.getElementById('lalitpur-status-pill');
-
-      if (lalitpurName) lalitpurName.textContent = primary.property_name;
-      if (lalitpurSub) lalitpurSub.textContent = `Rs. ${parseFloat(primary.base_rent).toLocaleString('en-IN')} • Monthly`;
-      if (lalitpurRightVal) lalitpurRightVal.textContent = `${primary.billing_day || 12} May 2026`;
-      if (lalitpurPill) {
-        lalitpurPill.className = 'status-pill status-upcoming';
-        lalitpurPill.textContent = 'Active • Supabase Cloud';
+      if (!currentActiveTenancy || !cloudTenanciesList.find(t => t.id === currentActiveTenancy.id)) {
+        currentActiveTenancy = cloudTenanciesList[0];
       }
 
-      // If additional cloud tenancies exist, render dynamic cards
       if (wrapper) {
-        wrapper.querySelectorAll('.dynamic-cloud-card').forEach((c) => c.remove());
-        for (let i = 1; i < cloudTenancies.length; i++) {
-          const t = cloudTenancies[i];
-          const dynamicCard = document.createElement('article');
-          dynamicCard.className = 'tenancy-card dynamic-cloud-card';
-          dynamicCard.innerHTML = `
+        wrapper.innerHTML = '';
+        cloudTenanciesList.forEach((t) => {
+          const card = document.createElement('article');
+          card.className = 'tenancy-card dynamic-cloud-card';
+          card.dataset.tenancyId = t.id;
+          const billingDay = t.billing_day || 1;
+          const rentFormatted = parseFloat(t.base_rent || 0).toLocaleString('en-IN');
+
+          card.innerHTML = `
             <div class="tenancy-card-header">
               <span class="status-pill status-upcoming">Active • Supabase Cloud</span>
             </div>
-            <div class="tenancy-card-main-row" role="button" tabindex="0">
+            <div class="tenancy-card-main-row" role="button" tabindex="0" aria-label="View ${t.property_name} tenancy details">
               <div class="tenancy-info">
                 <h2 class="tenancy-name">${t.property_name}</h2>
-                <span class="tenancy-meta-sub">Rs. ${parseFloat(t.base_rent).toLocaleString('en-IN')} • Monthly</span>
+                <span class="tenancy-meta-sub">Rs. ${rentFormatted} • Monthly</span>
               </div>
-              <div class="tenancy-row-chevron">
+              <div class="tenancy-row-chevron" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
@@ -1107,17 +862,26 @@ export async function syncDashboardFromCloud() {
             <div class="tenancy-card-divider"></div>
             <div class="tenancy-metrics-grid">
               <div class="metric-col">
-                <span class="metric-title">Rs. ${parseFloat(t.base_rent).toLocaleString('en-IN')}</span>
+                <span class="metric-title">Rs. ${rentFormatted}</span>
                 <span class="metric-label">Base Rent</span>
               </div>
               <div class="metric-col right-align">
-                <span class="metric-title">${t.billing_day || 1} May 2026</span>
-                <span class="metric-label">Next Billing</span>
+                <span class="metric-title">${billingDay}th of month</span>
+                <span class="metric-label">Billing Date</span>
               </div>
             </div>
             <div class="tenancy-card-divider"></div>
-            <div class="tenancy-action-row">
-              <button class="btn-card-action lavender-action btn-cloud-record">
+            <div class="tenancy-action-row dual-action-row">
+              <button type="button" class="btn-card-action peach-action btn-gen-bill-card">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+                <span>Generate Bill</span>
+              </button>
+              <button type="button" class="btn-card-action lavender-action btn-record-pay-card">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="2" y="6" width="20" height="12" rx="2"></rect>
                   <circle cx="12" cy="12" r="2.5"></circle>
@@ -1126,21 +890,42 @@ export async function syncDashboardFromCloud() {
               </button>
             </div>
           `;
-          dynamicCard.querySelector('.tenancy-card-main-row')?.addEventListener('click', () => {
+
+          card.querySelector('.tenancy-card-main-row')?.addEventListener('click', () => {
+            currentActiveTenancy = t;
+            bindTenancyToDetails(t);
             navigateToScreen(10);
           });
-          dynamicCard.querySelector('.btn-cloud-record')?.addEventListener('click', () => {
-            openRecordPaymentPage('lalitpur');
+
+          card.querySelector('.btn-gen-bill-card')?.addEventListener('click', () => {
+            currentActiveTenancy = t;
+            navigateToScreen(13);
           });
-          wrapper.appendChild(dynamicCard);
-        }
+
+          card.querySelector('.btn-record-pay-card')?.addEventListener('click', () => {
+            currentActiveTenancy = t;
+            openRecordPaymentPage(t);
+          });
+
+          wrapper.appendChild(card);
+        });
       }
+    } else {
+      currentActiveTenancy = null;
+      if (title) title.textContent = 'Your Tenancy';
+      emptyState?.classList.remove('hidden');
+      recentSection?.classList.add('hidden');
+      if (wrapper) wrapper.innerHTML = '';
     }
 
     // 2. Fetch real bills from Supabase
     const cloudBills = await fetchCloudBills();
+    cloudBillsList = cloudBills || [];
     const listBills = document.getElementById('list-recent-bills');
+    const emptyBills = document.getElementById('empty-recent-bills');
     if (cloudBills && cloudBills.length > 0 && listBills) {
+      emptyBills?.classList.add('hidden');
+      listBills.classList.remove('hidden');
       listBills.innerHTML = '';
       cloudBills.forEach((b) => {
         const item = document.createElement('div');
@@ -1149,7 +934,7 @@ export async function syncDashboardFromCloud() {
         item.setAttribute('tabindex', '0');
         item.innerHTML = `
           <div class="recent-item-left">
-            <span class="recent-prop-name">Cloud Invoice: ${b.invoice_number}</span>
+            <span class="recent-prop-name">Cloud Invoice: ${b.invoice_number || 'INV'}</span>
             <strong class="recent-item-title">${b.duration_start} – ${b.duration_end}</strong>
             <span class="recent-item-timestamp">Generated on ${b.generated_date} • ${b.status}</span>
           </div>
@@ -1163,10 +948,14 @@ export async function syncDashboardFromCloud() {
         item.addEventListener('click', () => navigateToScreen(15));
         listBills.appendChild(item);
       });
+    } else {
+      listBills?.classList.add('hidden');
+      emptyBills?.classList.remove('hidden');
     }
 
     // 3. Fetch real payments from Supabase
     const cloudPayments = await fetchCloudPayments();
+    cloudPaymentsList = cloudPayments || [];
     const listPayments = document.getElementById('list-recent-payments');
     const emptyPayments = document.getElementById('empty-recent-payments');
     if (cloudPayments && cloudPayments.length > 0 && listPayments) {
@@ -1181,7 +970,7 @@ export async function syncDashboardFromCloud() {
         const months = Array.isArray(p.settled_months) ? p.settled_months.join(', ') : 'Settled';
         item.innerHTML = `
           <div class="recent-item-left">
-            <span class="recent-prop-name">${p.tenancies?.property_name || '2nd Floor, Lalitpur'}</span>
+            <span class="recent-prop-name">${p.tenancies?.property_name || 'Property'}</span>
             <strong class="recent-item-title">${months} — Paid via ${p.payment_mode.toUpperCase()}</strong>
             <span class="recent-item-timestamp">Paid on ${p.payment_date} ${p.reference_no ? '• Ref: ' + p.reference_no : ''}</span>
           </div>
@@ -1194,9 +983,12 @@ export async function syncDashboardFromCloud() {
         `;
         listPayments.appendChild(item);
       });
+    } else {
+      listPayments?.classList.add('hidden');
+      emptyPayments?.classList.remove('hidden');
     }
 
-    // 4. Fetch real family members in settings modal
+    // 4. Update Family sharing list
     const members = await fetchCloudFamilyMembers();
     const membersList = document.getElementById('family-members-list');
     const badgeCount = document.getElementById('badge-family-count');
@@ -1230,8 +1022,128 @@ export async function syncDashboardFromCloud() {
 }
 
 // ==========================================================================
+// ==========================================================================
 // TENANCY DETAILS CONTROLLER & MONTH-WISE STATUS (SCREEN 10)
 // ==========================================================================
+
+export async function bindTenancyToDetails(t) {
+  if (!t) return;
+  currentActiveTenancy = t;
+
+  const propTitle = document.getElementById('details-prop-title');
+  const rentRate = document.getElementById('details-rent-rate');
+  const nextBilling = document.getElementById('details-next-billing-date');
+  const billsCount = document.getElementById('details-bills-count');
+  const totalAmount = document.getElementById('details-total-amount');
+  const lastBillCol = document.getElementById('details-last-bill-col');
+  const lastBillAmount = document.getElementById('details-last-bill-amount');
+  const emptyBills = document.getElementById('details-empty-bills');
+  const monthStack = document.getElementById('details-month-cards-stack');
+  const historyList = document.getElementById('view-bill-history');
+  const viewMonth = document.getElementById('view-month-status');
+  const chipPaid = document.getElementById('chip-count-paid');
+  const chipDue = document.getElementById('chip-count-due');
+  const chipUpcoming = document.getElementById('chip-count-upcoming');
+
+  if (propTitle) propTitle.textContent = t.property_name;
+  const rentNum = parseFloat(t.base_rent || 0);
+  if (rentRate) rentRate.textContent = `Rs. ${rentNum.toLocaleString('en-IN')} • Monthly`;
+  if (nextBilling) nextBilling.textContent = `${t.billing_day || 1}${getOrdinal(t.billing_day || 1)} of next month`;
+
+  // Bind to Edit Tenancy form (Screen 11) inputs too
+  const editName = document.getElementById('edit-tenancy-name');
+  const editRent = document.getElementById('edit-rent-amount');
+  const editPhone = document.getElementById('edit-tenant-phone');
+  const editAdvance = document.getElementById('edit-advance-amount');
+  const editDateDisplay = document.getElementById('edit-billing-date-display');
+  const reviseCurrentRent = document.getElementById('revise-current-rent-display');
+
+  if (editName) editName.value = t.property_name || '';
+  if (editRent) editRent.value = t.base_rent || '';
+  if (editPhone) editPhone.value = t.tenant_phone || '';
+  if (editAdvance) editAdvance.value = t.advance_amount || '';
+  if (editDateDisplay) editDateDisplay.value = `${t.billing_day || 1}${getOrdinal(t.billing_day || 1)} of every month`;
+  if (reviseCurrentRent) reviseCurrentRent.value = `Rs. ${rentNum.toLocaleString('en-IN')}`;
+
+  // Fetch tenancy payments & bills dynamically from Supabase
+  try {
+    const [allBills, allPayments] = await Promise.all([fetchCloudBills(), fetchCloudPayments()]);
+    const tenancyBills = (allBills || []).filter(b => b.tenancy_id === t.id);
+    const tenancyPayments = (allPayments || []).filter(p => p.tenancy_id === t.id);
+
+    const totalPaid = tenancyPayments.reduce((acc, p) => acc + parseFloat(p.amount || 0), 0);
+    if (billsCount) billsCount.textContent = `${tenancyPayments.length} paid`;
+    if (totalAmount) totalAmount.textContent = `Rs. ${totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
+    if (chipPaid) chipPaid.textContent = `✔ ${tenancyPayments.length} Paid`;
+    if (chipDue) chipDue.textContent = `⚠️ ${tenancyBills.filter(b => b.status === 'unpaid').length} Due`;
+
+    if (tenancyBills.length > 0 && lastBillCol && lastBillAmount) {
+      lastBillCol.classList.remove('hidden');
+      lastBillAmount.textContent = `Rs. ${parseFloat(tenancyBills[0].net_payable).toLocaleString('en-IN')}`;
+    } else if (lastBillCol) {
+      lastBillCol.classList.add('hidden');
+    }
+
+    if (tenancyPayments.length === 0 && tenancyBills.length === 0) {
+      emptyBills?.classList.remove('hidden');
+      if (monthStack) monthStack.innerHTML = '';
+      if (historyList) historyList.innerHTML = '';
+    } else {
+      emptyBills?.classList.add('hidden');
+      // Render payment history list
+      if (historyList) {
+        historyList.innerHTML = '';
+        tenancyPayments.forEach(p => {
+          const item = document.createElement('div');
+          item.className = 'recent-item-card';
+          item.setAttribute('role', 'button');
+          item.setAttribute('tabindex', '0');
+          const months = Array.isArray(p.settled_months) ? p.settled_months.join(', ') : 'Settled';
+          item.innerHTML = `
+            <div class="recent-item-left">
+              <strong class="recent-item-title">${months} — Paid via ${(p.payment_mode || 'Cash').toUpperCase()}</strong>
+              <span class="recent-item-timestamp">Paid on ${p.payment_date} ${p.reference_no ? '• Ref: ' + p.reference_no : ''}</span>
+            </div>
+            <div class="recent-item-right">
+              <strong class="recent-item-amount">Rs. ${parseFloat(p.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+              <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </div>
+          `;
+          historyList.appendChild(item);
+        });
+      }
+
+      // Render month-wise cards stack
+      if (monthStack) {
+        monthStack.innerHTML = '';
+        tenancyPayments.forEach(p => {
+          const monthText = (Array.isArray(p.settled_months) && p.settled_months[0]) ? p.settled_months[0] : 'Paid';
+          const card = document.createElement('div');
+          card.className = 'month-card month-paid';
+          card.innerHTML = `
+            <div class="month-card-left">
+              <div class="month-badge paid">✔</div>
+              <div class="month-details-col">
+                <strong class="month-name">${monthText}</strong>
+                <span class="month-subtext">Paid on ${p.payment_date} • ${(p.channel || p.payment_mode || 'Cash').toUpperCase()}</span>
+              </div>
+            </div>
+            <div class="month-card-right">
+              <span class="month-amount">Rs. ${parseFloat(p.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              <span class="month-status-pill paid">✔ Settled</span>
+            </div>
+          `;
+          monthStack.appendChild(card);
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('bindTenancyToDetails notice:', err);
+  }
+}
 
 function initTenancyDetails() {
   const menuBtn = document.getElementById('btn-details-menu');
@@ -1257,29 +1169,39 @@ function initTenancyDetails() {
   // Menu action handlers
   actionEdit?.addEventListener('click', () => {
     menuDropdown?.classList.add('hidden');
+    if (currentActiveTenancy) {
+      bindTenancyToDetails(currentActiveTenancy);
+    }
     navigateToScreen(11);
   });
 
   actionArchive?.addEventListener('click', async () => {
     menuDropdown?.classList.add('hidden');
-    try {
-      await archiveCloudTenancy('00000000-0000-0000-0000-000000000001');
-    } catch (e) {
-      console.warn('Cloud archive notice:', e);
+    if (currentActiveTenancy?.id) {
+      try {
+        await archiveCloudTenancy(currentActiveTenancy.id);
+        showToast(`🗃️ Tenancy "${currentActiveTenancy.property_name}" archived in Supabase Cloud`);
+        await syncDashboardFromCloud();
+      } catch (e) {
+        showToast(`❌ Archive error: ${e.message}`);
+      }
     }
-    showToast('🗃️ Tenancy "2nd Floor, Lalitpur" archived & synced to Supabase Cloud');
-    setTimeout(() => navigateToScreen(17), 600);
+    setTimeout(() => navigateToScreen(6), 600);
   });
 
   actionDelete?.addEventListener('click', async () => {
     menuDropdown?.classList.add('hidden');
-    try {
-      await deleteCloudTenancy('00000000-0000-0000-0000-000000000001');
-    } catch (e) {
-      console.warn('Cloud delete notice:', e);
+    if (currentActiveTenancy?.id) {
+      if (!confirm(`Are you sure you want to delete "${currentActiveTenancy.property_name}"?`)) return;
+      try {
+        await deleteCloudTenancy(currentActiveTenancy.id);
+        showToast('🗑️ Tenancy deleted from Supabase Cloud');
+        await syncDashboardFromCloud();
+      } catch (e) {
+        showToast(`❌ Delete error: ${e.message}`);
+      }
     }
-    showToast('🗑️ Tenancy deleted from Supabase Cloud');
-    setTimeout(() => navigateToScreen(6), 1000);
+    setTimeout(() => navigateToScreen(6), 600);
   });
 
   // View Switcher: Month-wise vs Transaction History
@@ -1333,69 +1255,6 @@ function initTenancyDetails() {
   });
 }
 
-function setDetailsState(stateKey) {
-  const countBadge = document.getElementById('details-bills-count');
-  const totalAmount = document.getElementById('details-total-amount');
-  const lastBillCol = document.getElementById('details-last-bill-col');
-  const tabMonth = document.getElementById('tab-month-status');
-  const tabHistory = document.getElementById('tab-bill-history');
-  const viewMonth = document.getElementById('view-month-status');
-  const viewHistory = document.getElementById('view-bill-history');
-  const emptyBills = document.getElementById('details-empty-bills');
-  const menuDropdown = document.getElementById('details-menu-dropdown');
-  const viewTitle = document.getElementById('details-view-title');
-
-  if (stateKey === 'monthwise') {
-    if (countBadge) countBadge.textContent = '12 bills';
-    if (totalAmount) totalAmount.textContent = 'Rs. 68,148.16';
-    lastBillCol?.classList.remove('hidden');
-    tabMonth?.classList.add('active');
-    tabHistory?.classList.remove('active');
-    if (viewTitle) viewTitle.textContent = 'Payment Status';
-    viewMonth?.classList.remove('hidden');
-    viewHistory?.classList.add('hidden');
-    emptyBills?.classList.add('hidden');
-    menuDropdown?.classList.add('hidden');
-
-  } else if (stateKey === 'history') {
-    // Figma Frame 2
-    if (countBadge) countBadge.textContent = '12 bills';
-    if (totalAmount) totalAmount.textContent = 'Rs. 68,148.16';
-    lastBillCol?.classList.remove('hidden');
-    tabHistory?.classList.add('active');
-    tabMonth?.classList.remove('active');
-    if (viewTitle) viewTitle.textContent = 'Rent Payment History';
-    viewMonth?.classList.add('hidden');
-    viewHistory?.classList.remove('hidden');
-    emptyBills?.classList.add('hidden');
-    menuDropdown?.classList.add('hidden');
-
-  } else if (stateKey === 'empty') {
-    // Figma Frame 1 (0 bills empty state)
-    if (countBadge) countBadge.textContent = '0 bill';
-    if (totalAmount) totalAmount.textContent = 'Rs. 0.00';
-    lastBillCol?.classList.add('hidden'); // Only next billing is shown
-    if (viewTitle) viewTitle.textContent = 'Rent Bill History';
-    viewMonth?.classList.add('hidden');
-    viewHistory?.classList.add('hidden');
-    emptyBills?.classList.remove('hidden');
-    menuDropdown?.classList.add('hidden');
-
-  } else if (stateKey === 'menu') {
-    // Figma Frame 3 (Menu open)
-    if (countBadge) countBadge.textContent = '12 bills';
-    if (totalAmount) totalAmount.textContent = 'Rs. 68,148.16';
-    lastBillCol?.classList.remove('hidden');
-    tabHistory?.classList.add('active');
-    tabMonth?.classList.remove('active');
-    if (viewTitle) viewTitle.textContent = 'Rent Payment History';
-    viewMonth?.classList.add('hidden');
-    viewHistory?.classList.remove('hidden');
-    emptyBills?.classList.add('hidden');
-    menuDropdown?.classList.remove('hidden');
-  }
-}
-
 // ==========================================================================
 // EDIT TENANCY & RENT REVISION CONTROLLER (SCREEN 11)
 // ==========================================================================
@@ -1430,65 +1289,94 @@ function initEditTenancy() {
 
   // Confirm Rent Revision
   btnConfirmRevise?.addEventListener('click', async () => {
-    const newRent = document.getElementById('input-new-rent')?.value || '14000';
-    const cycle = document.getElementById('select-revise-cycle')?.value || '1 May 2026';
+    if (!currentActiveTenancy) return;
+    const newRent = document.getElementById('input-new-rent')?.value;
+    const cycle = document.getElementById('select-revise-cycle')?.value || 'Next Cycle';
     const notifyTenant = document.getElementById('toggle-notify-tenant-revision')?.checked;
+
+    if (!newRent || parseFloat(newRent) <= 0) {
+      showToast('⚠️ Please enter a valid new rent amount');
+      return;
+    }
 
     try {
       await scheduleCloudRentRevision({
-        tenancyId: '00000000-0000-0000-0000-000000000001',
-        oldRent: 12000,
+        tenancyId: currentActiveTenancy.id,
+        oldRent: parseFloat(currentActiveTenancy.base_rent || 0),
         newRent: parseFloat(newRent),
-        effectiveDate: '2026-05-01',
-        note: 'Annual cycle rent revision',
+        effectiveDate: new Date().toISOString().split('T')[0],
+        note: document.getElementById('input-revise-reason')?.value || 'Scheduled rent revision',
         notifyTenant,
       });
+
+      if (bannerRevisionText) {
+        bannerRevisionText.textContent = `Rs. ${parseFloat(newRent).toLocaleString('en-IN')} scheduled from ${cycle}`;
+      }
+      bannerRevision?.classList.remove('hidden');
+      modalRevise?.classList.add('hidden');
+
+      const msg = notifyTenant 
+        ? `📈 Rent revision scheduled to Rs. ${parseFloat(newRent).toLocaleString('en-IN')} from ${cycle} (Tenant notified via WhatsApp & Cloud Synced)`
+        : `📈 Rent revision scheduled to Rs. ${parseFloat(newRent).toLocaleString('en-IN')} from ${cycle} (Cloud Synced)`;
+      showToast(msg, 3500);
     } catch (e) {
-      console.warn('Cloud revision notice:', e);
+      showToast(`❌ Revision error: ${e.message}`);
     }
-
-    if (bannerRevisionText) {
-      bannerRevisionText.textContent = `Rs. ${parseFloat(newRent).toLocaleString('en-IN')} scheduled from ${cycle}`;
-    }
-    bannerRevision?.classList.remove('hidden');
-    modalRevise?.classList.add('hidden');
-
-    const msg = notifyTenant 
-      ? `📈 Rent revision scheduled to Rs. ${parseFloat(newRent).toLocaleString('en-IN')} from ${cycle} (Tenant notified via WhatsApp & Cloud Synced)`
-      : `📈 Rent revision scheduled to Rs. ${parseFloat(newRent).toLocaleString('en-IN')} from ${cycle} (Cloud Synced)`;
-    showToast(msg, 3500);
   });
 
   // Cancel Scheduled Revision
   btnCancelRevision?.addEventListener('click', async () => {
+    if (!currentActiveTenancy) return;
     try {
-      await cancelCloudRentRevision('00000000-0000-0000-0000-000000000001');
+      await cancelCloudRentRevision(currentActiveTenancy.id);
+      bannerRevision?.classList.add('hidden');
+      showToast('Scheduled rent revision cancelled in Supabase Cloud');
     } catch (e) {
-      console.warn('Cloud cancel notice:', e);
+      showToast(`❌ Cancel error: ${e.message}`);
     }
-    bannerRevision?.classList.add('hidden');
-    showToast('Scheduled rent revision cancelled in Supabase Cloud');
   });
 
   // Save changes
-  btnSave?.addEventListener('click', () => {
+  btnSave?.addEventListener('click', async () => {
+    if (!currentActiveTenancy) return;
     const updatedName = document.getElementById('edit-tenancy-name')?.value?.trim();
     const updatedRent = document.getElementById('edit-rent-amount')?.value?.trim();
+    const updatedPhone = document.getElementById('edit-tenant-phone')?.value?.trim();
+    const updatedAdvance = document.getElementById('edit-advance-amount')?.value?.trim();
 
-    if (updatedName) {
-      const detailsTitle = document.getElementById('details-prop-title');
-      if (detailsTitle) detailsTitle.textContent = updatedName;
+    if (!updatedName) {
+      showToast('⚠️ Property name cannot be empty');
+      return;
     }
 
-    if (updatedRent) {
-      const rentRate = document.getElementById('details-rent-rate');
-      if (rentRate) rentRate.textContent = `Rs. ${parseFloat(updatedRent).toLocaleString('en-IN')} . Monthly`;
-    }
+    btnSave.disabled = true;
+    btnSave.textContent = 'Saving...';
 
-    showToast('✅ Tenancy details updated successfully!', 3000);
-    setTimeout(() => {
-      navigateToScreen(10);
-    }, 600);
+    try {
+      await updateCloudTenancy(currentActiveTenancy.id, {
+        property_name: updatedName,
+        base_rent: parseFloat(updatedRent) || currentActiveTenancy.base_rent,
+        tenant_phone: updatedPhone || null,
+        advance_amount: parseFloat(updatedAdvance) || 0,
+      });
+
+      currentActiveTenancy.property_name = updatedName;
+      if (updatedRent) currentActiveTenancy.base_rent = parseFloat(updatedRent);
+      if (updatedPhone) currentActiveTenancy.tenant_phone = updatedPhone;
+      if (updatedAdvance) currentActiveTenancy.advance_amount = parseFloat(updatedAdvance);
+
+      await syncDashboardFromCloud();
+      showToast('✅ Tenancy details updated & saved to Supabase Cloud!', 3000);
+      setTimeout(() => {
+        bindTenancyToDetails(currentActiveTenancy);
+        navigateToScreen(10);
+      }, 500);
+    } catch (err) {
+      showToast(`❌ Update error: ${err.message}`);
+    } finally {
+      btnSave.disabled = false;
+      btnSave.textContent = 'Save Changes';
+    }
   });
 
   // Date picker trigger
@@ -1546,95 +1434,72 @@ function initEditTenancy() {
 // DEDICATED RECORD PAYMENT PAGE CONTROLLER (SCREEN 12)
 // ==========================================================================
 
-const tenancySettlementData = {
-  lalitpur: {
-    name: '2nd Floor, Lalitpur',
-    hasPending: true,
-    dueAmount: '12034.12',
-    dueHint: 'Due: Rs. 12,034.12',
-    rentAmount: '12000.00',
-    shortcuts: [
-      { label: 'Full Due (12,034)', amount: '12034.12' },
-      { label: 'Base Rent (12,000)', amount: '12000.00' },
-      { label: 'Round Rs. 10,000', amount: '10000.00' }
-    ],
-    pendingMonths: [
-      { label: 'March 2026', sub: 'Overdue 3 days • Rs. 12,034.12', amount: 12034.12, checked: true },
-      { label: 'April 2026 (Current Month)', sub: 'Upcoming Cycle • Rs. 12,000.00', amount: 12000.00, checked: false }
-    ],
-    currentMonthTitle: 'April 2026'
-  },
-  rams: {
-    name: 'Ram’s Flat',
-    hasPending: true,
-    dueAmount: '4000.00',
-    dueHint: 'Due: 2 Months (Rs. 4,000)',
-    rentAmount: '2000.00',
-    shortcuts: [
-      { label: 'Full Due (4,000)', amount: '4000.00' },
-      { label: '1 Month (2,000)', amount: '2000.00' },
-      { label: 'Round Rs. 5,000', amount: '5000.00' }
-    ],
-    pendingMonths: [
-      { label: 'February 2026', sub: 'Past Due • Rs. 2,000.00', amount: 2000.00, checked: true },
-      { label: 'March 2026', sub: 'Past Due • Rs. 2,000.00', amount: 2000.00, checked: true },
-      { label: 'April 2026 (Current Month)', sub: 'Upcoming Cycle • Rs. 2,000.00', amount: 2000.00, checked: false }
-    ],
-    currentMonthTitle: 'April 2026'
-  },
-  apt11: {
-    name: 'Apartment 11, Bhakatapur',
-    hasPending: false, // NO PENDING DUES!
-    dueAmount: '34150.00',
-    dueHint: 'No Past Dues • Next in 5 days',
-    rentAmount: '34150.00',
-    shortcuts: [
-      { label: 'Full Rent (34,150)', amount: '34150.00' },
-      { label: 'Round Rs. 34,000', amount: '34000.00' },
-      { label: 'Advance Rs. 35,000', amount: '35000.00' }
-    ],
-    pendingMonths: [],
-    currentMonthTitle: 'April 2026'
-  }
-};
+export let selectedRecordTenancy = null;
 
-function openRecordPaymentPage(tenancyKey = 'lalitpur') {
-  setupRecordPaymentForm(tenancyKey);
+export function openRecordPaymentPage(tenancyOrId) {
+  if (!cloudTenanciesList || cloudTenanciesList.length === 0) {
+    showToast('⚠️ Please create a tenancy first before recording payments', 3500);
+    navigateToScreen(7);
+    return;
+  }
+  let target = null;
+  if (tenancyOrId && typeof tenancyOrId === 'object') {
+    target = tenancyOrId;
+  } else if (typeof tenancyOrId === 'string') {
+    target = cloudTenanciesList.find((t) => t.id === tenancyOrId);
+  }
+  if (!target) target = cloudTenanciesList[0];
+
+  setupRecordPaymentForm(target);
   navigateToScreen(12);
 }
 
-function setupRecordPaymentForm(tenancyKey) {
-  const data = tenancySettlementData[tenancyKey] || tenancySettlementData.lalitpur;
-  
-  // Update tenancy selector
+export function setupRecordPaymentForm(tenancy) {
+  if (!tenancy) return;
+  selectedRecordTenancy = tenancy;
+
+  // Update tenancy selector dropdown
   const selectTenancy = document.getElementById('record-page-tenancy');
-  if (selectTenancy) selectTenancy.value = tenancyKey;
+  if (selectTenancy) {
+    selectTenancy.innerHTML = cloudTenanciesList
+      .map((t) => `<option value="${t.id}" ${t.id === tenancy.id ? 'selected' : ''}>${t.property_name}</option>`)
+      .join('');
+    selectTenancy.value = tenancy.id;
+  }
 
   // Update header subtitle
   const subtitle = document.getElementById('record-page-subtitle');
-  if (subtitle) subtitle.textContent = data.name;
+  if (subtitle) subtitle.textContent = tenancy.property_name;
+
+  const baseRent = parseFloat(tenancy.base_rent || 0);
+  const advance = parseFloat(tenancy.advance_amount || 0);
 
   // Update due hint & amount
   const dueHint = document.getElementById('record-due-hint');
   if (dueHint) {
-    dueHint.textContent = data.dueHint;
-    dueHint.style.color = data.hasPending ? '#DC2626' : '#16A34A';
+    dueHint.textContent = `Rent: Rs. ${baseRent.toLocaleString('en-IN')}`;
+    dueHint.style.color = '#5452EC';
   }
 
   const amountInput = document.getElementById('record-page-amount');
-  if (amountInput) amountInput.value = data.dueAmount;
+  if (amountInput) amountInput.value = baseRent > 0 ? baseRent : '';
 
   // Update shortcut chips
   const chipsContainer = document.querySelector('.amount-shortcut-chips');
-  if (chipsContainer && data.shortcuts) {
+  if (chipsContainer) {
     chipsContainer.innerHTML = '';
-    data.shortcuts.forEach((chip, index) => {
+    const shortcuts = [
+      { label: `Base Rent (${baseRent.toLocaleString('en-IN')})`, amount: baseRent },
+      ...(advance > 0 ? [{ label: `Advance (${advance.toLocaleString('en-IN')})`, amount: advance }] : []),
+      { label: `Round Rs. ${Math.round(baseRent / 1000) * 1000 || 5000}`, amount: Math.round(baseRent / 1000) * 1000 || 5000 }
+    ];
+    shortcuts.forEach((chip, index) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = `shortcut-chip ${index === 0 ? 'active' : ''}`;
       btn.textContent = chip.label;
       btn.addEventListener('click', () => {
-        chipsContainer.querySelectorAll('.shortcut-chip').forEach(c => c.classList.remove('active'));
+        chipsContainer.querySelectorAll('.shortcut-chip').forEach((c) => c.classList.remove('active'));
         btn.classList.add('active');
         if (amountInput) amountInput.value = chip.amount;
       });
@@ -1642,36 +1507,41 @@ function setupRecordPaymentForm(tenancyKey) {
     });
   }
 
-  // Handle Month Settlement logic (State A vs State B)
+  // Check unpaid bills for this tenancy
   const blockPending = document.getElementById('block-pending-months');
   const blockNoPending = document.getElementById('block-no-pending-months');
   const currentMonthTitle = document.getElementById('current-month-title');
   const customMonthPickerRow = document.getElementById('custom-month-picker-row');
 
-  if (data.hasPending) {
+  const unpaidBills = (cloudBillsList || []).filter(
+    (b) => b.tenancy_id === tenancy.id && b.status === 'unpaid'
+  );
+
+  if (unpaidBills.length > 0) {
     blockPending?.classList.remove('hidden');
     blockNoPending?.classList.add('hidden');
 
     const monthsList = blockPending?.querySelector('.months-select-list');
     if (monthsList) {
       monthsList.innerHTML = '';
-      data.pendingMonths.forEach((item) => {
+      unpaidBills.forEach((bill, idx) => {
         const label = document.createElement('label');
-        label.className = `month-select-option ${item.checked ? 'selected' : ''}`;
+        label.className = `month-select-option ${idx === 0 ? 'selected' : ''}`;
+        const monthLabel = bill.duration_start
+          ? new Date(bill.duration_start + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+          : 'Pending Billing Cycle';
         label.innerHTML = `
-          <input type="checkbox" name="settle-month" value="${item.label}" ${item.checked ? 'checked' : ''} />
+          <input type="checkbox" name="settle-month" value="${monthLabel}" ${idx === 0 ? 'checked' : ''} />
           <div class="month-opt-details">
-            <strong class="month-opt-title">${item.label}</strong>
-            <span class="month-opt-sub ${item.sub.includes('Overdue') || item.sub.includes('Past Due') ? 'status-overdue' : ''}">${item.sub}</span>
+            <strong class="month-opt-title">${monthLabel}</strong>
+            <span class="month-opt-sub status-overdue">Unpaid Invoice • Rs. ${parseFloat(bill.net_payable).toLocaleString('en-IN')}</span>
           </div>
           <span class="custom-checkbox"></span>
         `;
-
         const checkbox = label.querySelector('input[type="checkbox"]');
         checkbox?.addEventListener('change', () => {
           label.classList.toggle('selected', checkbox.checked);
         });
-
         label.addEventListener('click', (e) => {
           if (e.target !== checkbox) {
             e.preventDefault();
@@ -1679,15 +1549,15 @@ function setupRecordPaymentForm(tenancyKey) {
             label.classList.toggle('selected', checkbox.checked);
           }
         });
-
         monthsList.appendChild(label);
       });
     }
   } else {
-    // State B: No pending dues, default to current month
     blockPending?.classList.add('hidden');
     blockNoPending?.classList.remove('hidden');
-    if (currentMonthTitle) currentMonthTitle.textContent = data.currentMonthTitle;
+    const now = new Date();
+    const currMonthText = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    if (currentMonthTitle) currentMonthTitle.textContent = currMonthText;
     customMonthPickerRow?.classList.add('hidden');
   }
 }
@@ -1703,17 +1573,15 @@ function initRecordPaymentPage() {
   const customMonthPickerRow = document.getElementById('custom-month-picker-row');
   const btnSave = document.getElementById('btn-save-full-payment');
 
-  // Tenancy selector change
   selectTenancy?.addEventListener('change', (e) => {
-    setupRecordPaymentForm(e.target.value);
+    const target = (cloudTenanciesList || []).find((t) => t.id === e.target.value);
+    if (target) setupRecordPaymentForm(target);
   });
 
-  // Back button
   btnBack?.addEventListener('click', () => {
     navigateToScreen(6);
   });
 
-  // Payment mode toggle (Cash vs Online)
   const setPaymentMode = (mode) => {
     if (mode === 'Online') {
       cardCash?.classList.remove('selected');
@@ -1733,7 +1601,6 @@ function initRecordPaymentPage() {
   cardCash?.addEventListener('click', () => setPaymentMode('Cash'));
   cardOnline?.addEventListener('click', () => setPaymentMode('Online'));
 
-  // Online channel chips
   channelChips.forEach((chip) => {
     chip.addEventListener('click', () => {
       channelChips.forEach((c) => c.classList.remove('selected'));
@@ -1743,7 +1610,6 @@ function initRecordPaymentPage() {
     });
   });
 
-  // Date picker trigger
   const trigger = document.getElementById('recordDatePickerTrigger');
   const nativeDate = document.getElementById('record-native-payment-date');
   const dateDisplay = document.getElementById('record-payment-date-display');
@@ -1770,17 +1636,17 @@ function initRecordPaymentPage() {
     }
   });
 
-  // Toggle custom advance month row
   btnToggleCustomMonth?.addEventListener('click', () => {
     customMonthPickerRow?.classList.toggle('hidden');
   });
 
-  // Save full payment
   btnSave?.addEventListener('click', async () => {
-    const tenancyKey = selectTenancy?.value || 'lalitpur';
-    const data = tenancySettlementData[tenancyKey] || tenancySettlementData.lalitpur;
-    const amountVal = document.getElementById('record-page-amount')?.value?.trim();
+    if (!selectedRecordTenancy) {
+      showToast('⚠️ No tenancy selected', 3000);
+      return;
+    }
 
+    const amountVal = document.getElementById('record-page-amount')?.value?.trim();
     if (!amountVal || parseFloat(amountVal) <= 0) {
       showToast('⚠️ Please enter a valid payment amount', 3000);
       return;
@@ -1788,102 +1654,73 @@ function initRecordPaymentPage() {
 
     const payMode = document.querySelector('input[name="record-pay-mode"]:checked')?.value || 'Cash';
     let modeLabel = payMode;
+    let channel = 'cash';
+    let ref = null;
+
     if (payMode === 'Online') {
-      const channel = document.querySelector('input[name="online-channel"]:checked')?.value || 'Online';
-      modeLabel = channel;
-      const ref = document.getElementById('input-online-ref')?.value?.trim();
+      channel = document.querySelector('input[name="online-channel"]:checked')?.value?.toLowerCase() || 'upi';
+      modeLabel = channel.toUpperCase();
+      ref = document.getElementById('input-online-ref')?.value?.trim() || null;
       if (ref) modeLabel += ` (Ref: ${ref})`;
     }
 
     // Determine settled month string
     let settledMonthText = '';
-    if (data.hasPending) {
-      const checkedMonths = Array.from(document.querySelectorAll('input[name="settle-month"]:checked')).map(cb => cb.value.split(' ')[0]);
-      if (checkedMonths.length > 0) {
-        settledMonthText = checkedMonths.join(', ');
-      } else {
-        settledMonthText = 'Manual Settlement';
-      }
+    const checkedMonths = Array.from(document.querySelectorAll('input[name="settle-month"]:checked')).map(cb => cb.value);
+    if (checkedMonths.length > 0) {
+      settledMonthText = checkedMonths.join(', ');
     } else {
-      if (customMonthPickerRow && !customMonthPickerRow.classList.contains('hidden')) {
-        const customVal = document.getElementById('select-custom-settle-month')?.value || 'May 2026';
-        settledMonthText = customVal.split(' ')[0] + ' (Advance)';
+      const customVal = document.getElementById('select-custom-settle-month')?.value;
+      if (customMonthPickerRow && !customMonthPickerRow.classList.contains('hidden') && customVal) {
+        settledMonthText = `${customVal} (Advance)`;
       } else {
-        settledMonthText = data.currentMonthTitle.split(' ')[0];
+        settledMonthText = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
       }
     }
 
     const notes = document.getElementById('record-payment-notes')?.value?.trim();
     const sendWhatsApp = document.getElementById('toggle-send-whatsapp-receipt')?.checked;
-    const dateText = dateDisplay?.value || 'Today';
+    const paymentDate = nativeDate?.value || new Date().toISOString().split('T')[0];
 
-    // Persist to Supabase Cloud
+    btnSave.disabled = true;
+    btnSave.textContent = 'Saving Payment...';
+
     try {
       await recordCloudPayment({
-        tenancyId: '00000000-0000-0000-0000-000000000001',
+        tenancyId: selectedRecordTenancy.id,
         amount: parseFloat(amountVal),
         paymentMode: payMode.toLowerCase(),
-        channel: payMode === 'Online' ? (document.querySelector('input[name="online-channel"]:checked')?.value?.toLowerCase() || 'upi') : 'cash',
-        referenceNo: document.getElementById('input-online-ref')?.value?.trim() || null,
+        channel: channel,
+        referenceNo: ref,
         settledMonths: [settledMonthText],
-        paymentDate: nativeDate?.value || new Date().toISOString().split('T')[0],
+        paymentDate: paymentDate,
       });
+
       await syncDashboardFromCloud();
-    } catch (e) {
-      console.warn('Cloud payment save notice:', e);
+
+      const toastMsg = sendWhatsApp
+        ? `✅ Rs. ${parseFloat(amountVal).toLocaleString('en-IN')} recorded for ${selectedRecordTenancy.property_name}! Receipt queued for WhatsApp.`
+        : `✅ Rs. ${parseFloat(amountVal).toLocaleString('en-IN')} payment recorded & synced to cloud!`;
+
+      showToast(toastMsg, 3500);
+
+      setTimeout(() => {
+        navigateToScreen(6);
+      }, 500);
+    } catch (err) {
+      showToast(`❌ Error saving payment: ${err.message}`, 4000);
+    } finally {
+      btnSave.disabled = false;
+      btnSave.textContent = 'Confirm & Save Receipt';
     }
-
-    // Prepend to Dashboard Recent Payments
-    const listPayments = document.getElementById('list-recent-payments');
-    if (listPayments) {
-      const newCard = document.createElement('div');
-      newCard.className = 'recent-item-card';
-      newCard.setAttribute('role', 'button');
-      newCard.setAttribute('tabindex', '0');
-      newCard.innerHTML = `
-        <div class="recent-item-left">
-          <span class="recent-prop-name">${data.name}</span>
-          <strong class="recent-item-title">${settledMonthText} — Paid via ${modeLabel}</strong>
-          <span class="recent-item-timestamp">Paid on ${dateText} ${notes ? '• ' + notes : ''}</span>
-        </div>
-        <div class="recent-item-right">
-          <strong class="recent-item-amount">Rs. ${parseFloat(amountVal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
-          <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-        </div>
-      `;
-      listPayments.insertBefore(newCard, listPayments.firstChild);
-    }
-
-    // Informative toast
-    const toastMsg = sendWhatsApp
-      ? `✅ Rs. ${parseFloat(amountVal).toLocaleString('en-IN')} payment recorded for ${data.name} (${settledMonthText})! Receipt queued for WhatsApp & Cloud Synced.`
-      : `✅ Rs. ${parseFloat(amountVal).toLocaleString('en-IN')} payment recorded for ${data.name} (${settledMonthText})! Cloud Synced.`;
-
-    showToast(toastMsg, 3500);
-
-    // Navigate to dashboard
-    setTimeout(() => {
-      navigateToScreen(6);
-    }, 600);
   });
-
-  // Also make overdue month card on Screen 10 clickable
-  const overdueMonthCard = document.querySelector('.month-card.month-overdue');
-  if (overdueMonthCard) {
-    overdueMonthCard.setAttribute('role', 'button');
-    overdueMonthCard.setAttribute('tabindex', '0');
-    overdueMonthCard.style.cursor = 'pointer';
-    overdueMonthCard.addEventListener('click', () => {
-      openRecordPaymentPage('lalitpur');
-    });
-  }
 }
 
 // ==========================================================================
 // BILL GENERATION & INVOICE DETAILS FLOW (SCREENS 13, 14, 15)
 // ==========================================================================
+
+export let activeBillDraft = null;
 
 function initBillGenerationFlow() {
   const btnGenBillBack = document.getElementById('btn-genbill-back');
@@ -1923,19 +1760,24 @@ function initBillGenerationFlow() {
     }
   });
 
-  // Screen 13 Back
   btnGenBillBack?.addEventListener('click', () => {
     navigateToScreen(6);
   });
 
   // Calculate & Preview Bill -> Screen 14
   btnToPreview?.addEventListener('click', () => {
-    const prevElec = parseFloat(document.getElementById('input-prev-elec')?.value) || 13187;
-    const currElec = parseFloat(document.getElementById('input-curr-elec')?.value) || 14187;
+    const target = currentActiveTenancy || (cloudTenanciesList && cloudTenanciesList[0]);
+    if (!target) {
+      showToast('⚠️ Please create a tenancy first before generating bills', 3500);
+      navigateToScreen(7);
+      return;
+    }
 
-    // Financial Risk Guardrail: Negative meter reading prevention
-    if (currElec < prevElec) {
-      showToast(`⚠️ Current reading (${currElec}) cannot be less than previous reading (${prevElec}). Check for typo.`, 4000);
+    const prevElec = parseFloat(document.getElementById('input-prev-elec')?.value) || 0;
+    const currElec = parseFloat(document.getElementById('input-curr-elec')?.value) || 0;
+
+    if (currElec > 0 && currElec < prevElec) {
+      showToast(`⚠️ Current reading (${currElec}) cannot be less than previous reading (${prevElec})`, 4000);
       return;
     }
 
@@ -1943,26 +1785,54 @@ function initBillGenerationFlow() {
     const elecPricePerUnit = 12;
     const elecTotal = units * elecPricePerUnit;
 
-    const rent = 12000;
-    const internet = 500;
-    const water = 500;
-    const sewage = 500;
-    const subtotal = rent + elecTotal + internet + water + sewage;
+    const prevWater = parseFloat(document.getElementById('input-prev-water')?.value) || 0;
+    const currWater = parseFloat(document.getElementById('input-curr-water')?.value) || 0;
+    const waterUnits = Math.max(0, currWater - prevWater);
+    const waterTotal = waterUnits > 0 ? waterUnits * 10 : 0;
+
+    const rent = parseFloat(target.base_rent || 0);
+    const otherUtilities = 0;
+    const subtotal = rent + elecTotal + waterTotal + otherUtilities;
 
     const advanceInput = parseFloat(document.getElementById('input-bill-advance')?.value) || 0;
-    // Financial Risk Guardrail: Cap advance to subtotal
-    if (advanceInput > subtotal) {
-      showToast(`ℹ️ Advance deduction (Rs. ${advanceInput.toLocaleString()}) exceeds subtotal. Capped to bill amount.`, 3500);
-    }
     const advance = Math.min(advanceInput, subtotal);
     const due = parseFloat(document.getElementById('input-bill-due')?.value) || 0;
     const netPayable = Math.max(0, subtotal - advance + due);
 
-    const notesVal = document.getElementById('input-bill-notes')?.value || 'This is the notes mentioned on the bill generation page';
+    const notesVal = document.getElementById('input-bill-notes')?.value || '';
+    const startDate = startNative?.value || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    const endDate = endNative?.value || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0];
+
+    activeBillDraft = {
+      tenancyId: target.id,
+      propertyName: target.property_name,
+      durationStart: startDate,
+      durationEnd: endDate,
+      baseRent: rent,
+      electricityUnits: units,
+      electricityCost: elecTotal,
+      waterUnits: waterUnits,
+      waterCost: waterTotal,
+      otherUtilitiesCost: otherUtilities,
+      subtotal: subtotal,
+      advanceDeducted: advance,
+      dueCarried: due,
+      netPayable: netPayable,
+      notes: notesVal,
+    };
 
     // Populate Screen 14 Review Bill
+    const propNameEl = document.getElementById('review-prop-name');
+    if (propNameEl) propNameEl.textContent = target.property_name;
+
+    const periodEl = document.getElementById('review-billing-period');
+    if (periodEl) periodEl.textContent = `${startDate} – ${endDate}`;
+
+    const rentEl = document.getElementById('review-rent-val');
+    if (rentEl) rentEl.textContent = `Rs. ${rent.toLocaleString('en-IN')}`;
+
     const elecSub = document.getElementById('review-elec-sub');
-    if (elecSub) elecSub.textContent = `${currElec} - ${prevElec} = ${units} units @ 12/unit`;
+    if (elecSub) elecSub.textContent = `${currElec} - ${prevElec} = ${units} units @ Rs. ${elecPricePerUnit}/unit`;
     const elecVal = document.getElementById('review-elec-val');
     if (elecVal) elecVal.textContent = `Rs. ${elecTotal.toLocaleString('en-IN')}`;
 
@@ -1976,81 +1846,76 @@ function initBillGenerationFlow() {
     if (netVal) netVal.textContent = `Rs. ${netPayable.toLocaleString('en-IN')}`;
 
     const notesText = document.getElementById('review-notes-text');
-    if (notesText) notesText.textContent = notesVal;
+    if (notesText) notesText.textContent = notesVal || 'No notes added.';
 
     navigateToScreen(14);
   });
 
-  // Screen 14 Back
   btnReviewBack?.addEventListener('click', () => {
     navigateToScreen(13);
   });
 
   // Screen 14 Confirm & Generate -> Screen 15
   btnConfirmGenBill?.addEventListener('click', async () => {
-    const netVal = document.getElementById('review-net-val')?.textContent || 'Rs. 13,700';
-    const netNum = parseFloat(netVal.replace(/[^0-9.]/g, '')) || 13700;
+    if (!activeBillDraft) {
+      showToast('⚠️ No active bill draft found', 3000);
+      return;
+    }
 
-    // Persist to Supabase Cloud
+    btnConfirmGenBill.disabled = true;
+    btnConfirmGenBill.textContent = 'Generating & Syncing...';
+
     try {
+      const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
       await createCloudBill({
-        tenancyId: '00000000-0000-0000-0000-000000000001',
-        invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
-        durationStart: '2026-03-01',
-        durationEnd: '2026-03-31',
+        tenancyId: activeBillDraft.tenancyId,
+        invoiceNumber: invoiceNumber,
+        durationStart: activeBillDraft.durationStart,
+        durationEnd: activeBillDraft.durationEnd,
         generatedDate: new Date().toISOString().split('T')[0],
-        baseRent: 12000,
-        electricityUnits: 100,
-        electricityCost: 1200,
-        waterCost: 500,
-        otherUtilitiesCost: 1000,
-        subtotal: 14700,
-        advanceDeducted: 1000,
-        netPayable: netNum,
+        baseRent: activeBillDraft.baseRent,
+        electricityUnits: activeBillDraft.electricityUnits,
+        electricityCost: activeBillDraft.electricityCost,
+        waterUnits: activeBillDraft.waterUnits,
+        waterCost: activeBillDraft.waterCost,
+        otherUtilitiesCost: activeBillDraft.otherUtilitiesCost,
+        subtotal: activeBillDraft.subtotal,
+        advanceDeducted: activeBillDraft.advanceDeducted,
+        dueCarried: activeBillDraft.dueCarried,
+        netPayable: activeBillDraft.netPayable,
         status: 'unpaid',
-        notes: document.getElementById('review-notes-text')?.textContent || '',
+        notes: activeBillDraft.notes,
       });
+
+      // Populate Screen 15 Bill Details
+      const titleEl = document.getElementById('billdetails-prop-title');
+      if (titleEl) titleEl.textContent = activeBillDraft.propertyName;
+
+      const invoiceNoEl = document.getElementById('billdetails-invoice-no');
+      if (invoiceNoEl) invoiceNoEl.textContent = invoiceNumber;
+
+      const netEl = document.getElementById('billdetails-net-amount');
+      if (netEl) netEl.textContent = `Rs. ${activeBillDraft.netPayable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
       await syncDashboardFromCloud();
+
+      showToast(`✅ Bill of Rs. ${activeBillDraft.netPayable.toLocaleString('en-IN')} generated & saved to Supabase!`, 3500);
+
+      navigateToScreen(15);
     } catch (e) {
-      console.warn('Cloud create bill notice:', e);
+      showToast(`❌ Error creating bill: ${e.message}`, 4000);
+    } finally {
+      btnConfirmGenBill.disabled = false;
+      btnConfirmGenBill.textContent = 'Confirm & Generate Bill';
     }
-
-    showToast(`✅ Bill of ${netVal} generated & synced to Supabase Cloud!`, 3000);
-
-    // Prepend to Dashboard Recent Bills list
-    const listBills = document.getElementById('list-recent-bills');
-    if (listBills) {
-      const newBillCard = document.createElement('div');
-      newBillCard.className = 'recent-item-card';
-      newBillCard.setAttribute('role', 'button');
-      newBillCard.setAttribute('tabindex', '0');
-      newBillCard.innerHTML = `
-        <div class="recent-item-left">
-          <strong class="recent-item-title">1 Mar 2026 – 31 Mar 2026</strong>
-          <span class="recent-item-timestamp">Generated on Today</span>
-        </div>
-        <div class="recent-item-right">
-          <strong class="recent-item-amount">${netVal}</strong>
-          <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-        </div>
-      `;
-      newBillCard.addEventListener('click', () => navigateToScreen(15));
-      listBills.insertBefore(newBillCard, listBills.firstChild);
-    }
-
-    navigateToScreen(15);
   });
 
-  // Screen 15 Back
   btnBillDetailsBack?.addEventListener('click', () => {
     navigateToScreen(6);
   });
 
-  // Invoice Sharing
   const handleShareInvoice = () => {
-    showToast('📱 WhatsApp invoice link generated & copied to clipboard!', 3500);
+    showToast('📱 WhatsApp invoice link copied to clipboard!', 3500);
   };
   btnShareInvoice?.addEventListener('click', handleShareInvoice);
   btnShareWhatsappInvoice?.addEventListener('click', handleShareInvoice);
@@ -2076,6 +1941,7 @@ function initSettingsScreen() {
   });
 
   itemArchived?.addEventListener('click', () => {
+    loadArchivedTenancies();
     navigateToScreen(17);
   });
 
@@ -2096,7 +1962,7 @@ function initSettingsScreen() {
   });
 
   itemContact?.addEventListener('click', () => {
-    showToast('✉️ Support desk opened: support@rentalbuddy.app', 3000);
+    showToast('✉️ Support desk: support@rentalbuddy.app', 3000);
   });
 
   itemReport?.addEventListener('click', () => {
@@ -2112,43 +1978,110 @@ function initSettingsScreen() {
 // ARCHIVED TENANCIES FLOW (SCREENS 17 & 18)
 // ==========================================================================
 
-function initArchivedTenanciesFlow() {
-  const btnArchivedBack = document.getElementById('btn-archived-back');
-  const cardArchived = document.getElementById('card-archived-lalitpur');
-  const btnToggleArchEmpty = document.getElementById('btn-toggle-archived-empty');
+export let activeArchivedTenancy = null;
+
+export async function loadArchivedTenancies() {
   const popState = document.getElementById('archived-populated-state');
   const emptyState = document.getElementById('archived-empty-state');
+  if (!popState || !emptyState) return;
 
+  try {
+    const archived = await fetchCloudTenancies('archived');
+    if (!archived || archived.length === 0) {
+      popState.classList.add('hidden');
+      emptyState.classList.remove('hidden');
+      return;
+    }
+
+    emptyState.classList.add('hidden');
+    popState.classList.remove('hidden');
+    popState.innerHTML = '';
+
+    archived.forEach((t) => {
+      const card = document.createElement('article');
+      card.className = 'tenancy-card';
+      card.style.cursor = 'pointer';
+      card.innerHTML = `
+        <div class="tenancy-card-header">
+          <span class="badge-pill" style="background: #F1F5F9; color: #64748B;">Archived</span>
+        </div>
+        <div class="tenancy-card-main-row">
+          <div class="tenancy-info">
+            <h2 class="tenancy-name">${t.property_name}</h2>
+            <span class="tenancy-meta-sub">Rs. ${parseFloat(t.base_rent || 0).toLocaleString('en-IN')} • Monthly</span>
+          </div>
+          <div class="tenancy-row-chevron">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </div>
+        </div>
+      `;
+      card.addEventListener('click', () => {
+        openArchivedDetails(t);
+      });
+      popState.appendChild(card);
+    });
+  } catch (err) {
+    console.warn('Load archived notice:', err);
+  }
+}
+
+async function openArchivedDetails(tenancy) {
+  activeArchivedTenancy = tenancy;
+  const propTitle = document.getElementById('archdetails-prop-title');
+  const rentRate = document.getElementById('archdetails-rent-rate');
+
+  if (propTitle) propTitle.textContent = tenancy.property_name;
+  if (rentRate) rentRate.textContent = `Rs. ${parseFloat(tenancy.base_rent || 0).toLocaleString('en-IN')} • Monthly`;
+
+  try {
+    const bills = await fetchCloudBills(tenancy.id);
+    const historyList = document.getElementById('archdetails-history-list');
+    if (historyList) {
+      if (bills && bills.length > 0) {
+        historyList.innerHTML = '';
+        bills.forEach((b) => {
+          const row = document.createElement('div');
+          row.className = 'recent-item-card';
+          row.innerHTML = `
+            <div class="recent-item-left">
+              <strong class="recent-item-title">${b.duration_start} – ${b.duration_end}</strong>
+              <span class="recent-item-timestamp">Generated on ${b.generated_date} • ${b.status}</span>
+            </div>
+            <div class="recent-item-right">
+              <strong class="recent-item-amount">Rs. ${parseFloat(b.net_payable).toLocaleString('en-IN')}</strong>
+            </div>
+          `;
+          historyList.appendChild(row);
+        });
+      } else {
+        historyList.innerHTML = '<p class="empty-recent-copy" style="text-align: center; padding: 20px 0; color: #7D849B;">No archived bill history.</p>';
+      }
+    }
+  } catch (e) {
+    console.warn('Archived bills error:', e);
+  }
+
+  navigateToScreen(18);
+}
+
+function initArchivedTenanciesFlow() {
+  const btnArchivedBack = document.getElementById('btn-archived-back');
   const btnArchDetailsBack = document.getElementById('btn-archdetails-back');
   const btnArchMenu = document.getElementById('btn-archdetails-menu');
   const archMenuDropdown = document.getElementById('archdetails-menu-dropdown');
   const menuUnarchive = document.getElementById('menu-action-unarchive');
   const menuArchDelete = document.getElementById('menu-action-arch-delete');
 
-  // Screen 17 Back
   btnArchivedBack?.addEventListener('click', () => {
     navigateToScreen(16);
   });
 
-  // Archived Tenancy Card click -> Screen 18
-  cardArchived?.addEventListener('click', () => {
-    navigateToScreen(18);
-  });
-
-  // Toggle Populated vs Empty Archived View
-  btnToggleArchEmpty?.addEventListener('click', () => {
-    const isPop = !popState?.classList.contains('hidden');
-    popState?.classList.toggle('hidden', isPop);
-    emptyState?.classList.toggle('hidden', !isPop);
-    showToast(isPop ? 'Showing Empty Archived Tenancies view' : 'Showing Populated Archived Tenancies view');
-  });
-
-  // Screen 18 Back
   btnArchDetailsBack?.addEventListener('click', () => {
     navigateToScreen(17);
   });
 
-  // 3-Dots Menu Dropdown
   btnArchMenu?.addEventListener('click', (e) => {
     e.stopPropagation();
     archMenuDropdown?.classList.toggle('hidden');
@@ -2160,41 +2093,36 @@ function initArchivedTenanciesFlow() {
     }
   });
 
-  // Unarchive Tenancy
   menuUnarchive?.addEventListener('click', async () => {
     archMenuDropdown?.classList.add('hidden');
+    if (!activeArchivedTenancy) return;
+
     try {
-      await unarchiveCloudTenancy('00000000-0000-0000-0000-000000000001');
+      await unarchiveCloudTenancy(activeArchivedTenancy.id);
+      showToast(`✨ "${activeArchivedTenancy.property_name}" unarchived & restored!`, 3500);
+      await syncDashboardFromCloud();
+      setTimeout(() => {
+        navigateToScreen(6);
+      }, 500);
     } catch (e) {
-      console.warn('Cloud unarchive notice:', e);
+      showToast(`❌ Error: ${e.message}`);
     }
-    showToast('✨ "2nd Floor, Lalitpur" unarchived and restored to active tenancies in Supabase Cloud!', 3500);
-    setTimeout(() => {
-      navigateToScreen(6);
-    }, 600);
   });
 
-  // Delete Archived Tenancy
   menuArchDelete?.addEventListener('click', async () => {
     archMenuDropdown?.classList.add('hidden');
-    try {
-      await deleteCloudTenancy('00000000-0000-0000-0000-000000000001');
-    } catch (e) {
-      console.warn('Cloud delete notice:', e);
-    }
-    showToast('🗑️ Archived tenancy permanently removed from Supabase Cloud', 3000);
-    popState?.classList.add('hidden');
-    emptyState?.classList.remove('hidden');
-    setTimeout(() => {
-      navigateToScreen(17);
-    }, 600);
-  });
+    if (!activeArchivedTenancy) return;
 
-  // Rent Bill History items on Screen 18 -> Screen 15
-  document.querySelectorAll('#archdetails-history-list .recent-item-card').forEach((card) => {
-    card.addEventListener('click', () => {
-      navigateToScreen(15);
-    });
+    try {
+      await deleteCloudTenancy(activeArchivedTenancy.id);
+      showToast(`🗑️ Tenancy permanently deleted from Supabase Cloud`, 3000);
+      await loadArchivedTenancies();
+      setTimeout(() => {
+        navigateToScreen(17);
+      }, 500);
+    } catch (e) {
+      showToast(`❌ Error deleting: ${e.message}`);
+    }
   });
 }
 
@@ -2208,56 +2136,26 @@ function initBackupRestoreScreen() {
   const btnRestoreBackup = document.getElementById('btn-trigger-restore-backup');
   const inputRhbFile = document.getElementById('input-rhb-file');
 
-  // Back to Settings
   btnBackupBack?.addEventListener('click', () => {
     navigateToScreen(16);
   });
 
-  // Create & Download .rhb Backup File
   btnCreateBackup?.addEventListener('click', () => {
     const backupPayload = {
       app: 'Rental Buddy',
       format: 'rhb',
       version: '1.0.0',
       exportedAt: new Date().toISOString(),
-      tenancies: [
-        {
-          id: 'lalitpur',
-          name: '2nd Floor, Lalitpur',
-          monthlyRent: 12000,
-          currency: 'Rs.',
-          status: 'active',
-          pastDues: 12034.12,
-          utilities: {
-            electricity: { type: 'meter', unitRate: 12, lastReading: 13187 },
-            water: { type: 'flat', amount: 500 },
-            internet: { amount: 500 },
-            sewage: { amount: 500 }
-          }
-        },
-        {
-          id: 'rams',
-          name: 'Ram’s Flat',
-          monthlyRent: 2000,
-          currency: 'Rs.',
-          status: 'active',
-          pastDues: 4000.00
-        },
-        {
-          id: 'apt11',
-          name: 'Apartment 11, Bhakatapur',
-          monthlyRent: 34150,
-          currency: 'Rs.',
-          status: 'active',
-          pastDues: 0
-        }
-      ],
+      userEmail: cloudSession.user?.email || null,
+      tenancies: cloudTenanciesList || [],
+      bills: cloudBillsList || [],
+      payments: cloudPaymentsList || [],
       preferences: {
-        currency: 'NPR',
+        currency: 'INR',
         currencySymbol: 'Rs.',
         hapticsEnabled: document.getElementById('toggle-haptics')?.checked ?? true,
-        notificationsEnabled: document.getElementById('toggle-settings-notifications')?.checked ?? true
-      }
+        notificationsEnabled: document.getElementById('toggle-settings-notifications')?.checked ?? true,
+      },
     };
 
     const jsonString = JSON.stringify(backupPayload, null, 2);
@@ -2265,7 +2163,7 @@ function initBackupRestoreScreen() {
     const downloadUrl = URL.createObjectURL(blob);
     const downloadLink = document.createElement('a');
     const dateStamp = new Date().toISOString().slice(0, 10);
-    
+
     downloadLink.href = downloadUrl;
     downloadLink.download = `rental-buddy-backup-${dateStamp}.rhb`;
     document.body.appendChild(downloadLink);
@@ -2273,15 +2171,13 @@ function initBackupRestoreScreen() {
     document.body.removeChild(downloadLink);
     URL.revokeObjectURL(downloadUrl);
 
-    showToast('📦 Created backup! Exported all tenancies into .rhb file.', 3500);
+    showToast('📦 Created backup! Exported all live tenancies & records.', 3500);
   });
 
-  // Trigger file picker for restore
   btnRestoreBackup?.addEventListener('click', () => {
     inputRhbFile?.click();
   });
 
-  // Handle selected .rhb file
   inputRhbFile?.addEventListener('change', (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -2291,12 +2187,11 @@ function initBackupRestoreScreen() {
       try {
         const content = event.target?.result;
         const parsed = JSON.parse(content);
-        
-        // Validation check
+
         if (parsed.format === 'rhb' || parsed.app === 'Rental Buddy' || parsed.tenancies) {
-          showToast(`✅ Successfully restored ${parsed.tenancies?.length || 3} tenancies & records from ${file.name}!`, 3500);
+          showToast(`✅ Successfully parsed backup from ${file.name}!`, 3500);
           setTimeout(() => {
-            navigateToScreen(6); // Return to Dashboard
+            navigateToScreen(6);
           }, 800);
         } else {
           showToast('⚠️ Restored file loaded. Formatted records synchronized.', 3000);
@@ -2306,7 +2201,6 @@ function initBackupRestoreScreen() {
       }
     };
     reader.readAsText(file);
-    // Reset file input value so same file can be picked again
     inputRhbFile.value = '';
   });
 }
@@ -2315,17 +2209,58 @@ function initBackupRestoreScreen() {
 // SUPABASE AUTHENTICATION & ROLE SWITCHER (SCREEN 20)
 // ==========================================================================
 
-let currentUserSession = {
-  email: 'admin@rentalbuddy.app',
-  role: 'admin',
-  name: 'Dr. Kishor (Admin)'
-};
+export let currentUserSession = null;
+
+export function updateAuthUI(user) {
+  const bannerEmail = document.getElementById('cloud-banner-user-email');
+  const bannerText = document.getElementById('cloud-status-banner-text');
+  const bannerDot = document.querySelector('.cloud-pulse-dot');
+  const emailDisplay = document.getElementById('current-user-email-display');
+  const roleBadge = document.getElementById('current-user-role-badge');
+  const ownerEmail = document.getElementById('display-owner-email');
+
+  if (!user) {
+    if (bannerEmail) bannerEmail.textContent = 'Not Signed In';
+    if (bannerText) bannerText.textContent = 'Supabase Cloud • Offline';
+    if (bannerDot) bannerDot.style.background = '#9FA5BC';
+    if (emailDisplay) emailDisplay.textContent = 'Not Signed In';
+    if (roleBadge) {
+      roleBadge.textContent = 'Sign in to view account';
+      roleBadge.style.color = '#7D849B';
+    }
+    if (ownerEmail) ownerEmail.textContent = 'Owner';
+    currentUserSession = null;
+    return;
+  }
+
+  const email = user.email || '';
+  const fullName = user.user_metadata?.full_name || email.split('@')[0];
+  const role = cloudSession.role || 'admin';
+  const isAdmin = role === 'admin';
+
+  currentUserSession = {
+    id: user.id,
+    email: email,
+    role: role,
+    name: fullName,
+  };
+
+  if (bannerEmail) bannerEmail.textContent = email;
+  if (bannerText) bannerText.textContent = 'Supabase Cloud • Live';
+  if (bannerDot) bannerDot.style.background = '#10B981';
+  if (emailDisplay) emailDisplay.textContent = email;
+  if (roleBadge) {
+    roleBadge.textContent = isAdmin ? '👑 Admin (Owner)' : '👨‍👩‍👧 Family Member (Viewer)';
+    roleBadge.style.color = isAdmin ? '#16A34A' : '#0284C7';
+  }
+  if (ownerEmail) ownerEmail.textContent = email;
+}
 
 function initAuthScreen() {
-  const chipAdmin = document.getElementById('chip-role-admin');
-  const chipFamily = document.getElementById('chip-role-family');
   const inputEmail = document.getElementById('auth-email-input');
   const inputPassword = document.getElementById('auth-password-input');
+  const inputName = document.getElementById('auth-name-input');
+  const nameGroup = document.getElementById('auth-name-group');
   const btnToggleEye = document.getElementById('btn-toggle-password-visibility');
   const formAuth = document.getElementById('auth-login-form');
   const btnForgot = document.getElementById('btn-forgot-password');
@@ -2336,23 +2271,6 @@ function initAuthScreen() {
 
   let isSignUpMode = false;
 
-  // Role chip: Admin
-  chipAdmin?.addEventListener('click', () => {
-    chipAdmin.classList.add('active');
-    chipFamily?.classList.remove('active');
-    if (inputEmail) inputEmail.value = 'admin@rentalbuddy.app';
-    if (inputPassword) inputPassword.value = 'supersecure123';
-  });
-
-  // Role chip: Family Member
-  chipFamily?.addEventListener('click', () => {
-    chipFamily.classList.add('active');
-    chipAdmin?.classList.remove('active');
-    if (inputEmail) inputEmail.value = 'family@rentalbuddy.app';
-    if (inputPassword) inputPassword.value = 'familyview123';
-  });
-
-  // Toggle Password Visibility
   btnToggleEye?.addEventListener('click', () => {
     if (inputPassword) {
       const isPass = inputPassword.type === 'password';
@@ -2361,79 +2279,70 @@ function initAuthScreen() {
     }
   });
 
-  // Toggle Sign In vs Create Account Mode
   btnToggleMode?.addEventListener('click', () => {
     isSignUpMode = !isSignUpMode;
-    if (formTitle) formTitle.textContent = isSignUpMode ? 'Create Your Account' : 'Sign In to Your Account';
-    if (btnSubmit) btnSubmit.textContent = isSignUpMode ? 'Sign Up with Supabase' : 'Sign In with Supabase';
+    if (nameGroup) nameGroup.classList.toggle('hidden', !isSignUpMode);
+    if (formTitle) formTitle.textContent = isSignUpMode ? 'Create Your Admin Account' : 'Sign In to Your Account';
+    if (btnSubmit) btnSubmit.textContent = isSignUpMode ? 'Create Account with Supabase' : 'Sign In with Supabase';
     if (switchText) switchText.textContent = isSignUpMode ? 'Already have an account?' : 'Don’t have an account?';
     if (btnToggleMode) btnToggleMode.textContent = isSignUpMode ? 'Sign In' : 'Create Account';
   });
 
-  // Forgot password
   btnForgot?.addEventListener('click', () => {
     const email = inputEmail?.value?.trim() || 'your email';
     showToast(`🔑 Password reset link dispatched via Supabase to ${email}`, 3500);
   });
 
-  // Sign In submit
   formAuth?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = inputEmail?.value?.trim();
-    const password = inputPassword?.value?.trim() || 'RentalBuddyPass123!';
-    if (!email) {
+    const password = inputPassword?.value?.trim();
+    const fullName = inputName?.value?.trim() || '';
+
+    if (!email || !email.includes('@')) {
       showToast('⚠️ Please enter a valid email address');
+      return;
+    }
+    if (!password || password.length < 6) {
+      showToast('⚠️ Password must be at least 6 characters long');
       return;
     }
 
     if (btnSubmit) {
       btnSubmit.disabled = true;
-      btnSubmit.textContent = isSignUpMode ? 'Registering with Supabase...' : 'Signing In with Supabase...';
+      btnSubmit.textContent = isSignUpMode ? 'Registering Admin Account...' : 'Signing In...';
     }
 
-    let authResult;
     try {
+      let authResult;
       if (isSignUpMode) {
-        authResult = await signUpUser(email, password);
+        authResult = await signUpUser(email, password, fullName);
       } else {
         authResult = await signInUser(email, password);
       }
+
+      if (!authResult || !authResult.success) {
+        showToast(`❌ ${authResult?.error || 'Authentication failed. Please check credentials.'}`, 4500);
+        return;
+      }
+
+      updateAuthUI(authResult.user);
+      const actionWord = isSignUpMode ? 'Admin account created & registered in Supabase Cloud' : 'Signed in successfully';
+      showToast(`⚡ ${actionWord}!`, 3500);
+
+      await syncDashboardFromCloud();
+
+      setTimeout(() => {
+        navigateToScreen(6);
+      }, 500);
     } catch (err) {
-      console.warn('Supabase auth network response:', err);
+      showToast(`❌ Auth error: ${err.message}`, 4000);
     } finally {
       if (btnSubmit) {
         btnSubmit.disabled = false;
-        btnSubmit.textContent = isSignUpMode ? 'Sign Up with Supabase' : 'Sign In with Supabase';
+        btnSubmit.textContent = isSignUpMode ? 'Create Account with Supabase' : 'Sign In with Supabase';
       }
     }
-
-    const isAdmin = email.toLowerCase().includes('admin') || chipAdmin?.classList.contains('active');
-    currentUserSession = {
-      email,
-      role: isAdmin ? 'admin' : 'family',
-      name: isAdmin ? 'Admin (Owner)' : 'Family Member (Viewer)'
-    };
-
-    // Update settings account display
-    const emailDisplay = document.getElementById('current-user-email-display');
-    const roleBadge = document.getElementById('current-user-role-badge');
-    const ownerEmail = document.getElementById('display-owner-email');
-
-    if (emailDisplay) emailDisplay.textContent = email;
-    if (roleBadge) {
-      roleBadge.textContent = isAdmin ? '👑 Admin (Owner)' : '👨‍👩‍👧 Family Member (Viewer)';
-      roleBadge.style.color = isAdmin ? '#16A34A' : '#0284C7';
-    }
-    if (ownerEmail && isAdmin) ownerEmail.textContent = email;
-
-    const actionWord = isSignUpMode ? 'Registered & synced to Supabase Cloud' : 'Signed in & connected to Supabase Cloud';
-    showToast(`⚡ ${actionWord} as ${email}`, 3500);
-
-    await syncDashboardFromCloud();
-
-    setTimeout(() => {
-      navigateToScreen(6); // Return to Dashboard
-    }, 600);
   });
 }
 
@@ -2448,22 +2357,17 @@ function initFamilySharingModal() {
   const btnInvite = document.getElementById('btn-send-family-invite');
   const inputEmail = document.getElementById('input-family-email');
   const selectRole = document.getElementById('select-family-role');
-  const membersList = document.getElementById('family-members-list');
-  const badgeCount = document.getElementById('badge-family-count');
   const btnLogout = document.getElementById('btn-settings-logout');
 
-  // Open modal from settings
   itemFamilySharing?.addEventListener('click', () => {
     modalFamily?.classList.remove('hidden');
   });
 
-  // Universal close handlers
   btnClose?.addEventListener('click', () => modalFamily?.classList.add('hidden'));
   modalFamily?.addEventListener('click', (e) => {
     if (e.target === modalFamily) modalFamily.classList.add('hidden');
   });
 
-  // Send Family Invite
   btnInvite?.addEventListener('click', async () => {
     const email = inputEmail?.value?.trim();
     if (!email || !email.includes('@')) {
@@ -2472,77 +2376,37 @@ function initFamilySharingModal() {
     }
 
     const role = selectRole?.value || 'viewer';
-    const roleLabel = role === 'editor' ? 'Manager • Can edit & record' : 'Viewer • Can view bills & payments';
+    btnInvite.disabled = true;
+    btnInvite.textContent = 'Granting Access...';
 
-    // Cloud synchronization via Supabase
-    let cloudShare = null;
     try {
-      cloudShare = await inviteCloudFamilyMember(email, role === 'editor' ? 'manager' : 'viewer');
+      await inviteCloudFamilyMember(email, role === 'editor' ? 'manager' : 'viewer');
+      if (inputEmail) inputEmail.value = '';
+      await syncDashboardFromCloud();
+      showToast(`✉️ Access granted to ${email} in Supabase Cloud!`, 3500);
     } catch (err) {
-      console.warn('Cloud invite notice:', err);
+      showToast(`❌ Invite error: ${err.message}`);
+    } finally {
+      btnInvite.disabled = false;
+      btnInvite.textContent = 'Grant Family Access';
     }
-
-    // Append new member card
-    if (membersList) {
-      const newRow = document.createElement('div');
-      newRow.className = 'family-member-row';
-      const shareId = cloudShare?.id || `share-${Date.now()}`;
-      newRow.dataset.shareId = shareId;
-      newRow.innerHTML = `
-        <div class="member-avatar">👨‍👩‍👧</div>
-        <div class="member-info">
-          <strong class="member-email">${email}</strong>
-          <span class="member-role-tag">${roleLabel}</span>
-        </div>
-        <button type="button" class="btn-remove-member" title="Revoke access">✕</button>
-      `;
-
-      newRow.querySelector('.btn-remove-member')?.addEventListener('click', async () => {
-        try {
-          await revokeCloudFamilyMember(shareId);
-        } catch (e) {
-          console.warn('Revoke warning:', e);
-        }
-        newRow.remove();
-        updateMemberCount();
-        showToast(`🗑️ Access revoked for ${email} in Supabase Cloud`);
-      });
-
-      membersList.appendChild(newRow);
-    }
-
-    if (inputEmail) inputEmail.value = '';
-    updateMemberCount();
-    showToast(`✉️ Cloud invitation sent to ${email} via Supabase!`, 3500);
   });
 
-  // Remove existing shared member
-  document.getElementById('btn-remove-family-1')?.addEventListener('click', async () => {
-    const row = document.getElementById('row-family-member-1');
-    row?.remove();
-    updateMemberCount();
-    showToast('🗑️ Access revoked for family@rentalbuddy.app in Supabase Cloud');
-  });
-
-  function updateMemberCount() {
-    const count = membersList?.querySelectorAll('.family-member-row').length || 1;
-    const sharedCount = Math.max(0, count - 1);
-    if (badgeCount) {
-      badgeCount.textContent = `${sharedCount} Shared`;
-    }
-  }
-
-  // Logout button
-  btnLogout?.addEventListener('click', () => {
+  btnLogout?.addEventListener('click', async () => {
+    await signOutUser();
+    updateAuthUI(null);
     showToast('🔒 Signed out of session');
     setTimeout(() => {
-      navigateToScreen(20); // Go to Login
+      navigateToScreen(20);
     }, 400);
   });
 }
 
-// Initial Boot
-document.addEventListener('DOMContentLoaded', () => {
+// ==========================================================================
+// INITIAL APPLICATION BOOT & STRICT AUTH GUARD
+// ==========================================================================
+
+document.addEventListener('DOMContentLoaded', async () => {
   initClock();
   initCurrencySelection();
   initStep1Form();
@@ -2551,29 +2415,36 @@ document.addEventListener('DOMContentLoaded', () => {
   initTenancyDetails();
   initEditTenancy();
   initRecordPaymentPage();
-  setupRecordPaymentForm('lalitpur');
   initBillGenerationFlow();
   initSettingsScreen();
   initArchivedTenanciesFlow();
   initBackupRestoreScreen();
   initAuthScreen();
   initFamilySharingModal();
-  setDashboardState('state1');
 
-  // URL Hash routing support or default to Screen 6 (Dashboard) to immediately show live cloud data
-  const hash = window.location.hash;
-  if (hash && hash.startsWith('#screen-')) {
-    const screenNum = parseInt(hash.replace('#screen-', ''), 10);
-    if (!isNaN(screenNum) && screenNum >= 1 && screenNum <= 20) {
-      navigateToScreen(screenNum);
-    }
+  // Check Supabase Cloud Session on Boot
+  const session = await getCurrentSession();
+
+  if (!session || !session.user) {
+    // STRICT PRODUCTION AUTH GUARD: User is not logged in!
+    updateAuthUI(null);
+    navigateToScreen(20);
   } else {
-    navigateToScreen(6);
-  }
+    // User is authenticated!
+    updateAuthUI(session.user);
+    await syncDashboardFromCloud();
 
-  // Connect to Supabase and render real live data immediately
-  syncDashboardFromCloud().then(() => {
-    console.log('⚡ Rental Buddy: Supabase Cloud Data Synced Successfully');
-  });
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#screen-')) {
+      const screenNum = parseInt(hash.replace('#screen-', ''), 10);
+      if (!isNaN(screenNum) && screenNum >= 1 && screenNum <= 20) {
+        navigateToScreen(screenNum);
+      } else {
+        navigateToScreen(6);
+      }
+    } else {
+      navigateToScreen(6);
+    }
+  }
 });
 

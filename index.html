@@ -362,14 +362,14 @@
               <div class="cloud-status-badge" id="cloud-status-banner" role="button" tabindex="0" title="Click to view Supabase Cloud Session">
                 <span class="cloud-pulse-dot"></span>
                 <span id="cloud-status-banner-text">Supabase Cloud • Live</span>
-                <span class="cloud-user-email" id="cloud-banner-user-email">admin@rentalbuddy.app</span>
+                <span class="cloud-user-email" id="cloud-banner-user-email">Not Signed In</span>
               </div>
 
               <!-- Page Title (Plural / Singular Dynamic) -->
-              <h1 class="dashboard-title" id="dashboard-main-title">Your Tenancies</h1>
+              <h1 class="dashboard-title" id="dashboard-main-title">Your Tenancy</h1>
 
               <!-- STATE: No Tenancies at all (Initial Empty State) -->
-              <div class="empty-state-container hidden" id="dashboard-empty-tenancies">
+              <div class="empty-state-container" id="dashboard-empty-tenancies">
                 <div class="empty-state-card">
                   <div class="empty-state-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -390,182 +390,11 @@
 
               <!-- Tenancy Cards Stack Container -->
               <div class="tenancies-list-container" id="tenancies-list-wrapper">
-                
-                <!-- CARD 1: 2nd Floor, Lalitpur (Overdue Payment) -->
-                <article class="tenancy-card" id="card-tenancy-lalitpur">
-                  <div class="tenancy-card-header">
-                    <span class="status-pill status-overdue" id="lalitpur-status-pill">Payment overdue - 3 days</span>
-                  </div>
-
-                  <div class="tenancy-card-main-row" role="button" tabindex="0" aria-label="View 2nd Floor, Lalitpur tenancy details">
-                    <div class="tenancy-info">
-                      <h2 class="tenancy-name">2nd Floor, Lalitpur</h2>
-                      <span class="tenancy-meta-sub" id="lalitpur-sub">Rs. 12,000 . Monthly - April</span>
-                    </div>
-                    <div class="tenancy-row-chevron" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <div class="tenancy-card-divider"></div>
-
-                  <!-- 2-Column Metrics -->
-                  <div class="tenancy-metrics-grid" id="lalitpur-metrics-grid">
-                    <div class="metric-col" id="lalitpur-metric-left">
-                      <span class="metric-title" id="lalitpur-left-val">Paid Till - March</span>
-                      <span class="metric-tag success" id="lalitpur-left-sub">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                        <span>No Past Dues</span>
-                      </span>
-                    </div>
-                    <div class="metric-col right-align" id="lalitpur-metric-right">
-                      <span class="metric-title" id="lalitpur-right-val">12 May 2026</span>
-                      <span class="metric-label" id="lalitpur-right-sub">Next Billing</span>
-                    </div>
-                  </div>
-
-                  <div class="tenancy-card-divider"></div>
-
-                  <!-- History Metadata -->
-                  <div class="tenancy-history-meta" id="lalitpur-history-text">
-                    13 total payments . Last Paid on March 12th
-                  </div>
-
-                  <!-- Action Button -->
-                  <div class="tenancy-action-row" id="lalitpur-actions">
-                    <button class="btn-card-action lavender-action" id="btn-lalitpur-action">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="6" width="20" height="12" rx="2"></rect>
-                        <circle cx="12" cy="12" r="2.5"></circle>
-                        <path d="M6 12h.01M18 12h.01"></path>
-                      </svg>
-                      <span id="lalitpur-action-text">Record Payment</span>
-                    </button>
-                  </div>
-                </article>
-
-                <!-- CARD 2: Ram's Flat (Due Today / 2 Months Due) -->
-                <article class="tenancy-card" id="card-tenancy-rams">
-                  <div class="tenancy-card-header">
-                    <span class="status-pill status-due-today" id="rams-status-pill">Due today</span>
-                  </div>
-
-                  <div class="tenancy-card-main-row" role="button" tabindex="0" aria-label="View Ram's Flat tenancy details">
-                    <div class="tenancy-info">
-                      <h2 class="tenancy-name">Ram’s Flat</h2>
-                      <span class="tenancy-meta-sub" id="rams-sub">Rs. 2,000 . Monthly - April</span>
-                    </div>
-                    <div class="tenancy-row-chevron" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <div class="tenancy-card-divider"></div>
-
-                  <!-- 2-Column Metrics -->
-                  <div class="tenancy-metrics-grid" id="rams-metrics-grid">
-                    <div class="metric-col">
-                      <span class="metric-title" id="rams-left-val">Paid Till - Jan</span>
-                      <span class="metric-tag danger" id="rams-left-sub">2 months due</span>
-                    </div>
-                    <div class="metric-col right-align">
-                      <span class="metric-title" id="rams-right-val">3 May 2026</span>
-                      <span class="metric-label" id="rams-right-sub">Next Billing</span>
-                    </div>
-                  </div>
-
-                  <div class="tenancy-card-divider"></div>
-
-                  <!-- History Metadata -->
-                  <div class="tenancy-history-meta" id="rams-history-text">
-                    12 total payments . Last Paid on Feb 5th
-                  </div>
-
-                  <!-- Action Button -->
-                  <div class="tenancy-action-row" id="rams-actions">
-                    <button class="btn-card-action lavender-action" id="btn-rams-action">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="6" width="20" height="12" rx="2"></rect>
-                        <circle cx="12" cy="12" r="2.5"></circle>
-                        <path d="M6 12h.01M18 12h.01"></path>
-                      </svg>
-                      <span id="rams-action-text">Record Payment</span>
-                    </button>
-                  </div>
-                </article>
-
-                <!-- CARD 3: Apartment 11, Bhakatapur (Upcoming Billing / Dual Buttons) -->
-                <article class="tenancy-card" id="card-tenancy-apartment11">
-                  <div class="tenancy-card-header">
-                    <span class="status-pill status-upcoming" id="apt-status-pill">Billing in 5 days</span>
-                  </div>
-
-                  <div class="tenancy-card-main-row" role="button" tabindex="0" aria-label="View Apartment 11 details">
-                    <div class="tenancy-info">
-                      <h2 class="tenancy-name">Apartment 11, Bhakatapur</h2>
-                      <span class="tenancy-meta-sub" id="apt-sub">Rs. 32,000 . Monthly - April</span>
-                    </div>
-                    <div class="tenancy-row-chevron" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <div class="tenancy-card-divider"></div>
-
-                  <!-- 2-Column Metrics -->
-                  <div class="tenancy-metrics-grid">
-                    <div class="metric-col">
-                      <span class="metric-title" id="apt-left-val">Rs. 34,150.12</span>
-                      <span class="metric-label" id="apt-left-sub">Last Generated Bill</span>
-                    </div>
-                    <div class="metric-col right-align">
-                      <span class="metric-title" id="apt-right-val">12 May 2026</span>
-                      <span class="metric-label" id="apt-right-sub">Next Billing</span>
-                    </div>
-                  </div>
-
-                  <div class="tenancy-card-divider"></div>
-
-                  <!-- History Metadata -->
-                  <div class="tenancy-history-meta">
-                    12 total bills . Last generated on April 3rd
-                  </div>
-
-                  <!-- Action Buttons: Dual side-by-side with anti-collapse guarantee -->
-                  <div class="tenancy-action-row dual-action-row">
-                    <button class="btn-card-action peach-action" id="btn-apt-generate">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="16" y1="13" x2="8" y2="13"></line>
-                        <line x1="16" y1="17" x2="8" y2="17"></line>
-                        <polyline points="10 9 9 9 8 9"></polyline>
-                      </svg>
-                      <span>Generate Bill & Share</span>
-                    </button>
-                    <button class="btn-card-action lavender-action" id="btn-apt-record">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="6" width="20" height="12" rx="2"></rect>
-                        <circle cx="12" cy="12" r="2.5"></circle>
-                        <path d="M6 12h.01M18 12h.01"></path>
-                      </svg>
-                      <span>Record</span>
-                    </button>
-                  </div>
-                </article>
-
+                <!-- Live tenancies loaded dynamically from Supabase Cloud -->
               </div>
 
               <!-- RECENT ACTIVITY SECTION (Payments vs Bills Tab Switcher) -->
-              <section class="recent-section" id="dashboard-recent-section">
+              <section class="recent-section hidden" id="dashboard-recent-section">
                 <div class="recent-section-header">
                   <h2 class="recent-section-title" id="recent-section-heading">Recent Payments</h2>
                   
@@ -577,163 +406,17 @@
                 </div>
 
                 <!-- LIST A: Recent Payments Ledger -->
-                <div class="recent-list" id="list-recent-payments">
-                  <!-- Row 1: Ram's Flat Cash -->
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <span class="recent-prop-name">Ram’s Flat</span>
-                      <strong class="recent-item-title">March ’26 — Paid Cash</strong>
-                      <span class="recent-item-timestamp">Paid on 7th March 2026 15:32</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 2,540.41</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <!-- Row 2: Ram's Flat Gpay -->
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <span class="recent-prop-name">Ram’s Flat</span>
-                      <strong class="recent-item-title">March ’26 — Paid via Gpay</strong>
-                      <span class="recent-item-timestamp">Paid on 7th March 2026 15:32</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 2,713.63</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <!-- Row 3: 2nd Floor, Lalitpur NEFT -->
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <span class="recent-prop-name">2nd Floor, Lalitpur</span>
-                      <strong class="recent-item-title">Feb ’26 — Paid via NEFT</strong>
-                      <span class="recent-item-timestamp">Paid on 10th March 2026 18:56</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 12,034.12</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <!-- Row 4: Apartment 11, Bhakatapur Cash -->
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <span class="recent-prop-name">Apartment 11, Bhakatapur</span>
-                      <strong class="recent-item-title">Feb ’26 — Paid Cash</strong>
-                      <span class="recent-item-timestamp">Generated on 1 Mar 2026</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 34,150.12</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <!-- Row 5: Apartment 11, Bhakatapur English Cycle -->
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <span class="recent-prop-name">Apartment 11, Bhakatapur</span>
-                      <strong class="recent-item-title">1 Jan 2026 — 31 Jan 2026</strong>
-                      <span class="recent-item-timestamp">Generated on 1 Feb 2026</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 34,732.83</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
+                <div class="recent-list hidden" id="list-recent-payments">
+                  <!-- Live payments loaded dynamically from Supabase Cloud -->
                 </div>
 
-                <!-- LIST B: Recent Bills Ledger (English Calendar) -->
+                <!-- LIST B: Recent Bills Ledger -->
                 <div class="recent-list hidden" id="list-recent-bills">
-                  <!-- Bill 1 -->
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <span class="recent-prop-name">Ram’s Flat</span>
-                      <strong class="recent-item-title">1 Apr 2026 — 7 Apr 2026</strong>
-                      <span class="recent-item-timestamp">Generated on 8 Apr 2026</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 2,540.41</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <!-- Bill 2 -->
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <span class="recent-prop-name">Ram’s Flat</span>
-                      <strong class="recent-item-title">25 Mar 2026 — 31 Mar 2026</strong>
-                      <span class="recent-item-timestamp">Generated on 1 Apr 2026</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 2,713.63</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <!-- Bill 3 -->
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <span class="recent-prop-name">2nd Floor, Lalitpur</span>
-                      <strong class="recent-item-title">1 Mar 2026 — 31 Mar 2026</strong>
-                      <span class="recent-item-timestamp">Generated on 1 Apr 2026</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 12,034.12</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <!-- Bill 4 -->
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <span class="recent-prop-name">2nd Floor, Lalitpur</span>
-                      <strong class="recent-item-title">1 Feb 2026 — 28 Feb 2026</strong>
-                      <span class="recent-item-timestamp">Generated on 1 Mar 2026</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 12,112.51</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <!-- Bill 5 -->
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <span class="recent-prop-name">2nd Floor, Lalitpur</span>
-                      <strong class="recent-item-title">1 Jan 2026 — 31 Jan 2026</strong>
-                      <span class="recent-item-timestamp">Generated on 1 Feb 2026</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 12,066.82</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
+                  <!-- Live bills loaded dynamically from Supabase Cloud -->
                 </div>
 
-                <!-- STATE: Empty Recent Payments (From Image 4, Typo Corrected) -->
-                <div class="empty-recent-card hidden" id="empty-recent-payments">
+                <!-- STATE: Empty Recent Payments -->
+                <div class="empty-recent-card" id="empty-recent-payments">
                   <div class="empty-recent-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -746,6 +429,23 @@
                   <h3 class="empty-recent-heading">No Recent Payments</h3>
                   <p class="empty-recent-copy">
                     There are no payments to display at this time. You will see them here once they are marked as paid.
+                  </p>
+                </div>
+
+                <!-- STATE: Empty Recent Bills -->
+                <div class="empty-recent-card hidden" id="empty-recent-bills">
+                  <div class="empty-recent-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                      <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                  </div>
+                  <h3 class="empty-recent-heading">No Recent Bills</h3>
+                  <p class="empty-recent-copy">
+                    There are no bills to display at this time. You will see them here once they are generated.
                   </p>
                 </div>
 
@@ -874,8 +574,7 @@
                     type="text"
                     id="input-tenancy-name"
                     class="form-input"
-                    placeholder="e.g., First Floor, Lalitpur"
-                    value="2nd Floor, Lalitpur"
+                    placeholder="e.g. Flat 101, Green View"
                     required
                   />
                 </div>
@@ -888,8 +587,7 @@
                       type="text"
                       id="input-rent-amount"
                       class="form-input"
-                      placeholder="e.g., ₹ 12000"
-                      value="12000"
+                      placeholder="e.g. 15000"
                       required
                     />
                     <span class="form-caption">Amount excluding utilities</span>
@@ -900,8 +598,7 @@
                       type="text"
                       id="input-advance-amount"
                       class="form-input"
-                      placeholder="e.g., ₹ 55000"
-                      value="55000"
+                      placeholder="e.g. 30000 (optional)"
                     />
                   </div>
                 </div>
@@ -914,8 +611,7 @@
                       type="tel"
                       id="input-phone-number"
                       class="form-input"
-                      placeholder="e.g., 9876543210"
-                      value="9876543210"
+                      placeholder="e.g. 9812345678"
                     />
                     <button type="button" class="input-action-btn" id="btn-pick-contact" aria-label="Pick from contacts">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1361,25 +1057,25 @@
               <div class="details-summary-card">
                 <div class="summary-card-top-row">
                   <span class="summary-card-sublabel">Total Bill Paid</span>
-                  <span class="bills-count-badge" id="details-bills-count">12 bills</span>
+                  <span class="bills-count-badge" id="details-bills-count">0 bill</span>
                 </div>
                 <div class="summary-card-big-amount" id="details-total-amount">
-                  Rs. 68,148.16
+                  Rs. 0.00
                 </div>
                 <div class="summary-card-meta-line" id="details-rent-rate">
-                  Rs. 12,000 . Monthly
+                  --
                 </div>
 
                 <div class="tenancy-card-divider"></div>
 
                 <!-- 2-Column Metrics (Last Generated Bill + Next Billing) -->
                 <div class="tenancy-metrics-grid" id="details-stats-grid">
-                  <div class="metric-col" id="details-last-bill-col">
-                    <span class="metric-title" id="details-last-bill-amount">Rs. 12,034.12</span>
+                  <div class="metric-col hidden" id="details-last-bill-col">
+                    <span class="metric-title" id="details-last-bill-amount">Rs. 0.00</span>
                     <span class="metric-label">Last Generated Bill</span>
                   </div>
                   <div class="metric-col right-align" id="details-next-bill-col">
-                    <span class="metric-title" id="details-next-billing-date">1 May 2026</span>
+                    <span class="metric-title" id="details-next-billing-date">--</span>
                     <span class="metric-label">Next Billing</span>
                   </div>
                 </div>
@@ -1415,271 +1111,23 @@
                       </select>
                     </div>
                     <div class="status-summary-chips">
-                      <span class="status-chip chip-paid" title="9 months settled">✔ 9 Paid</span>
-                      <span class="status-chip chip-due" title="2 months pending/overdue">⚠️ 2 Due</span>
-                      <span class="status-chip chip-upcoming" title="1 month upcoming">⏳ 1 Next</span>
+                      <span class="status-chip chip-paid" id="chip-count-paid" title="0 months settled">✔ 0 Paid</span>
+                      <span class="status-chip chip-due" id="chip-count-due" title="0 months pending/overdue">⚠️ 0 Due</span>
+                      <span class="status-chip chip-upcoming" id="chip-count-upcoming" title="1 month upcoming">⏳ 1 Next</span>
                     </div>
                   </div>
 
-                  <!-- 12-Month Payment Status Cards Stack -->
-                  <div class="month-cards-stack">
-                    <!-- Month: April (Current Overdue) -->
-                    <div class="month-card month-overdue">
-                      <div class="month-card-left">
-                        <div class="month-badge overdue">Apr</div>
-                        <div class="month-details-col">
-                          <strong class="month-name">April 2026</strong>
-                          <span class="month-subtext">Due 12 Apr • 3 days overdue</span>
-                        </div>
-                      </div>
-                      <div class="month-card-right">
-                        <span class="month-amount danger">Rs. 12,034.12</span>
-                        <span class="month-status-pill overdue">Pending</span>
-                      </div>
-                    </div>
-
-                    <!-- Month: March (Paid) -->
-                    <div class="month-card month-paid">
-                      <div class="month-card-left">
-                        <div class="month-badge paid">Mar</div>
-                        <div class="month-details-col">
-                          <strong class="month-name">March 2026</strong>
-                          <span class="month-subtext">Paid on 12th Apr • Cash</span>
-                        </div>
-                      </div>
-                      <div class="month-card-right">
-                        <span class="month-amount">Rs. 12,034.12</span>
-                        <span class="month-status-pill paid">✔ Settled</span>
-                      </div>
-                    </div>
-
-                    <!-- Month: February (Paid) -->
-                    <div class="month-card month-paid">
-                      <div class="month-card-left">
-                        <div class="month-badge paid">Feb</div>
-                        <div class="month-details-col">
-                          <strong class="month-name">February 2026</strong>
-                          <span class="month-subtext">Paid on 1st Mar • GPay</span>
-                        </div>
-                      </div>
-                      <div class="month-card-right">
-                        <span class="month-amount">Rs. 12,112.51</span>
-                        <span class="month-status-pill paid">✔ Settled</span>
-                      </div>
-                    </div>
-
-                    <!-- Month: January (Paid) -->
-                    <div class="month-card month-paid">
-                      <div class="month-card-left">
-                        <div class="month-badge paid">Jan</div>
-                        <div class="month-details-col">
-                          <strong class="month-name">January 2026</strong>
-                          <span class="month-subtext">Paid on 1st Feb • NEFT</span>
-                        </div>
-                      </div>
-                      <div class="month-card-right">
-                        <span class="month-amount">Rs. 12,066.82</span>
-                        <span class="month-status-pill paid">✔ Settled</span>
-                      </div>
-                    </div>
-
-                    <!-- Month: December (Paid) -->
-                    <div class="month-card month-paid">
-                      <div class="month-card-left">
-                        <div class="month-badge paid">Dec</div>
-                        <div class="month-details-col">
-                          <strong class="month-name">December 2025</strong>
-                          <span class="month-subtext">Paid on 1st Jan • Cash</span>
-                        </div>
-                      </div>
-                      <div class="month-card-right">
-                        <span class="month-amount">Rs. 12,104.63</span>
-                        <span class="month-status-pill paid">✔ Settled</span>
-                      </div>
-                    </div>
-
-                    <!-- Month: November (Paid) -->
-                    <div class="month-card month-paid">
-                      <div class="month-card-left">
-                        <div class="month-badge paid">Nov</div>
-                        <div class="month-details-col">
-                          <strong class="month-name">November 2025</strong>
-                          <span class="month-subtext">Paid on 1st Dec • NEFT</span>
-                        </div>
-                      </div>
-                      <div class="month-card-right">
-                        <span class="month-amount">Rs. 12,034.12</span>
-                        <span class="month-status-pill paid">✔ Settled</span>
-                      </div>
-                    </div>
-
-                    <!-- Month: October (Paid) -->
-                    <div class="month-card month-paid">
-                      <div class="month-card-left">
-                        <div class="month-badge paid">Oct</div>
-                        <div class="month-details-col">
-                          <strong class="month-name">October 2025</strong>
-                          <span class="month-subtext">Paid on 1st Nov • Cash</span>
-                        </div>
-                      </div>
-                      <div class="month-card-right">
-                        <span class="month-amount">Rs. 12,000.00</span>
-                        <span class="month-status-pill paid">✔ Settled</span>
-                      </div>
-                    </div>
-
-                    <!-- Month: September (Paid) -->
-                    <div class="month-card month-paid">
-                      <div class="month-card-left">
-                        <div class="month-badge paid">Sep</div>
-                        <div class="month-details-col">
-                          <strong class="month-name">September 2025</strong>
-                          <span class="month-subtext">Paid on 1st Oct • GPay</span>
-                        </div>
-                      </div>
-                      <div class="month-card-right">
-                        <span class="month-amount">Rs. 12,000.00</span>
-                        <span class="month-status-pill paid">✔ Settled</span>
-                      </div>
-                    </div>
-
-                    <!-- Month: August (Paid) -->
-                    <div class="month-card month-paid">
-                      <div class="month-card-left">
-                        <div class="month-badge paid">Aug</div>
-                        <div class="month-details-col">
-                          <strong class="month-name">August 2025</strong>
-                          <span class="month-subtext">Paid on 1st Sep • Cash</span>
-                        </div>
-                      </div>
-                      <div class="month-card-right">
-                        <span class="month-amount">Rs. 12,000.00</span>
-                        <span class="month-status-pill paid">✔ Settled</span>
-                      </div>
-                    </div>
-
-                    <!-- Month: July (Paid) -->
-                    <div class="month-card month-paid">
-                      <div class="month-card-left">
-                        <div class="month-badge paid">Jul</div>
-                        <div class="month-details-col">
-                          <strong class="month-name">July 2025</strong>
-                          <span class="month-subtext">Paid on 1st Aug • NEFT</span>
-                        </div>
-                      </div>
-                      <div class="month-card-right">
-                        <span class="month-amount">Rs. 12,000.00</span>
-                        <span class="month-status-pill paid">✔ Settled</span>
-                      </div>
-                    </div>
-
-                    <!-- Month: June (Paid) -->
-                    <div class="month-card month-paid">
-                      <div class="month-card-left">
-                        <div class="month-badge paid">Jun</div>
-                        <div class="month-details-col">
-                          <strong class="month-name">June 2025</strong>
-                          <span class="month-subtext">Paid on 1st Jul • Cash</span>
-                        </div>
-                      </div>
-                      <div class="month-card-right">
-                        <span class="month-amount">Rs. 12,000.00</span>
-                        <span class="month-status-pill paid">✔ Settled</span>
-                      </div>
-                    </div>
-
-                    <!-- Month: May (Next Upcoming) -->
-                    <div class="month-card month-upcoming">
-                      <div class="month-card-left">
-                        <div class="month-badge upcoming">May</div>
-                        <div class="month-details-col">
-                          <strong class="month-name">May 2026</strong>
-                          <span class="month-subtext">Billing in 24 days • Next Cycle</span>
-                        </div>
-                      </div>
-                      <div class="month-card-right">
-                        <span class="month-amount muted">Rs. 12,000.00</span>
-                        <span class="month-status-pill upcoming">⏳ Upcoming</span>
-                      </div>
-                    </div>
+                  <!-- 12-Month Payment Status Cards Stack (Dynamically populated from Cloud) -->
+                  <div class="month-cards-stack" id="details-month-cards-stack">
                   </div>
                 </div>
 
-                <!-- VIEW 2: RENT BILL & PAYMENT HISTORY LIST (ENGLISH CALENDAR) -->
+                <!-- VIEW 2: RENT BILL & PAYMENT HISTORY LIST (Dynamically populated from Cloud) -->
                 <div class="recent-list hidden" id="view-bill-history">
-                  <!-- Row 1: March 2026 -->
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <strong class="recent-item-title">1 Mar 2026 — 31 Mar 2026</strong>
-                      <span class="recent-item-timestamp">Generated on 1 Apr 2026</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 12,034.12</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <!-- Row 2: February 2026 -->
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <strong class="recent-item-title">1 Feb 2026 — 28 Feb 2026</strong>
-                      <span class="recent-item-timestamp">Generated on 1 Mar 2026</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 12,112.51</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <!-- Row 3: January 2026 -->
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <strong class="recent-item-title">1 Jan 2026 — 31 Jan 2026</strong>
-                      <span class="recent-item-timestamp">Generated on 1 Feb 2026</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 12,066.82</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <!-- Row 4: December 2025 -->
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <strong class="recent-item-title">1 Dec 2025 — 31 Dec 2025</strong>
-                      <span class="recent-item-timestamp">Generated on 1 Jan 2026</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 12,104.63</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <!-- Row 5: November 2025 -->
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <strong class="recent-item-title">1 Nov 2025 — 30 Nov 2025</strong>
-                      <span class="recent-item-timestamp">Generated on 1 Dec 2025</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 12,034.12</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
                 </div>
 
-                <!-- VIEW 3: EMPTY BILLS STATE (FROM FIGMA FRAME 1, TYPO FIXED) -->
-                <div class="empty-recent-card hidden" id="details-empty-bills">
+                <!-- VIEW 3: EMPTY BILLS STATE (DEFAULT WHEN 0 BILLS/PAYMENTS) -->
+                <div class="empty-recent-card" id="details-empty-bills">
                   <div class="empty-recent-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -1689,10 +1137,8 @@
                       <polyline points="10 9 9 9 8 9"></polyline>
                     </svg>
                   </div>
-                  <h3 class="empty-recent-heading">No Recent Bills</h3>
-                  <p class="empty-recent-copy">
-                    There are no bills to display at this time. You will see them here once they are generated.
-                  </p>
+                  <h3 class="empty-recent-heading">No bills or payments yet</h3>
+                  <p class="empty-recent-copy">You will see them here once they are generated or recorded.</p>
                 </div>
 
               </section>
@@ -1763,8 +1209,8 @@
                     type="number"
                     id="edit-rent-amount"
                     class="form-input"
-                    value="12000"
-                    placeholder="12000"
+                    value=""
+                    placeholder="e.g. 15000"
                     style="margin-top: 6px;"
                   />
 
@@ -1777,8 +1223,8 @@
                       </svg>
                     </div>
                     <div class="banner-content">
-                      <strong id="banner-revision-text">Rs. 14,000 scheduled from 1 May 2026</strong>
-                      <span class="banner-sub">Applies automatically on next billing cycle</span>
+                      <strong id="banner-revision-text">Scheduled Rent Revision</strong>
+                      <span class="banner-sub">Applies automatically on designated billing cycle</span>
                     </div>
                     <button type="button" class="btn-banner-remove" id="btn-cancel-revision" title="Cancel scheduled revision">✕</button>
                   </div>
@@ -1792,8 +1238,8 @@
                       type="number"
                       id="edit-advance-amount"
                       class="form-input"
-                      value="55000"
-                      placeholder="55000"
+                      value=""
+                      placeholder="e.g. 30000"
                     />
                   </div>
                   <div class="form-group">
@@ -1802,8 +1248,8 @@
                       type="tel"
                       id="edit-tenant-phone"
                       class="form-input"
-                      value="9876543210"
-                      placeholder="9876543210"
+                      value=""
+                      placeholder="e.g. 9800000000"
                     />
                   </div>
                 </div>
@@ -1833,14 +1279,15 @@
                       type="text"
                       id="edit-billing-date-display"
                       class="form-input date-text"
-                      value="12th of every month"
+                      value=""
+                      placeholder="Pick recurring billing date"
                       readonly
                     />
                     <input
                       type="date"
                       id="edit-native-billing-date"
                       class="native-date-field"
-                      value="2026-04-12"
+                      value=""
                       aria-label="Pick billing date"
                     />
                     <div class="input-trailing-icon" aria-hidden="true">
@@ -1871,7 +1318,7 @@
                         <div class="utility-divider"></div>
                         <div class="form-group">
                           <label class="form-label mini">Price Per Unit (Rs.)</label>
-                          <input type="number" id="edit-elec-price" class="form-input mini" value="12" />
+                          <input type="number" id="edit-elec-price" class="form-input mini" value="" placeholder="e.g. 12" />
                         </div>
                       </div>
                     </div>
@@ -1889,7 +1336,7 @@
                         <div class="utility-divider"></div>
                         <div class="form-group">
                           <label class="form-label mini">Water Bill Amount (Rs.)</label>
-                          <input type="number" id="edit-water-amount" class="form-input mini" value="300" />
+                          <input type="number" id="edit-water-amount" class="form-input mini" value="" placeholder="e.g. 500" />
                         </div>
                       </div>
                     </div>
@@ -1921,11 +1368,11 @@
                   <div class="form-row-split">
                     <div class="form-group">
                       <label class="form-label mini">Current Rent</label>
-                      <input type="text" class="form-input mini" value="Rs. 12,000" readonly style="background: #F4F5FC;" />
+                      <input type="text" id="revise-current-rent-display" class="form-input mini" value="--" readonly style="background: #F4F5FC;" />
                     </div>
                     <div class="form-group">
                       <label class="form-label mini" for="input-new-rent">New Rent (Rs.)</label>
-                      <input type="number" id="input-new-rent" class="form-input mini" value="14000" placeholder="14000" />
+                      <input type="number" id="input-new-rent" class="form-input mini" value="" placeholder="e.g. 15000" />
                     </div>
                   </div>
 
@@ -1973,7 +1420,7 @@
                 </button>
                 <div class="stepper-titles">
                   <h2 class="stepper-main-title">Record Payment</h2>
-                  <span class="stepper-sub-title" id="record-page-subtitle">2nd Floor, Lalitpur</span>
+                  <span class="stepper-sub-title" id="record-page-subtitle">Select Tenancy</span>
                 </div>
                 <div class="stepper-spacer"></div>
               </nav>
@@ -1993,9 +1440,7 @@
                 <div class="form-group">
                   <label class="form-label" for="record-page-tenancy">Tenancy</label>
                   <select id="record-page-tenancy" class="form-input">
-                    <option value="lalitpur" selected>2nd Floor, Lalitpur (Overdue 3 days)</option>
-                    <option value="rams">Ram’s Flat (2 months due)</option>
-                    <option value="apt11">Apartment 11, Bhakatapur (Billing in 5 days)</option>
+                    <option value="" disabled selected>Select a tenancy...</option>
                   </select>
                 </div>
 
@@ -2003,7 +1448,7 @@
                 <div class="form-group">
                   <div class="field-label-row">
                     <label class="form-label" for="record-page-amount" style="margin-bottom: 0;">Amount Paid</label>
-                    <span class="text-caption" id="record-due-hint" style="color: #DC2626; font-weight: 600;">Due: Rs. 12,034.12</span>
+                    <span class="text-caption" id="record-due-hint" style="color: #52586E; font-weight: 600;">--</span>
                   </div>
                   <div class="input-with-icon" style="margin-top: 6px;">
                     <input
@@ -2011,17 +1456,14 @@
                       step="0.01"
                       id="record-page-amount"
                       class="form-input"
-                      value="12034.12"
+                      value=""
                       placeholder="0.00"
                     />
                     <div class="input-trailing-icon" style="font-weight: 700; color: #52586E;">Rs.</div>
                   </div>
 
                   <!-- Quick Amount Chips -->
-                  <div class="amount-shortcut-chips">
-                    <button type="button" class="shortcut-chip active" id="chip-amount-due">Full Due (12,034)</button>
-                    <button type="button" class="shortcut-chip" id="chip-amount-rent">Base Rent (12,000)</button>
-                    <button type="button" class="shortcut-chip" id="chip-amount-round">Rs. 10,000</button>
+                  <div class="amount-shortcut-chips" id="record-amount-chips">
                   </div>
                 </div>
 
@@ -2088,14 +1530,15 @@
                       type="text"
                       id="record-payment-date-display"
                       class="form-input date-text"
-                      value="Today, 17 Oct 2026"
+                      value=""
+                      placeholder="Select payment date"
                       readonly
                     />
                     <input
                       type="date"
                       id="record-native-payment-date"
                       class="native-date-field"
-                      value="2026-10-17"
+                      value=""
                       aria-label="Pick payment date"
                     />
                     <div class="input-trailing-icon" aria-hidden="true">
@@ -2120,7 +1563,7 @@
                   <div class="month-settle-card" id="month-settle-container">
                     
                     <!-- STATE A: Pending Months Available (Allows manual selection) -->
-                    <div class="pending-months-block" id="block-pending-months">
+                    <div class="pending-months-block hidden" id="block-pending-months">
                       <div class="settle-card-alert warning">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;">
                           <circle cx="12" cy="12" r="10"></circle>
@@ -2130,53 +1573,24 @@
                         <span>Pending dues found. Select month(s) to settle:</span>
                       </div>
 
-                      <div class="months-select-list">
-                        <!-- Pending Month 1 -->
-                        <label class="month-select-option selected" id="opt-month-chaitra">
-                          <input type="checkbox" name="settle-month" value="March 2026" checked />
-                          <div class="month-opt-details">
-                            <strong class="month-opt-title">March 2026</strong>
-                            <span class="month-opt-sub status-overdue">Overdue 3 days • Rs. 12,034.12</span>
-                          </div>
-                          <span class="custom-checkbox"></span>
-                        </label>
-
-                        <!-- Pending Month 2 (for multi-pending tenancies like Ram's Flat) -->
-                        <label class="month-select-option" id="opt-month-falgun">
-                          <input type="checkbox" name="settle-month" value="February 2026" />
-                          <div class="month-opt-details">
-                            <strong class="month-opt-title">February 2026</strong>
-                            <span class="month-opt-sub status-overdue">Past Due • Rs. 12,000.00</span>
-                          </div>
-                          <span class="custom-checkbox"></span>
-                        </label>
-
-                        <!-- Current / Next Month Option -->
-                        <label class="month-select-option" id="opt-month-current">
-                          <input type="checkbox" name="settle-month" value="April 2026" />
-                          <div class="month-opt-details">
-                            <strong class="month-opt-title">April 2026 (Current Month)</strong>
-                            <span class="month-opt-sub">Upcoming Cycle • Rs. 12,000.00</span>
-                          </div>
-                          <span class="custom-checkbox"></span>
-                        </label>
+                      <div class="months-select-list" id="record-pending-months-list">
                       </div>
                     </div>
 
                     <!-- STATE B: No Pending Dues (Defaults to Current Month) -->
-                    <div class="no-pending-months-block hidden" id="block-no-pending-months">
+                    <div class="no-pending-months-block" id="block-no-pending-months">
                       <div class="settle-card-alert success">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;">
                           <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
-                        <span>No past dues. Settling for Current Month:</span>
+                        <span>Settling for Billing Cycle:</span>
                       </div>
 
                       <div class="current-month-settled-pill">
                         <div class="current-month-icon">📅</div>
                         <div class="current-month-text">
-                          <strong id="current-month-title">April 2026</strong>
-                          <span>Current billing cycle</span>
+                          <strong id="current-month-title">Current Month</strong>
+                          <span>Billing cycle</span>
                         </div>
                         <span class="badge-pill" style="background: #DCFCE7; color: #16A34A;">Current</span>
                       </div>
@@ -2188,9 +1602,6 @@
 
                       <div class="custom-month-picker-row hidden" id="custom-month-picker-row" style="margin-top: 8px;">
                         <select id="select-custom-settle-month" class="form-input mini">
-                          <option value="May 2026">May 2026 - Advance</option>
-                          <option value="June 2026">June 2026 - Advance</option>
-                          <option value="July 2026">July 2026 - Advance</option>
                         </select>
                       </div>
                     </div>
@@ -2257,8 +1668,8 @@
                     <div class="form-group">
                       <label class="form-label mini" for="input-bill-start-date">Start Date</label>
                       <div class="input-with-icon date-picker-box" id="billStartDateTrigger">
-                        <input type="text" id="bill-start-date-display" class="form-input date-text mini" value="5 Mar 2026" readonly />
-                        <input type="date" id="bill-native-start-date" class="native-date-field" value="2026-03-05" aria-label="Start Date" />
+                        <input type="text" id="bill-start-date-display" class="form-input date-text mini" value="" placeholder="Pick start date" readonly />
+                        <input type="date" id="bill-native-start-date" class="native-date-field" value="" aria-label="Start Date" />
                         <div class="input-trailing-icon">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                         </div>
@@ -2267,8 +1678,8 @@
                     <div class="form-group">
                       <label class="form-label mini" for="input-bill-end-date">End Date</label>
                       <div class="input-with-icon date-picker-box" id="billEndDateTrigger">
-                        <input type="text" id="bill-end-date-display" class="form-input date-text mini" value="5 Apr 2026" readonly />
-                        <input type="date" id="bill-native-end-date" class="native-date-field" value="2026-04-05" aria-label="End Date" />
+                        <input type="text" id="bill-end-date-display" class="form-input date-text mini" value="" placeholder="Pick end date" readonly />
+                        <input type="date" id="bill-native-end-date" class="native-date-field" value="" aria-label="End Date" />
                         <div class="input-trailing-icon">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                         </div>
@@ -2280,25 +1691,25 @@
                 <!-- Last Month Electricity Reading (Read-only) -->
                 <div class="form-group">
                   <label class="form-label mini" for="input-prev-elec">Last Month's Electricity Reading</label>
-                  <input type="text" id="input-prev-elec" class="form-input mini" value="13187.00" readonly style="background: #F4F5FC; color: #52586E;" />
+                  <input type="text" id="input-prev-elec" class="form-input mini" value="0.00" readonly style="background: #F4F5FC; color: #52586E;" />
                 </div>
 
                 <!-- Current Electricity Reading -->
                 <div class="form-group">
                   <label class="form-label mini" for="input-curr-elec">Current Electricity Reading</label>
-                  <input type="number" step="0.01" id="input-curr-elec" class="form-input mini" value="14187" placeholder="e.g. 15200" required />
+                  <input type="number" step="0.01" id="input-curr-elec" class="form-input mini" value="" placeholder="Enter current meter reading" required />
                 </div>
 
                 <!-- Last Month Water Reading (Read-only) -->
                 <div class="form-group">
                   <label class="form-label mini" for="input-prev-water">Last Month's Water Reading</label>
-                  <input type="text" id="input-prev-water" class="form-input mini" value="13187.00" readonly style="background: #F4F5FC; color: #52586E;" />
+                  <input type="text" id="input-prev-water" class="form-input mini" value="0.00" readonly style="background: #F4F5FC; color: #52586E;" />
                 </div>
 
                 <!-- Current Water Reading -->
                 <div class="form-group">
                   <label class="form-label mini" for="input-curr-water">Current Water Reading</label>
-                  <input type="number" step="0.01" id="input-curr-water" class="form-input mini" value="15200" placeholder="e.g. 15200" />
+                  <input type="number" step="0.01" id="input-curr-water" class="form-input mini" value="" placeholder="Enter current water reading" />
                 </div>
 
                 <!-- Advance Payment (Optional) -->
@@ -2307,7 +1718,7 @@
                     <label class="form-label mini" for="input-bill-advance" style="margin-bottom: 0;">Advance Payment(if any)</label>
                     <span class="text-caption" style="color: #7D849B; font-style: italic;">Optional</span>
                   </div>
-                  <input type="number" id="input-bill-advance" class="form-input mini" value="1000" placeholder="e.g., 500" />
+                  <input type="number" id="input-bill-advance" class="form-input mini" value="" placeholder="e.g., 500" />
                 </div>
 
                 <!-- Due Amount (Optional) -->
@@ -2325,7 +1736,7 @@
                     <label class="form-label mini" for="input-bill-notes" style="margin-bottom: 0;">Notes</label>
                     <span class="text-caption" style="color: #7D849B; font-style: italic;">Optional</span>
                   </div>
-                  <textarea id="input-bill-notes" class="form-input form-textarea" rows="3" placeholder="Write a message about due amount or advance...">This is the notes mentioned on the bill generation page</textarea>
+                  <textarea id="input-bill-notes" class="form-input form-textarea" rows="3" placeholder="Write a message about due amount or advance..."></textarea>
                 </div>
               </form>
             </div>
@@ -2359,17 +1770,17 @@
               <div class="review-tenancy-card">
                 <div class="review-card-header">
                   <span class="text-caption" style="font-size: 12px; color: #7D849B;">Tenancy</span>
-                  <h3 class="review-prop-title" id="review-prop-title">2nd Floor, Lalitpur</h3>
+                  <h3 class="review-prop-title" id="review-prop-title">--</h3>
                 </div>
                 <div class="tenancy-card-divider" style="margin: 12px 0;"></div>
                 <div class="tenancy-metrics-grid">
                   <div class="metric-col">
                     <span class="metric-label">Bill Duration</span>
-                    <strong class="metric-title" id="review-duration-text" style="font-size: 13.5px; font-weight: 700; line-height: 1.35;">1 Mar 2026 – 31 Mar 2026</strong>
+                    <strong class="metric-title" id="review-duration-text" style="font-size: 13.5px; font-weight: 700; line-height: 1.35;">--</strong>
                   </div>
                   <div class="metric-col">
                     <span class="metric-label">Bill Generated On</span>
-                    <strong class="metric-title" id="review-generated-date" style="font-size: 13.5px; font-weight: 700;">1 Apr 2026</strong>
+                    <strong class="metric-title" id="review-generated-date" style="font-size: 13.5px; font-weight: 700;">--</strong>
                   </div>
                 </div>
               </div>
@@ -2380,51 +1791,51 @@
                 <div class="breakdown-card">
                   <div class="breakdown-row">
                     <span class="breakdown-label">Rent Amount</span>
-                    <strong class="breakdown-value" id="review-rent-val">Rs. 12,000</strong>
+                    <strong class="breakdown-value" id="review-rent-val">Rs. 0.00</strong>
                   </div>
                   <div class="breakdown-row complex">
                     <div class="breakdown-label-col">
                       <span class="breakdown-label">Electricity</span>
-                      <span class="breakdown-subcalc" id="review-elec-sub">14187 - 13187 = 100 units @ 12/unit</span>
+                      <span class="breakdown-subcalc" id="review-elec-sub">0 units</span>
                     </div>
-                    <strong class="breakdown-value" id="review-elec-val">Rs. 1,200</strong>
+                    <strong class="breakdown-value" id="review-elec-val">Rs. 0.00</strong>
                   </div>
                   <div class="breakdown-row">
                     <span class="breakdown-label">Internet</span>
-                    <strong class="breakdown-value" id="review-internet-val">Rs. 500</strong>
+                    <strong class="breakdown-value" id="review-internet-val">Rs. 0.00</strong>
                   </div>
                   <div class="breakdown-row">
                     <span class="breakdown-label">Water</span>
-                    <strong class="breakdown-value" id="review-water-val">Rs. 500</strong>
+                    <strong class="breakdown-value" id="review-water-val">Rs. 0.00</strong>
                   </div>
                   <div class="breakdown-row">
                     <span class="breakdown-label">Sewage</span>
-                    <strong class="breakdown-value" id="review-sewage-val">Rs. 500</strong>
+                    <strong class="breakdown-value" id="review-sewage-val">Rs. 0.00</strong>
                   </div>
 
                   <div class="tenancy-card-divider" style="margin: 10px 0;"></div>
 
                   <div class="breakdown-row subtotal">
                     <strong class="breakdown-label" style="font-size: 15px; font-weight: 800; color: #0E1326;">Total</strong>
-                    <strong class="breakdown-value" id="review-subtotal-val" style="font-size: 15px; font-weight: 800; color: #0E1326;">Rs. 14,700</strong>
+                    <strong class="breakdown-value" id="review-subtotal-val" style="font-size: 15px; font-weight: 800; color: #0E1326;">Rs. 0.00</strong>
                   </div>
                   <div class="breakdown-row deduction">
                     <span class="breakdown-label" style="color: #DC2626;">Advance Payment</span>
-                    <strong class="breakdown-value" id="review-advance-val" style="color: #DC2626; font-weight: 700;">– Rs. 1000</strong>
+                    <strong class="breakdown-value" id="review-advance-val" style="color: #DC2626; font-weight: 700;">– Rs. 0.00</strong>
                   </div>
 
                   <div class="tenancy-card-divider" style="margin: 10px 0;"></div>
 
                   <div class="breakdown-row net-payable">
                     <strong class="breakdown-label" style="font-size: 16px; font-weight: 800; color: #0E1326;">Net Payable</strong>
-                    <strong class="breakdown-value" id="review-net-val" style="font-size: 17px; font-weight: 800; color: #0E1326;">Rs. 13,700</strong>
+                    <strong class="breakdown-value" id="review-net-val" style="font-size: 17px; font-weight: 800; color: #0E1326;">Rs. 0.00</strong>
                   </div>
 
                   <!-- Notes in Breakdown -->
                   <div class="breakdown-notes-block" id="review-notes-block" style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed #E2E4F2;">
                     <span class="text-caption" style="font-size: 11.5px; color: #7D849B; font-weight: 600;">Notes</span>
                     <p class="breakdown-notes-text" id="review-notes-text" style="font-size: 13px; color: #52586E; margin-top: 4px; line-height: 1.4;">
-                      This is the notes mentioned on the bill generation page
+                      None
                     </p>
                   </div>
                 </div>
@@ -2467,17 +1878,17 @@
               <div class="review-tenancy-card">
                 <div class="review-card-header">
                   <span class="text-caption" style="font-size: 12px; color: #7D849B;">Tenancy</span>
-                  <h3 class="review-prop-title" id="details-bill-prop-title">2nd Floor, Lalitpur</h3>
+                  <h3 class="review-prop-title" id="details-bill-prop-title">--</h3>
                 </div>
                 <div class="tenancy-card-divider" style="margin: 12px 0;"></div>
                 <div class="tenancy-metrics-grid">
                   <div class="metric-col">
                     <span class="metric-label">Bill Duration</span>
-                    <strong class="metric-title" id="details-bill-duration" style="font-size: 13.5px; font-weight: 700; line-height: 1.35;">1 Mar 2026 – 31 Mar 2026</strong>
+                    <strong class="metric-title" id="details-bill-duration" style="font-size: 13.5px; font-weight: 700; line-height: 1.35;">--</strong>
                   </div>
                   <div class="metric-col">
                     <span class="metric-label">Bill Generated On</span>
-                    <strong class="metric-title" id="details-bill-gendate" style="font-size: 13.5px; font-weight: 700;">1 Apr 2026</strong>
+                    <strong class="metric-title" id="details-bill-gendate" style="font-size: 13.5px; font-weight: 700;">--</strong>
                   </div>
                 </div>
               </div>
@@ -2488,51 +1899,51 @@
                 <div class="breakdown-card">
                   <div class="breakdown-row">
                     <span class="breakdown-label">Rent Amount</span>
-                    <strong class="breakdown-value">Rs. 12,000</strong>
+                    <strong class="breakdown-value" id="details-bill-rent-val">Rs. 0.00</strong>
                   </div>
                   <div class="breakdown-row complex">
                     <div class="breakdown-label-col">
                       <span class="breakdown-label">Electricity</span>
-                      <span class="breakdown-subcalc">14187 - 13187 = 100 units @ 12/unit</span>
+                      <span class="breakdown-subcalc" id="details-bill-elec-sub">0 units</span>
                     </div>
-                    <strong class="breakdown-value">Rs. 1,200</strong>
+                    <strong class="breakdown-value" id="details-bill-elec-val">Rs. 0.00</strong>
                   </div>
                   <div class="breakdown-row">
                     <span class="breakdown-label">Internet</span>
-                    <strong class="breakdown-value">Rs. 500</strong>
+                    <strong class="breakdown-value" id="details-bill-internet-val">Rs. 0.00</strong>
                   </div>
                   <div class="breakdown-row">
                     <span class="breakdown-label">Water</span>
-                    <strong class="breakdown-value">Rs. 500</strong>
+                    <strong class="breakdown-value" id="details-bill-water-val">Rs. 0.00</strong>
                   </div>
                   <div class="breakdown-row">
                     <span class="breakdown-label">Sewage</span>
-                    <strong class="breakdown-value">Rs. 500</strong>
+                    <strong class="breakdown-value" id="details-bill-sewage-val">Rs. 0.00</strong>
                   </div>
 
                   <div class="tenancy-card-divider" style="margin: 10px 0;"></div>
 
                   <div class="breakdown-row subtotal">
                     <strong class="breakdown-label" style="font-size: 15px; font-weight: 800; color: #0E1326;">Total</strong>
-                    <strong class="breakdown-value" style="font-size: 15px; font-weight: 800; color: #0E1326;">Rs. 14,700</strong>
+                    <strong class="breakdown-value" id="details-bill-subtotal-val" style="font-size: 15px; font-weight: 800; color: #0E1326;">Rs. 0.00</strong>
                   </div>
                   <div class="breakdown-row deduction">
                     <span class="breakdown-label" style="color: #DC2626;">Advance Payment</span>
-                    <strong class="breakdown-value" style="color: #DC2626; font-weight: 700;">– Rs. 1000</strong>
+                    <strong class="breakdown-value" id="details-bill-advance-val" style="color: #DC2626; font-weight: 700;">– Rs. 0.00</strong>
                   </div>
 
                   <div class="tenancy-card-divider" style="margin: 10px 0;"></div>
 
                   <div class="breakdown-row net-payable">
                     <strong class="breakdown-label" style="font-size: 16px; font-weight: 800; color: #0E1326;">Net Payable</strong>
-                    <strong class="breakdown-value" style="font-size: 17px; font-weight: 800; color: #0E1326;">Rs. 13,700</strong>
+                    <strong class="breakdown-value" id="details-bill-net-val" style="font-size: 17px; font-weight: 800; color: #0E1326;">Rs. 0.00</strong>
                   </div>
 
                   <!-- Notes in Breakdown -->
                   <div class="breakdown-notes-block" style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed #E2E4F2;">
                     <span class="text-caption" style="font-size: 11.5px; color: #7D849B; font-weight: 600;">Notes</span>
-                    <p class="breakdown-notes-text" style="font-size: 13px; color: #52586E; margin-top: 4px; line-height: 1.4;">
-                      This is the notes mentioned on the bill generation page
+                    <p class="breakdown-notes-text" id="details-bill-notes-text" style="font-size: 13px; color: #52586E; margin-top: 4px; line-height: 1.4;">
+                      None
                     </p>
                   </div>
                 </div>
@@ -2739,8 +2150,8 @@
                       </svg>
                     </div>
                     <div>
-                      <span class="settings-item-label" id="current-user-email-display">admin@rentalbuddy.app</span>
-                      <span id="current-user-role-badge" style="display: block; font-size: 11.5px; color: #16A34A; font-weight: 600;">👑 Admin (Owner)</span>
+                      <span class="settings-item-label" id="current-user-email-display">Not Signed In</span>
+                      <span id="current-user-role-badge" style="display: block; font-size: 11.5px; color: #7D849B; font-weight: 600;">Sign in to view account</span>
                     </div>
                   </div>
                   <button type="button" class="btn-text-action" id="btn-settings-logout" style="color: #DC2626; font-size: 13px; font-weight: 600;">
@@ -2775,20 +2186,10 @@
                     <div class="family-member-row">
                       <div class="member-avatar owner">👑</div>
                       <div class="member-info">
-                        <strong class="member-email" id="display-owner-email">admin@rentalbuddy.app</strong>
+                        <strong class="member-email" id="display-owner-email">Owner</strong>
                         <span class="member-role-tag owner-tag">Owner / Primary Admin</span>
                       </div>
                       <span class="badge-pill" style="background: #DCFCE7; color: #16A34A; font-size: 11.5px;">Full Access</span>
-                    </div>
-
-                    <!-- Shared Member 1 -->
-                    <div class="family-member-row" id="row-family-member-1">
-                      <div class="member-avatar">👨‍👩‍👧</div>
-                      <div class="member-info">
-                        <strong class="member-email">family@rentalbuddy.app</strong>
-                        <span class="member-role-tag">Viewer • Can view bills &amp; payments</span>
-                      </div>
-                      <button type="button" class="btn-remove-member" id="btn-remove-family-1" title="Revoke access">✕</button>
                     </div>
                   </div>
 
@@ -2835,38 +2236,12 @@
                 <h1 class="hero-title" style="font-size: 28px;">Archived Tenancies</h1>
               </div>
 
-              <!-- STATE A: Populated Archived Tenancy Cards -->
-              <div class="archived-list-container" id="archived-populated-state">
-                <div class="archived-tenancy-card" id="card-archived-lalitpur" role="button" tabindex="0">
-                  <div class="archived-card-top-row">
-                    <span class="badge-pill" style="background: #F1F2F9; color: #52586E; border: 1px solid #D6D8EC;">Archived</span>
-                    <span class="text-caption" style="font-size: 12px; color: #7D849B;">Archived 1 day ago</span>
-                  </div>
-                  <div class="archived-card-title-row" style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                      <h3 class="archived-prop-title" style="font-size: 18px; font-weight: 800; color: #0E1326;">2nd Floor, Lalitpur</h3>
-                      <span class="text-caption" style="font-size: 13.5px; color: #52586E; font-weight: 500;">Rs. 12,000 . Monthly</span>
-                    </div>
-                    <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                  </div>
-                  <div class="tenancy-card-divider" style="margin: 14px 0 10px;"></div>
-                  <div class="tenancy-metrics-grid">
-                    <div class="metric-col">
-                      <strong class="metric-title" style="font-size: 14px;">Rs. 12,034.12</strong>
-                      <span class="metric-label">Last Bill Amount</span>
-                    </div>
-                    <div class="metric-col">
-                      <strong class="metric-title" style="font-size: 14px;">1 bills</strong>
-                      <span class="metric-label">Total Generated</span>
-                    </div>
-                  </div>
-                </div>
+              <!-- STATE A: Populated Archived Tenancy Cards (Dynamically Populated) -->
+              <div class="archived-list-container hidden" id="archived-populated-state">
               </div>
 
-              <!-- STATE B: Empty State (When no tenancies are archived) -->
-              <div class="empty-recent-card hidden" id="archived-empty-state" style="margin-top: 20px; border-style: solid; background: #FFFFFF;">
+              <!-- STATE B: Empty State (Default When No Tenancies Archived) -->
+              <div class="empty-recent-card" id="archived-empty-state" style="margin-top: 20px; border-style: solid; background: #FFFFFF;">
                 <div class="empty-recent-icon" style="width: 64px; height: 64px; border-radius: 18px; margin-bottom: 16px;">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 30px; height: 30px;">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
@@ -2892,7 +2267,7 @@
                     <polyline points="12 19 5 12 12 5"></polyline>
                   </svg>
                 </button>
-                <h1 class="details-page-title" id="archdetails-prop-title">2nd Floor, Lalitpur</h1>
+                <h1 class="details-page-title" id="archdetails-prop-title">--</h1>
                 <div class="menu-trigger-wrapper">
                   <button class="icon-btn" id="btn-archdetails-menu" aria-label="Archived options menu" aria-haspopup="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -2929,20 +2304,20 @@
                 <div class="summary-card-top-row">
                   <span class="summary-card-sublabel">Total Bill Paid</span>
                 </div>
-                <div class="summary-card-big-amount">
-                  Rs. 68,148.16
+                <div class="summary-card-big-amount" id="archdetails-total-amount">
+                  Rs. 0.00
                 </div>
-                <div class="summary-card-meta-line">
-                  Rs. 12,000 . Monthly
+                <div class="summary-card-meta-line" id="archdetails-rent-rate">
+                  --
                 </div>
                 <div class="tenancy-card-divider"></div>
                 <div class="tenancy-metrics-grid">
                   <div class="metric-col">
-                    <span class="metric-title">Rs. 12,034.12</span>
+                    <span class="metric-title" id="archdetails-last-bill">Rs. 0.00</span>
                     <span class="metric-label">Last Generated Bill</span>
                   </div>
                   <div class="metric-col right-align">
-                    <span class="metric-title">1 May 2026</span>
+                    <span class="metric-title" id="archdetails-next-bill">--</span>
                     <span class="metric-label">Next Billing</span>
                   </div>
                 </div>
@@ -2952,70 +2327,7 @@
               <section class="details-history-section">
                 <h3 class="details-section-title" style="margin-bottom: 14px; font-size: 18px;">Rent Bill History</h3>
                 <div class="history-list-stack" id="archdetails-history-list">
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <strong class="recent-item-title" style="font-size: 13.5px;">1 Mar 2026 – 31 Mar 2026</strong>
-                      <span class="recent-item-timestamp">Generated on 1 Apr 2026</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 12,034.12</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <strong class="recent-item-title" style="font-size: 13.5px;">1 Feb 2026 – 28 Feb 2026</strong>
-                      <span class="recent-item-timestamp">Generated on 1 Mar 2026</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 12,112.51</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <strong class="recent-item-title" style="font-size: 13.5px;">1 Jan 2026 – 31 Jan 2026</strong>
-                      <span class="recent-item-timestamp">Generated on 1 Feb 2026</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 12,066.82</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <strong class="recent-item-title" style="font-size: 13.5px;">1 Dec 2025 – 31 Dec 2025</strong>
-                      <span class="recent-item-timestamp">Generated on 1 Jan 2026</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 12,104.63</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <div class="recent-item-card" role="button" tabindex="0">
-                    <div class="recent-item-left">
-                      <strong class="recent-item-title" style="font-size: 13.5px;">1 Nov 2025 – 30 Nov 2025</strong>
-                      <span class="recent-item-timestamp">Generated on 1 Dec 2025</span>
-                    </div>
-                    <div class="recent-item-right">
-                      <strong class="recent-item-amount">Rs. 12,034.12</strong>
-                      <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
-                  </div>
+                  <p class="empty-recent-copy" style="text-align: center; padding: 20px 0; color: #7D849B;">No archived bill history.</p>
                 </div>
               </section>
             </div>
@@ -3104,21 +2416,28 @@
                 </p>
               </div>
 
-              <!-- Fast Role Switcher (Prototype Demo Shortcuts) -->
-              <div class="auth-quick-roles">
-                <span class="text-caption" style="font-size: 11px; color: #7D849B; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Quick Switch (Demo Accounts)</span>
-                <div class="quick-role-chips">
-                  <button type="button" class="role-chip active" id="chip-role-admin">
-                    <span>👑 Admin (Landlord)</span>
-                  </button>
-                  <button type="button" class="role-chip" id="chip-role-family">
-                    <span>👨‍👩‍👧 Family Member</span>
-                  </button>
-                </div>
-              </div>
-
               <!-- Auth Form Card -->
               <form class="auth-card-surface" id="auth-login-form" onsubmit="return false;">
+                <!-- Full Name Input (Visible in Sign Up mode) -->
+                <div class="form-group hidden" id="auth-name-group" style="margin-bottom: 14px;">
+                  <label class="form-label" for="auth-name-input">Full Name / Landlord Name</label>
+                  <div class="input-with-icon">
+                    <input
+                      type="text"
+                      id="auth-name-input"
+                      class="form-input"
+                      placeholder="e.g. Ramesh Sharma"
+                      autocomplete="name"
+                    />
+                    <div class="input-trailing-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Email Input -->
                 <div class="form-group">
                   <label class="form-label" for="auth-email-input">Email Address</label>
@@ -3127,8 +2446,8 @@
                       type="email"
                       id="auth-email-input"
                       class="form-input"
-                      value="admin@rentalbuddy.app"
                       placeholder="landlord@example.com"
+                      autocomplete="username email"
                       required
                     />
                     <div class="input-trailing-icon" aria-hidden="true">
@@ -3151,8 +2470,8 @@
                       type="password"
                       id="auth-password-input"
                       class="form-input"
-                      value="supersecure123"
                       placeholder="Enter your password"
+                      autocomplete="current-password"
                       required
                     />
                     <button type="button" class="input-trailing-btn" id="btn-toggle-password-visibility" aria-label="Toggle password visibility">
@@ -3185,79 +2504,6 @@
 
       </main>
     </div>
-
-    <!-- Floating Prototype Controls for Pair-Programming & Screen Review -->
-    <aside class="screen-picker-widget" aria-label="Prototype Navigation">
-      <div class="widget-header">
-        <span class="widget-dot"></span>
-        <span class="widget-label">Screen Switcher</span>
-      </div>
-      <div class="widget-nav-group">
-        <span class="widget-group-label">Onboarding</span>
-        <div class="widget-buttons">
-          <button type="button" class="widget-btn active" data-goto="1">1. Intro</button>
-          <button type="button" class="widget-btn" data-goto="2">2. Prefs</button>
-          <button type="button" class="widget-btn" data-goto="3">3. Set Up</button>
-          <button type="button" class="widget-btn" data-goto="4">4. Notify</button>
-          <button type="button" class="widget-btn" data-goto="5">5. Ready</button>
-        </div>
-      </div>
-      <div class="widget-nav-group">
-        <span class="widget-group-label">Tenancy Flow</span>
-        <div class="widget-buttons">
-          <button type="button" class="widget-btn" data-goto="6">6. Dashboard</button>
-          <button type="button" class="widget-btn" data-goto="10">10. Details</button>
-          <button type="button" class="widget-btn" data-goto="11">11. Edit</button>
-          <button type="button" class="widget-btn" data-goto="12">12. Record</button>
-          <button type="button" class="widget-btn" data-goto="7">7. Step 1</button>
-          <button type="button" class="widget-btn" data-goto="8">8. Step 2</button>
-          <button type="button" class="widget-btn" data-goto="9">9. Step 3</button>
-        </div>
-      </div>
-      <div class="widget-nav-group">
-        <span class="widget-group-label">Bill Generation Flow</span>
-        <div class="widget-buttons">
-          <button type="button" class="widget-btn" data-goto="13">13. Gen Bill</button>
-          <button type="button" class="widget-btn" data-goto="14">14. Review</button>
-          <button type="button" class="widget-btn" data-goto="15">15. Bill Details</button>
-        </div>
-      </div>
-      <div class="widget-nav-group">
-        <span class="widget-group-label">Settings &amp; Archives</span>
-        <div class="widget-buttons">
-          <button type="button" class="widget-btn" data-goto="20" style="background: #E8E7FB; color: #5452EC; font-weight: 700;">20. Auth</button>
-          <button type="button" class="widget-btn" data-goto="16">16. Settings</button>
-          <button type="button" class="widget-btn" data-goto="19">19. Backup</button>
-          <button type="button" class="widget-btn" data-goto="17">17. Archived</button>
-          <button type="button" class="widget-btn" data-goto="18">18. Arch Details</button>
-          <button type="button" class="widget-btn mini-btn" id="btn-toggle-archived-empty" title="Toggle between Populated and Empty Archive views">Toggle Arch Empty</button>
-        </div>
-      </div>
-      <div class="widget-nav-group">
-        <span class="widget-group-label">Tenancy Details States</span>
-        <div class="widget-buttons">
-          <button type="button" class="widget-btn mini-btn active" data-details-state="monthwise" title="Month-wise / Year-wise visual status grid">Month-wise</button>
-          <button type="button" class="widget-btn mini-btn" data-details-state="history" title="Figma Mockup 2: Rent Payment/Bill History list">History</button>
-          <button type="button" class="widget-btn mini-btn" data-details-state="empty" title="Figma Mockup 1: No Recent Bills empty state">0 Bills (Empty)</button>
-          <button type="button" class="widget-btn mini-btn" data-details-state="menu" title="Figma Mockup 3: 3-dots Edit/Archive/Delete menu open">3-Dots Menu</button>
-        </div>
-      </div>
-      <div class="widget-nav-group">
-        <span class="widget-group-label">Home Mockup States</span>
-        <div class="widget-buttons">
-          <button type="button" class="widget-btn mini-btn" data-home-state="state1" title="Mockup 1: Multi Tenancy + Overdue + Recent Payments">M1: Multi Pay</button>
-          <button type="button" class="widget-btn mini-btn" data-home-state="state2" title="Mockup 2: Single Tenancy + BS Bills">M2: Single BS</button>
-          <button type="button" class="widget-btn mini-btn" data-home-state="state3" title="Mockup 3: Multi Tenancy + Generate Bills">M3: Gen Bills</button>
-          <button type="button" class="widget-btn mini-btn" data-home-state="state4" title="Mockup 4: Single Tenancy + Empty Payments">M4: Empty Pay</button>
-          <button type="button" class="widget-btn mini-btn" data-home-state="empty" title="Initial: No Tenancies">Empty Tenancy</button>
-        </div>
-      </div>
-      <div class="widget-tools">
-        <button type="button" class="widget-viewport-btn" id="toggle360Btn">
-          📱 360px View: <span id="viewportLabel">Standard (412px)</span>
-        </button>
-      </div>
-    </aside>
 
     <script type="module" src="/src/main.js"></script>
   </body>
