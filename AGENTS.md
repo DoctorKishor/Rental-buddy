@@ -581,6 +581,33 @@
 - **Safe State Transitions**:
   - Screen transitions automatically dismiss all active modals and floating menus, preventing orphaned or unclickable UI states.
 
+---
+
+## 25. Production Readiness: Zero-Demo Data Baseline, Strict Auth Guard & Supabase Admin Lifecycle
+
+### 1. Zero-Demo Data Baseline (Mandatory Production Standard)
+- **Purge of Prototype Data**:
+  - All mock properties (`2nd Floor, Lalitpur`, `Ram's Flat`, `Apartment 11, Bhakatapur`), static bill rows, and fake payment ledgers are permanently purged from HTML templates and JS controller code.
+  - Form fields across all screens (Step 1 Tenancy, Step 2 Utilities, Edit Tenancy, Record Payment, Bill Generation) initialize empty with clean placeholders.
+  - When a user logs in for the first time, the application displays clean empty states (`#dashboard-empty-tenancies`, `#empty-recent-payments`, `#empty-recent-bills`, `#archived-empty-state`).
+  - All records rendered in the app are strictly loaded live from the user's Supabase Cloud database.
+
+### 2. Strict Production Auth Guard
+- **Unauthenticated Route Protection**:
+  - The application strictly bars unauthenticated access to inner screens (Screens 6 through 19).
+  - On application boot (`DOMContentLoaded`), the app checks for an active session via `supabase.auth.getSession()`.
+  - If no session exists, the app immediately redirects to **Screen 20 (Authentication / Sign In / Create Account)**.
+  - Any programmatic navigation attempt to Screens 6–19 without authentication triggers a defensive redirect to Screen 20 with an informative alert toast.
+
+### 3. Landlord Admin Registration Lifecycle
+- **How Admin Credentials Work**:
+  - Admin login credentials are NOT hardcoded or pre-set by developers.
+  - The landlord registers their own real email and secure password directly through the app's Screen 20 ("Create Account" mode).
+  - Calling `supabase.auth.signUp({ email, password, options: { data: { full_name } } })` creates the user account in Supabase Auth (`auth.users`) and establishes a corresponding record in `public.profiles`.
+  - The first registered user operates as the Owner/Admin with full privileges.
+  - All tenancies created by the landlord are tied to their unique `owner_id = auth.uid()` under Row Level Security (RLS).
+  - When family members are invited via Settings Screen 16, they log in with their own email addresses and receive scoped viewer or manager permissions.
+
 
 
 
