@@ -132,24 +132,35 @@ export async function deleteUserAccountAndData() {
   if (!cloudSession.user) return false;
   const userId = cloudSession.user.id;
   try {
-    const { data: userTenancies } = await supabase
-      .from('tenancies')
-      .select('id')
-      .eq('owner_id', userId);
+    // 1. Primary: Execute SECURITY DEFINER RPC to completely erase data AND auth.users
+    const { error: rpcError } = await supabase.rpc('delete_user_account');
 
-    const tenancyIds = (userTenancies || []).map((t) => t.id);
+    if (rpcError) {
+      console.warn('RPC delete_user_account error, attempting direct cleanup:', rpcError);
+      const { data: userTenancies } = await supabase
+        .from('tenancies')
+        .select('id')
+        .eq('owner_id', userId);
 
-    if (tenancyIds.length > 0) {
-      await supabase.from('payments').delete().in('tenancy_id', tenancyIds);
-      await supabase.from('bills').delete().in('tenancy_id', tenancyIds);
-      await supabase.from('tenancy_utilities').delete().in('tenancy_id', tenancyIds);
-      await supabase.from('rent_revisions').delete().in('tenancy_id', tenancyIds);
-      await supabase.from('tenancies').delete().eq('owner_id', userId);
+      const tenancyIds = (userTenancies || []).map((t) => t.id);
+
+      if (tenancyIds.length > 0) {
+        await supabase.from('payments').delete().in('tenancy_id', tenancyIds);
+        await supabase.from('bills').delete().in('tenancy_id', tenancyIds);
+        await supabase.from('tenancy_utilities').delete().in('tenancy_id', tenancyIds);
+        await supabase.from('rent_revisions').delete().in('tenancy_id', tenancyIds);
+        await supabase.from('tenancies').delete().eq('owner_id', userId);
+      }
+
+      await supabase.from('family_shares').delete().eq('admin_id', userId);
+      await supabase.from('profiles').delete().eq('id', userId);
     }
 
-    await supabase.from('family_shares').delete().eq('admin_id', userId);
-    await supabase.from('profiles').delete().eq('id', userId);
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      // User was already deleted from auth.users
+    }
 
     cloudSession.user = null;
     cloudSession.profile = null;

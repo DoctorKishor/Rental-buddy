@@ -2132,7 +2132,18 @@ function initSettingsScreen() {
       modalDeleteAccount?.classList.add('hidden');
       updateAuthUI(null);
       localStorage.clear();
-      showToast('🗑️ Account and all cloud data permanently deleted from Supabase', 4000);
+      sessionStorage.clear();
+
+      // Reset auth inputs and set screen 20 to Create Account mode
+      const inputEmail = document.getElementById('auth-email-input');
+      const inputPassword = document.getElementById('auth-password-input');
+      const inputName = document.getElementById('auth-name-input');
+      if (inputEmail) inputEmail.value = '';
+      if (inputPassword) inputPassword.value = '';
+      if (inputName) inputName.value = '';
+      setAuthMode(true);
+
+      showToast('🗑️ Account and all cloud data permanently deleted from Supabase. Next time, create a new account to register.', 5000);
       setTimeout(() => {
         navigateToScreen(20);
       }, 600);
@@ -2427,20 +2438,39 @@ export function updateAuthUI(user) {
   if (ownerEmail) ownerEmail.textContent = email;
 }
 
+export let isAuthSignUpMode = false;
+
+export function setAuthMode(isSignUp) {
+  isAuthSignUpMode = isSignUp;
+  const nameGroup = document.getElementById('auth-name-group');
+  const formTitle = document.getElementById('auth-form-title');
+  const btnSubmit = document.getElementById('btn-submit-auth');
+  const switchText = document.getElementById('auth-switch-text');
+  const btnToggleMode = document.getElementById('btn-toggle-auth-mode');
+  const formAuth = document.getElementById('auth-login-form');
+  const confirmBox = document.getElementById('auth-confirm-box');
+  const authToggle = document.getElementById('auth-toggle-container');
+
+  confirmBox?.classList.add('hidden');
+  formAuth?.classList.remove('hidden');
+  authToggle?.classList.remove('hidden');
+
+  if (nameGroup) nameGroup.classList.toggle('hidden', !isSignUp);
+  if (formTitle) formTitle.textContent = isSignUp ? 'Create Your Admin Account' : 'Sign In to Your Account';
+  if (btnSubmit) btnSubmit.textContent = isSignUp ? 'Create Account with Supabase' : 'Sign In with Supabase';
+  if (switchText) switchText.textContent = isSignUp ? 'Already have an account?' : 'Don’t have an account?';
+  if (btnToggleMode) btnToggleMode.textContent = isSignUp ? 'Sign In' : 'Create Account';
+}
+
 function initAuthScreen() {
   const inputEmail = document.getElementById('auth-email-input');
   const inputPassword = document.getElementById('auth-password-input');
   const inputName = document.getElementById('auth-name-input');
-  const nameGroup = document.getElementById('auth-name-group');
   const btnToggleEye = document.getElementById('btn-toggle-password-visibility');
   const formAuth = document.getElementById('auth-login-form');
   const btnForgot = document.getElementById('btn-forgot-password');
   const btnToggleMode = document.getElementById('btn-toggle-auth-mode');
-  const formTitle = document.getElementById('auth-form-title');
   const btnSubmit = document.getElementById('btn-submit-auth');
-  const switchText = document.getElementById('auth-switch-text');
-
-  let isSignUpMode = false;
 
   btnToggleEye?.addEventListener('click', () => {
     if (inputPassword) {
@@ -2451,12 +2481,7 @@ function initAuthScreen() {
   });
 
   btnToggleMode?.addEventListener('click', () => {
-    isSignUpMode = !isSignUpMode;
-    if (nameGroup) nameGroup.classList.toggle('hidden', !isSignUpMode);
-    if (formTitle) formTitle.textContent = isSignUpMode ? 'Create Your Admin Account' : 'Sign In to Your Account';
-    if (btnSubmit) btnSubmit.textContent = isSignUpMode ? 'Create Account with Supabase' : 'Sign In with Supabase';
-    if (switchText) switchText.textContent = isSignUpMode ? 'Already have an account?' : 'Don’t have an account?';
-    if (btnToggleMode) btnToggleMode.textContent = isSignUpMode ? 'Sign In' : 'Create Account';
+    setAuthMode(!isAuthSignUpMode);
   });
 
   btnForgot?.addEventListener('click', () => {
@@ -2481,12 +2506,12 @@ function initAuthScreen() {
 
     if (btnSubmit) {
       btnSubmit.disabled = true;
-      btnSubmit.textContent = isSignUpMode ? 'Registering Admin Account...' : 'Signing In...';
+      btnSubmit.textContent = isAuthSignUpMode ? 'Registering Admin Account...' : 'Signing In...';
     }
 
     try {
       let authResult;
-      if (isSignUpMode) {
+      if (isAuthSignUpMode) {
         authResult = await signUpUser(email, password, fullName);
         if (!authResult || !authResult.success) {
           showToast(`❌ ${authResult?.error || 'Account creation failed.'}`, 4500);
@@ -2514,7 +2539,7 @@ function initAuthScreen() {
       }
 
       updateAuthUI(authResult.user);
-      const actionWord = isSignUpMode ? 'Admin account created & registered in Supabase Cloud' : 'Signed in successfully';
+      const actionWord = isAuthSignUpMode ? 'Admin account created & registered in Supabase Cloud' : 'Signed in successfully';
       showToast(`⚡ ${actionWord}!`, 3500);
 
       // Check whether user has completed functional onboarding
@@ -2536,7 +2561,7 @@ function initAuthScreen() {
     } finally {
       if (btnSubmit) {
         btnSubmit.disabled = false;
-        btnSubmit.textContent = isSignUpMode ? 'Create Account with Supabase' : 'Sign In with Supabase';
+        btnSubmit.textContent = isAuthSignUpMode ? 'Create Account with Supabase' : 'Sign In with Supabase';
       }
     }
   });
@@ -2544,20 +2569,9 @@ function initAuthScreen() {
   // Confirmatory screen listeners
   const btnConfirmToSignIn = document.getElementById('btn-confirm-to-signin');
   const btnResendVerification = document.getElementById('btn-resend-verification');
-  const confirmBox = document.getElementById('auth-confirm-box');
-  const authToggle = document.getElementById('auth-toggle-container');
 
   btnConfirmToSignIn?.addEventListener('click', () => {
-    confirmBox?.classList.add('hidden');
-    formAuth?.classList.remove('hidden');
-    authToggle?.classList.remove('hidden');
-    // Switch to Sign In mode
-    isSignUpMode = false;
-    if (nameGroup) nameGroup.classList.add('hidden');
-    if (formTitle) formTitle.textContent = 'Sign In to Your Account';
-    if (btnSubmit) btnSubmit.textContent = 'Sign In with Supabase';
-    if (switchText) switchText.textContent = 'Don’t have an account?';
-    if (btnToggleMode) btnToggleMode.textContent = 'Create Account';
+    setAuthMode(false);
     if (inputPassword) inputPassword.value = '';
     inputPassword?.focus();
   });

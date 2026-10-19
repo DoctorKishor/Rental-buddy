@@ -670,18 +670,17 @@
     - Screen 4: Notification preferences.
     - Screen 5 / Screen 6: Finalizes setup, writes `onboarding_completed: true` to Supabase `profiles` and localStorage.
 
-### 7. Danger Zone: Complete Account & Cloud Data Deletion
+### 7. Danger Zone: Complete Account & Cloud Data Deletion (Including auth.users)
 - **Location**: Settings (Screen 16) -> Danger Zone.
 - **Components**: `#item-delete-account` and `#modal-delete-account`.
-- **Backend Service**: `deleteUserAccountAndData()` deletes all associated:
-  - `payments`
-  - `bills`
-  - `tenancy_utilities`
-  - `rent_revisions`
-  - `tenancies`
-  - `family_shares`
-  - `profiles`
-  - Signs out from Supabase Auth and clears local application storage.
+- **Database Function**: `delete_user_account()` PostgreSQL `SECURITY DEFINER` RPC:
+  - Deletes all payments, bills, utilities, rent revisions, and tenancies owned by `auth.uid()`.
+  - Deletes all family shares and profile records.
+  - **Account Eradication**: Deletes the user account directly from `auth.users` (`DELETE FROM auth.users WHERE id = auth.uid()`).
+- **Post-Deletion Lifecycle**:
+  - The client signs out and clears `localStorage` and `sessionStorage`.
+  - The app routes to Screen 20 in **Create Account** mode (`setAuthMode(true)`).
+  - Attempting to sign in with the deleted credentials will fail as "Invalid login credentials"; the user must register a brand new account.
 
 
 
