@@ -376,14 +376,14 @@ export async function scheduleCloudRentRevision(revisionData) {
   }
 }
 
-export async function cancelCloudRentRevision(revisionId) {
+export async function cancelCloudRentRevision(idOrTenancyId) {
   try {
     const { data, error } = await supabase
       .from('rent_revisions')
       .update({ status: 'cancelled' })
-      .eq('id', revisionId)
-      .select()
-      .single();
+      .or(`id.eq.${idOrTenancyId},tenancy_id.eq.${idOrTenancyId}`)
+      .eq('status', 'scheduled')
+      .select();
 
     if (error) throw error;
     return data;
@@ -398,6 +398,7 @@ export async function cancelCloudRentRevision(revisionId) {
 // ==========================================================================
 
 export async function fetchCloudBills(tenancyId) {
+  await ensureAuthenticated();
   try {
     let query = supabase.from('bills').select('*').order('created_at', { ascending: false });
     if (tenancyId) {

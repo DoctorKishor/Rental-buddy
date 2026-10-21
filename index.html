@@ -479,14 +479,12 @@
                   <div class="form-group">
                     <label class="form-label mini" for="record-select-tenancy">Tenancy</label>
                     <select id="record-select-tenancy" class="form-input mini">
-                      <option value="2nd Floor, Lalitpur">2nd Floor, Lalitpur</option>
-                      <option value="Ram’s Flat">Ram’s Flat</option>
-                      <option value="Apartment 11, Bhakatapur">Apartment 11, Bhakatapur</option>
+                      <option value="" disabled selected>Select a tenancy...</option>
                     </select>
                   </div>
                   <div class="form-group">
                     <label class="form-label mini" for="record-amount">Amount Received</label>
-                    <input type="number" id="record-amount" class="form-input mini" value="12000" placeholder="12000" />
+                    <input type="number" id="record-amount" class="form-input mini" placeholder="e.g. 12000" />
                   </div>
                   <div class="form-group">
                     <label class="form-label mini">Payment Mode</label>
@@ -507,7 +505,7 @@
                   </div>
                   <div class="form-group">
                     <label class="form-label mini" for="record-date">Payment Date</label>
-                    <input type="date" id="record-date" class="form-input mini" value="2026-04-12" />
+                    <input type="date" id="record-date" class="form-input mini" />
                   </div>
                   <button class="btn btn-primary btn-pill" id="btn-submit-record-payment" style="margin-top: 8px;">
                     Confirm & Save Receipt
@@ -756,11 +754,11 @@
                     <div class="util-subfields" id="subfields-elec-meter">
                       <div class="form-group">
                         <label class="form-label mini" for="input-elec-price">Electricity Price Per Unit</label>
-                        <input type="number" id="input-elec-price" class="form-input mini" value="12" placeholder="e.g. 12" />
+                        <input type="number" id="input-elec-price" class="form-input mini" placeholder="e.g. 12" />
                       </div>
                       <div class="form-group" style="margin-top: 10px;">
                         <label class="form-label mini" for="input-elec-reading">Current Meter Reading</label>
-                        <input type="number" step="0.01" id="input-elec-reading" class="form-input mini" value="12341.12" placeholder="e.g. 12341.12" />
+                        <input type="number" step="0.01" id="input-elec-reading" class="form-input mini" placeholder="e.g. 12341.12" />
                       </div>
                     </div>
 
@@ -768,7 +766,7 @@
                     <div class="util-subfields hidden" id="subfields-elec-flat">
                       <div class="form-group">
                         <label class="form-label mini" for="input-elec-flat-amount">Electricity Bill Amount</label>
-                        <input type="number" id="input-elec-flat-amount" class="form-input mini" value="500" placeholder="e.g. 500" />
+                        <input type="number" id="input-elec-flat-amount" class="form-input mini" placeholder="e.g. 500" />
                       </div>
                     </div>
                   </div>
@@ -806,7 +804,7 @@
                     <div class="util-subfields" id="subfields-water-flat">
                       <div class="form-group">
                         <label class="form-label mini" for="input-water-amount">Water Bill Amount</label>
-                        <input type="number" id="input-water-amount" class="form-input mini" value="300" placeholder="e.g. 300" />
+                        <input type="number" id="input-water-amount" class="form-input mini" placeholder="e.g. 300" />
                       </div>
                     </div>
 
@@ -814,11 +812,11 @@
                     <div class="util-subfields hidden" id="subfields-water-meter">
                       <div class="form-group">
                         <label class="form-label mini" for="input-water-price">Water Price Per Unit</label>
-                        <input type="number" id="input-water-price" class="form-input mini" value="25" placeholder="e.g. 25" />
+                        <input type="number" id="input-water-price" class="form-input mini" placeholder="e.g. 25" />
                       </div>
                       <div class="form-group" style="margin-top: 10px;">
                         <label class="form-label mini" for="input-water-reading">Current Meter Reading</label>
-                        <input type="number" step="0.01" id="input-water-reading" class="form-input mini" value="450.5" placeholder="e.g. 450.5" />
+                        <input type="number" step="0.01" id="input-water-reading" class="form-input mini" placeholder="e.g. 450.5" />
                       </div>
                     </div>
                   </div>
@@ -838,7 +836,7 @@
                     <div class="utility-divider"></div>
                     <div class="form-group">
                       <label class="form-label mini" for="input-garbage-amount">Garbage Bill Amount</label>
-                      <input type="number" id="input-garbage-amount" class="form-input mini" value="200" placeholder="e.g. 200" />
+                      <input type="number" id="input-garbage-amount" class="form-input mini" placeholder="e.g. 200" />
                     </div>
                   </div>
                 </div>
@@ -857,7 +855,7 @@
                     <div class="utility-divider"></div>
                     <div class="form-group">
                       <label class="form-label mini" for="input-internet-amount">Internet Bill Amount</label>
-                      <input type="number" id="input-internet-amount" class="form-input mini" value="1000" placeholder="e.g. 1000" />
+                      <input type="number" id="input-internet-amount" class="form-input mini" placeholder="e.g. 1000" />
                     </div>
                   </div>
                 </div>
@@ -916,11 +914,11 @@
                 <div class="confirm-card">
                   <div class="confirm-row">
                     <span class="confirm-label">Tenancy Name</span>
-                    <strong class="confirm-value" id="confirm-tenancy-name">2nd Floor, Lalitpur</strong>
+                    <strong class="confirm-value" id="confirm-tenancy-name">--</strong>
                   </div>
                   <div class="confirm-row">
                     <span class="confirm-label">Rent Amount</span>
-                    <strong class="confirm-value" id="confirm-rent-amount">Rs. 12,000</strong>
+                    <strong class="confirm-value" id="confirm-rent-amount">Rs. 0</strong>
                   </div>
                   <div class="confirm-row">
                     <span class="confirm-label">Billing Cycle</span>
@@ -928,7 +926,7 @@
                   </div>
                   <div class="confirm-row">
                     <span class="confirm-label">Next Billing Date</span>
-                    <strong class="confirm-value" id="confirm-next-date">Wed 12 Apr, 2026</strong>
+                    <strong class="confirm-value" id="confirm-next-date">--</strong>
                   </div>
                 </div>
               </div>
@@ -949,18 +947,18 @@
                     <div id="confirm-elec-meter-rows">
                       <div class="confirm-row">
                         <span class="confirm-label">Electricity Price Per Unit</span>
-                        <strong class="confirm-value" id="confirm-elec-price">Rs. 12</strong>
+                        <strong class="confirm-value" id="confirm-elec-price">Rs. 0</strong>
                       </div>
                       <div class="confirm-row" style="margin-top: 10px;">
                         <span class="confirm-label">Current Meter Reading</span>
-                        <strong class="confirm-value" id="confirm-elec-reading">12341.12</strong>
+                        <strong class="confirm-value" id="confirm-elec-reading">0.00</strong>
                       </div>
                     </div>
                     <!-- Flat row -->
                     <div id="confirm-elec-flat-row" class="hidden">
                       <div class="confirm-row">
                         <span class="confirm-label">Electricity Bill Amount</span>
-                        <strong class="confirm-value" id="confirm-elec-flat-amount">Rs. 500</strong>
+                        <strong class="confirm-value" id="confirm-elec-flat-amount">Rs. 0</strong>
                       </div>
                     </div>
                   </div>
@@ -978,18 +976,18 @@
                     <div id="confirm-water-flat-row">
                       <div class="confirm-row">
                         <span class="confirm-label">Water Bill Amount</span>
-                        <strong class="confirm-value" id="confirm-water-amount">Rs. 300</strong>
+                        <strong class="confirm-value" id="confirm-water-amount">Rs. 0</strong>
                       </div>
                     </div>
                     <!-- Meter Reading rows -->
                     <div id="confirm-water-meter-rows" class="hidden">
                       <div class="confirm-row">
                         <span class="confirm-label">Water Price Per Unit</span>
-                        <strong class="confirm-value" id="confirm-water-price">Rs. 25</strong>
+                        <strong class="confirm-value" id="confirm-water-price">Rs. 0</strong>
                       </div>
                       <div class="confirm-row" style="margin-top: 10px;">
                         <span class="confirm-label">Current Meter Reading</span>
-                        <strong class="confirm-value" id="confirm-water-reading">450.5</strong>
+                        <strong class="confirm-value" id="confirm-water-reading">0.00</strong>
                       </div>
                     </div>
                   </div>
@@ -1001,7 +999,18 @@
                     <h3 class="confirm-utility-title">Garbage</h3>
                     <div class="confirm-row">
                       <span class="confirm-label">Garbage Bill Amount</span>
-                      <strong class="confirm-value" id="confirm-garbage-amount">Rs. 200</strong>
+                      <strong class="confirm-value" id="confirm-garbage-amount">Rs. 0</strong>
+                    </div>
+                  </div>
+
+                  <div class="confirm-divider" id="divider-garbage-internet" style="display: none;"></div>
+
+                  <!-- Internet Confirmation -->
+                  <div class="confirm-utility-block" id="confirm-block-internet" style="display: none;">
+                    <h3 class="confirm-utility-title">Internet</h3>
+                    <div class="confirm-row">
+                      <span class="confirm-label">Internet Bill Amount</span>
+                      <strong class="confirm-value" id="confirm-internet-amount">Rs. 0</strong>
                     </div>
                   </div>
 
@@ -1029,7 +1038,7 @@
                     <polyline points="12 19 5 12 12 5"></polyline>
                   </svg>
                 </button>
-                <h1 class="details-page-title" id="details-prop-title">2nd Floor, Lalitpur</h1>
+                <h1 class="details-page-title" id="details-prop-title">--</h1>
                 <div class="menu-trigger-wrapper">
                   <button class="icon-btn" id="btn-details-menu" aria-label="Tenancy options menu" aria-haspopup="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1180,7 +1189,7 @@
                 </button>
                 <div class="stepper-titles">
                   <h2 class="stepper-main-title">Edit Tenancy</h2>
-                  <span class="stepper-sub-title">2nd Floor, Lalitpur</span>
+                  <span class="stepper-sub-title" id="edit-stepper-subtitle">--</span>
                 </div>
                 <div class="stepper-spacer"></div>
               </nav>
@@ -1202,7 +1211,6 @@
                     type="text"
                     id="edit-tenancy-name"
                     class="form-input"
-                    value="2nd Floor, Lalitpur"
                     placeholder="e.g. 2nd Floor, Lalitpur"
                   />
                 </div>
@@ -1670,7 +1678,7 @@
                 </button>
                 <div class="stepper-titles">
                   <h2 class="stepper-main-title">Generate Bill</h2>
-                  <span class="stepper-sub-title" id="genbill-subtitle">for 2nd Floor, Lalitpur</span>
+                  <span class="stepper-sub-title" id="genbill-subtitle">--</span>
                 </div>
                 <div class="stepper-spacer"></div>
               </nav>

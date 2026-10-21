@@ -729,6 +729,57 @@
   - `openArchivedDetails()` calculates and displays `#archdetails-total-amount`, `#archdetails-last-bill`, and `#archdetails-next-bill`.
   - Added `#btn-auth-back` on Screen 20 allowing authenticated users to return to Dashboard.
 
+---
+
+## 28. Comprehensive Full-App Autonomous Audit & Runtime Resiliency Hardening
+
+### 1. Scope Hoisting: `getOrdinal` ReferenceError Eradication
+- **The Root Cause**: `getOrdinal(n)` was scoped locally inside `initStep1Form()`. When `bindTenancyToDetails()` on Screen 10 executed lines 1173 (`${t.billing_day}${getOrdinal(...)}`), 1187, 1316, and Screen 11 executed line 1668, a silent runtime `ReferenceError: getOrdinal is not defined` crashed tenancy detail rendering.
+- **The Architectural Fix**:
+  - Exported and hoisted `getOrdinal(n)` to the module scope in `src/main.js`.
+  - Completely restores dynamic ordinal billing date labels (`1st of next month`, `12th of every month`) across Tenancy Details, Month-wise calendar cards, and Edit Tenancy forms.
+
+### 2. Tab Mutual Exclusivity: `viewHistory` Reference Resolution
+- **The Root Cause**: In `bindTenancyToDetails()`, the element reference was declared as `historyList`, but the tab visibility switcher at lines 1378, 1383, and 1386 referenced an undeclared `viewHistory` variable, throwing a runtime `ReferenceError`.
+- **The Architectural Fix**:
+  - Standardized `const viewHistory = document.getElementById('view-bill-history');` and aliased `const historyList = viewHistory;`.
+  - Guarantees seamless switching between Month-wise payment status cards and historical bill lists without silent catch block suppression.
+
+### 3. Rent Revision Cancellation: Tenancy ID vs Revision ID Reconciliation
+- **The Root Cause**: In `main.js`, clicking "Cancel Scheduled Revision" called `cancelCloudRentRevision(currentActiveTenancy.id)`, passing the tenancy's UUID. However, `supabase.js` executed `.eq('id', revisionId)`, which looked for a revision with that primary key, resulting in 0 rows updated in Supabase.
+- **The Architectural Fix**:
+  - Upgraded `cancelCloudRentRevision(idOrTenancyId)` in `src/supabase.js` to cancel scheduled records via `.or('id.eq.${idOrTenancyId},tenancy_id.eq.${idOrTenancyId}').eq('status', 'scheduled')`.
+  - Ensures scheduled rent revisions can be safely and reliably cancelled by either revision ID or tenancy ID.
+
+### 4. Supabase Bills Engine: Cloud Session Guard
+- **The Root Cause**: `fetchCloudBills(tenancyId)` queried Supabase without preceding with `await ensureAuthenticated()`, risking unauthenticated queries or empty result returns under slow token refreshes.
+- **The Architectural Fix**:
+  - Added `await ensureAuthenticated();` at the beginning of `fetchCloudBills()` to match the hardened patterns in `fetchCloudTenancies()`, `fetchCloudPayments()`, and `fetchCloudFamilyMembers()`.
+
+### 5. Zero-Demo Data Baseline & Form Hygiene (Section 25 Enforcement)
+- **The Root Cause**: Residual prototype values and options were still embedded in `index.html` and fallback values in `src/main.js`:
+  - Prototype tenancy names (`2nd Floor, Lalitpur`, `Ram's Flat`, `Apartment 11, Bhakatapur`) were hardcoded inside `#record-select-tenancy`.
+  - Screen 8 utilities contained hardcoded `value="..."` attributes (`value="12"`, `value="12341.12"`, `value="500"`, `value="300"`, etc.).
+  - Step 3 confirmation card displayed hardcoded mock values (`2nd Floor, Lalitpur`, `Rs. 12,000`).
+  - Screen 11 edit inputs and Screen 13 subtitles had static prototype strings.
+  - Step 1 date picker defaulted to prototype date `2026-04-12`.
+- **The Architectural Fix**:
+  - Purged all hardcoded `value="..."` attributes from Step 2 utility inputs, retaining clear placeholder hints.
+  - Initialized `#record-select-tenancy` with a clean disabled `<option value="" disabled selected>Select a tenancy...</option>`.
+  - Cleaned all Screen 9 confirmation card defaults to `--` and `Rs. 0`.
+  - Updated `initStep1Form()` to dynamically default to the current billing cycle date.
+
+### 6. Utility Pipeline Completion: Internet Utility Confirmation
+- **The Enhancement**:
+  - Added `#confirm-block-internet` and `#confirm-internet-amount` to Screen 9 in `index.html`.
+  - Integrated Internet utility visibility and formatted price binding into `syncConfirmationScreen()` in `src/main.js`, completing the 4-utility confirmation pipeline (Electricity, Water, Garbage, Internet).
+
+### 7. Navigation Flow: Contextual Back Navigation from Screens 12 & 13
+- **The Enhancement**:
+  - Implemented `state.previousScreen` tracking in `navigateToScreen()`.
+  - When a landlord opens Record Payment (Screen 12) or Generate Bill (Screen 13) directly from Tenancy Details (Screen 10), clicking the back button now smoothly returns them to Screen 10 rather than dropping them on the root Dashboard (Screen 6).
+
+
 
 
 

@@ -10,7 +10,6 @@ import {
   signUpUser,
   signOutUser,
   getCurrentSession,
-  syncUserProfile,
   fetchCloudTenancies,
   createCloudTenancy,
   updateCloudTenancy,
@@ -33,6 +32,7 @@ import {
 
 const state = {
   currentScreen: 1,
+  previousScreen: 1,
   currency: 'INR',
   currencyLabel: 'Indian Rupee (₹)',
   currencySymbol: 'Rs. ',
@@ -78,14 +78,13 @@ const statusTime = document.getElementById('statusTime');
 
 // Live Time for Status Bar
 function initClock() {
+  if (!statusTime) return;
   const updateTime = () => {
     const now = new Date();
     let hours = now.getHours();
     const minutes = now.getMinutes().toString().padStart(2, '0');
     hours = hours % 12 || 12;
-    if (statusTime) {
-      statusTime.textContent = `${hours}:${minutes}`;
-    }
+    statusTime.textContent = `${hours}:${minutes}`;
   };
   updateTime();
   setInterval(updateTime, 30000);
@@ -113,6 +112,7 @@ function navigateToScreen(targetScreenNumber) {
     targetScreenNumber = 20;
   }
 
+  state.previousScreen = state.currentScreen;
   state.currentScreen = targetScreenNumber;
 
   // Auto-close any open modals and floating dropdown menus when transitioning screens
@@ -201,6 +201,13 @@ function updateSummaryScreen() {
   if (setupText) setupText.textContent = state.setupMode === 'new' ? 'Create New Tenancy' : 'Restore from Backup';
 }
 
+// Ordinal suffix helper (1st, 2nd, 3rd, 4th...)
+export function getOrdinal(n) {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
 // Tenancy Step 1 Form Listeners
 function initStep1Form() {
   const monthlyRadio = document.getElementById('cycle-monthly');
@@ -233,12 +240,6 @@ function initStep1Form() {
   const textDateInput = document.getElementById('input-billing-date');
   const datePickerTrigger = document.getElementById('datePickerTrigger');
 
-  function getOrdinal(n) {
-    const s = ['th', 'st', 'nd', 'rd'];
-    const v = n % 100;
-    return n + (s[(v - 20) % 10] || s[v] || s[0]);
-  }
-
   function updateFromDate(dateStr) {
     if (!dateStr) return;
     const d = new Date(dateStr + 'T00:00:00');
@@ -268,8 +269,12 @@ function initStep1Form() {
     }
   });
 
-  // Default initial date calculation
-  updateFromDate('2026-04-12');
+  // Default initial date calculation (Current billing cycle)
+  const todayIso = new Date().toISOString().split('T')[0];
+  if (nativeDateInput && !nativeDateInput.value) {
+    nativeDateInput.value = todayIso;
+  }
+  updateFromDate(todayIso);
 }
 
 // Tenancy Step 2 Utility Toggles & Accordions
@@ -349,13 +354,13 @@ function initUtilityToggles() {
 function syncConfirmationScreen() {
   const sym = state.currencySymbol || 'Rs. ';
 
-  const nameVal = document.getElementById('input-tenancy-name')?.value?.trim() || '2nd Floor, Lalitpur';
-  const rentVal = document.getElementById('input-rent-amount')?.value?.trim() || '12000';
+  const nameVal = document.getElementById('input-tenancy-name')?.value?.trim() || '--';
+  const rentVal = document.getElementById('input-rent-amount')?.value?.trim() || '0';
   const cycleInput = document.querySelector('input[name="billingCycle"]:checked');
   const cycleVal = cycleInput ? cycleInput.parentElement.querySelector('span:not(.custom-radio)')?.textContent?.trim() || 'Monthly' : 'Monthly';
 
   const nativeDate = document.getElementById('native-billing-date')?.value;
-  let nextDateText = 'Wed 12 Apr, 2026';
+  let nextDateText = '--';
   if (nativeDate) {
     const d = new Date(nativeDate + 'T00:00:00');
     nextDateText = d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
@@ -367,7 +372,7 @@ function syncConfirmationScreen() {
   if (nameEl) nameEl.textContent = nameVal;
 
   const rentEl = document.getElementById('confirm-rent-amount');
-  if (rentEl) rentEl.textContent = `${sym}${parseFloat(rentVal.replace(/[^0-9.]/g, '') || 12000).toLocaleString('en-IN')}`;
+  if (rentEl) rentEl.textContent = `${sym}${parseFloat(rentVal.replace(/[^0-9.]/g, '') || 0).toLocaleString('en-IN')}`;
 
   const cycleEl = document.getElementById('confirm-billing-cycle');
   if (cycleEl) cycleEl.textContent = cycleVal;
@@ -393,8 +398,8 @@ function syncConfirmationScreen() {
     if (elecBillType === 'Meter Reading') {
       meterRows?.classList.remove('hidden');
       flatRow?.classList.add('hidden');
-      const elecPrice = document.getElementById('input-elec-price')?.value || '12';
-      const elecReading = document.getElementById('input-elec-reading')?.value || '12341.12';
+      const elecPrice = document.getElementById('input-elec-price')?.value || '0';
+      const elecReading = document.getElementById('input-elec-reading')?.value || '0.00';
       const priceEl = document.getElementById('confirm-elec-price');
       if (priceEl) priceEl.textContent = `${sym}${elecPrice}`;
       const readingEl = document.getElementById('confirm-elec-reading');
@@ -402,7 +407,7 @@ function syncConfirmationScreen() {
     } else {
       meterRows?.classList.add('hidden');
       flatRow?.classList.remove('hidden');
-      const flatAmount = document.getElementById('input-elec-flat-amount')?.value || '500';
+      const flatAmount = document.getElementById('input-elec-flat-amount')?.value || '0';
       const flatEl = document.getElementById('confirm-elec-flat-amount');
       if (flatEl) flatEl.textContent = `${sym}${flatAmount}`;
     }
@@ -426,14 +431,14 @@ function syncConfirmationScreen() {
     if (waterBillType === 'Flat') {
       flatRow?.classList.remove('hidden');
       meterRows?.classList.add('hidden');
-      const waterAmount = document.getElementById('input-water-amount')?.value || '300';
+      const waterAmount = document.getElementById('input-water-amount')?.value || '0';
       const waterEl = document.getElementById('confirm-water-amount');
       if (waterEl) waterEl.textContent = `${sym}${waterAmount}`;
     } else {
       flatRow?.classList.add('hidden');
       meterRows?.classList.remove('hidden');
-      const waterPrice = document.getElementById('input-water-price')?.value || '25';
-      const waterReading = document.getElementById('input-water-reading')?.value || '450.5';
+      const waterPrice = document.getElementById('input-water-price')?.value || '0';
+      const waterReading = document.getElementById('input-water-reading')?.value || '0.00';
       const priceEl = document.getElementById('confirm-water-price');
       if (priceEl) priceEl.textContent = `${sym}${waterPrice}`;
       const readingEl = document.getElementById('confirm-water-reading');
@@ -444,11 +449,25 @@ function syncConfirmationScreen() {
   // Garbage
   const garbageEnabled = document.getElementById('toggle-garbage')?.checked;
   const garbageBlock = document.getElementById('confirm-block-garbage');
+  const garbageDivider = document.getElementById('divider-garbage-internet');
   if (garbageBlock) garbageBlock.style.display = garbageEnabled ? 'block' : 'none';
+
   if (garbageEnabled) {
-    const garbageAmount = document.getElementById('input-garbage-amount')?.value || '200';
+    const garbageAmount = document.getElementById('input-garbage-amount')?.value || '0';
     const garbageEl = document.getElementById('confirm-garbage-amount');
     if (garbageEl) garbageEl.textContent = `${sym}${garbageAmount}`;
+  }
+
+  // Internet
+  const internetEnabled = document.getElementById('toggle-internet')?.checked;
+  const internetBlock = document.getElementById('confirm-block-internet');
+  if (internetBlock) internetBlock.style.display = internetEnabled ? 'block' : 'none';
+  if (garbageDivider) garbageDivider.style.display = internetEnabled && (garbageEnabled || waterEnabled || elecEnabled) ? 'block' : 'none';
+
+  if (internetEnabled) {
+    const internetAmount = document.getElementById('input-internet-amount')?.value || '0';
+    const internetEl = document.getElementById('confirm-internet-amount');
+    if (internetEl) internetEl.textContent = `${sym}${internetAmount}`;
   }
 }
 
@@ -1161,7 +1180,8 @@ export async function bindTenancyToDetails(t) {
   const lastBillAmount = document.getElementById('details-last-bill-amount');
   const emptyBills = document.getElementById('details-empty-bills');
   const monthStack = document.getElementById('details-month-cards-stack');
-  const historyList = document.getElementById('view-bill-history');
+  const viewHistory = document.getElementById('view-bill-history');
+  const historyList = viewHistory;
   const viewMonth = document.getElementById('view-month-status');
   const chipPaid = document.getElementById('chip-count-paid');
   const chipDue = document.getElementById('chip-count-due');
@@ -1173,18 +1193,25 @@ export async function bindTenancyToDetails(t) {
   if (nextBilling) nextBilling.textContent = `${t.billing_day || 1}${getOrdinal(t.billing_day || 1)} of next month`;
 
   // Bind to Edit Tenancy form (Screen 11) inputs too
+  const editSubtitle = document.getElementById('edit-stepper-subtitle');
   const editName = document.getElementById('edit-tenancy-name');
   const editRent = document.getElementById('edit-rent-amount');
   const editPhone = document.getElementById('edit-tenant-phone');
   const editAdvance = document.getElementById('edit-advance-amount');
   const editDateDisplay = document.getElementById('edit-billing-date-display');
+  const editNativeDate = document.getElementById('edit-native-billing-date');
   const reviseCurrentRent = document.getElementById('revise-current-rent-display');
 
+  if (editSubtitle) editSubtitle.textContent = t.property_name || '--';
   if (editName) editName.value = t.property_name || '';
   if (editRent) editRent.value = t.base_rent || '';
   if (editPhone) editPhone.value = t.tenant_phone || '';
   if (editAdvance) editAdvance.value = t.advance_amount || '';
   if (editDateDisplay) editDateDisplay.value = `${t.billing_day || 1}${getOrdinal(t.billing_day || 1)} of every month`;
+  if (editNativeDate) {
+    const dayStr = (t.billing_day || 1).toString().padStart(2, '0');
+    editNativeDate.value = `2026-04-${dayStr}`;
+  }
   if (reviseCurrentRent) reviseCurrentRent.value = `Rs. ${rentNum.toLocaleString('en-IN')}`;
 
   const elecUtil = t.tenancy_utilities?.find((u) => u.utility_type === 'electricity');
@@ -1854,7 +1881,11 @@ function initRecordPaymentPage() {
   });
 
   btnBack?.addEventListener('click', () => {
-    navigateToScreen(6);
+    if (state.previousScreen === 10 && currentActiveTenancy) {
+      navigateToScreen(10);
+    } else {
+      navigateToScreen(6);
+    }
   });
 
   const setPaymentMode = (mode) => {
@@ -2137,7 +2168,11 @@ function initBillGenerationFlow() {
   });
 
   btnGenBillBack?.addEventListener('click', () => {
-    navigateToScreen(6);
+    if (state.previousScreen === 10 && currentActiveTenancy) {
+      navigateToScreen(10);
+    } else {
+      navigateToScreen(6);
+    }
   });
 
   // Calculate & Preview Bill -> Screen 14
