@@ -554,16 +554,16 @@ export async function recordCloudPayment(paymentData) {
 
     // Settle corresponding unpaid bills: update status = 'paid'
     try {
-      if (paymentData.billId) {
-        await supabase
-          .from('bills')
-          .update({ status: 'paid' })
-          .eq('id', paymentData.billId);
-      } else if (paymentData.settledBillIds && Array.isArray(paymentData.settledBillIds) && paymentData.settledBillIds.length > 0) {
+      if (paymentData.settledBillIds && Array.isArray(paymentData.settledBillIds) && paymentData.settledBillIds.length > 0) {
         await supabase
           .from('bills')
           .update({ status: 'paid' })
           .in('id', paymentData.settledBillIds);
+      } else if (paymentData.billId) {
+        await supabase
+          .from('bills')
+          .update({ status: 'paid' })
+          .eq('id', paymentData.billId);
       } else if (paymentData.tenancyId) {
         // If payment matches an unpaid bill for this tenancy, mark it paid
         const { data: unpaidBills } = await supabase

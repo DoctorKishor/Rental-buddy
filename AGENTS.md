@@ -826,6 +826,47 @@
 - **The Architectural Fix**:
   - Updated `#btn-settings-logout` listener to clear all in-memory lists, empty `#tenancies-list-wrapper`, and reset empty state indicators upon signout.
 
+---
+
+## 30. Deep Multi-Cycle Audit, Date Target Accessibility & Cloud Resiliency
+
+### 1. Multi-Bill Settlement Ordering Resolution (`recordCloudPayment`)
+- **The Defect**:
+  - In `src/supabase.js`, `recordCloudPayment()` evaluated `if (paymentData.billId)` before `else if (paymentData.settledBillIds)`. When a tenant settled multiple overdue invoices at once, `billId` (`settledBillIds[0]`) was present, causing the code to take the first branch and settle only one bill while skipping the remaining invoices.
+- **The Architectural Fix**:
+  - Re-ordered the conditional checks to evaluate `paymentData.settledBillIds` first via `.in('id', paymentData.settledBillIds)`.
+  - Guarantees all checked overdue months are completely marked `'paid'` in Supabase in a single atomic database operation.
+
+### 2. Universal Date Picker Tap Target Expansion
+- **The Defect**:
+  - Across 4 distinct screens (Screen 7 Step 1, Screen 11 Edit Tenancy, Screen 12 Record Payment, Screen 13 Generate Bill), only the narrow trailing calendar icon buttons had click handlers attached. Tapping on the large date display box did not trigger the date picker.
+- **The Architectural Fix**:
+  - Standardized unified picker trigger handlers attached to both the text display box (`textDateInput`, `dateDisplay`, `startDisplay`, `endDisplay`) and the trailing icon buttons across all 4 forms.
+  - Added `isNaN` validation in `initEditTenancy()` to guarantee clean date string formatting.
+
+### 3. Automatic Past Due Carried Forward in Bill Generation
+- **The Enhancement**:
+  - In `setupGenerateBillScreen()`, the system scans `cloudBillsList` for any existing unpaid bills belonging to the target tenancy.
+  - Automatically calculates total outstanding arrears and pre-populates `#input-bill-due` (Due Carried Forward), streamlining billing cycle workflows for landlords.
+
+### 4. Archived Bill History Invoice Inspector
+- **The Enhancement**:
+  - Attached interactive click listeners to archived bill cards in `openArchivedDetails()`.
+  - Tapping any archived bill immediately loads its breakdown in `#screen-15` (`renderBillDetails()`), allowing landlords to review historical line-item utility costs.
+  - Configured `#btn-billdetails-back` to return contextually to Screen 18 when navigating from an archived property.
+
+### 5. Resilient Family Sharing Counter & List Cleanup
+- **The Defect**:
+  - In `syncDashboardFromCloud()`, when family members reached 0 or all were revoked, `#family-members-list` dynamic rows were not cleared and `#badge-family-count` retained stale counts.
+- **The Architectural Fix**:
+  - Hardened `membersList` cleanup logic to remove dynamic rows and reset badge count to `"0 Shared"`.
+  - Added instant counter decrement and error notifications when revoking family members.
+
+### 6. Additional Notes Reset Hygiene
+- **The Fix**:
+  - Included `#input-additional-notes` in `resetCreateTenancyForm()`, ensuring Step 2 custom notes never persist across tenancy creation cycles.
+
+
 
 
 

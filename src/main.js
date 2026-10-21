@@ -264,15 +264,19 @@ function initStep1Form() {
     updateFromDate(e.target.value);
   });
 
-  datePickerTrigger?.addEventListener('click', () => {
+  const openDatePicker = () => {
     if (nativeDateInput && typeof nativeDateInput.showPicker === 'function') {
       try {
         nativeDateInput.showPicker();
       } catch (err) {
         nativeDateInput.focus();
       }
+    } else {
+      nativeDateInput?.focus();
     }
-  });
+  };
+  datePickerTrigger?.addEventListener('click', openDatePicker);
+  textDateInput?.addEventListener('click', openDatePicker);
 
   // Default initial date calculation (Current billing cycle)
   const todayIso = new Date().toISOString().split('T')[0];
@@ -510,6 +514,8 @@ export function resetCreateTenancyForm() {
   if (garbageAmt) garbageAmt.value = '';
   const internetAmt = document.getElementById('input-internet-amount');
   if (internetAmt) internetAmt.value = '';
+  const notesInput = document.getElementById('input-additional-notes');
+  if (notesInput) notesInput.value = '';
 }
 
 // Attach All Event Listeners
@@ -1213,28 +1219,40 @@ export async function syncDashboardFromCloud() {
     const members = await fetchCloudFamilyMembers();
     const membersList = document.getElementById('family-members-list');
     const badgeCount = document.getElementById('badge-family-count');
-    if (members && members.length > 0 && membersList) {
+    if (membersList) {
       membersList.querySelectorAll('.dynamic-cloud-member').forEach((m) => m.remove());
-      members.forEach((m) => {
-        const row = document.createElement('div');
-        row.className = 'family-member-row dynamic-cloud-member';
-        row.innerHTML = `
-          <div class="member-avatar">👨‍👩‍👧</div>
-          <div class="member-info">
-            <strong class="member-email">${m.member_email}</strong>
-            <span class="member-role-tag">${m.role === 'manager' ? 'Manager • Can edit & record' : 'Viewer • Can view bills & payments'}</span>
-          </div>
-          <button type="button" class="btn-remove-member" title="Revoke access">✕</button>
-        `;
-        row.querySelector('.btn-remove-member')?.addEventListener('click', async () => {
-          await revokeCloudFamilyMember(m.id);
-          row.remove();
-          showToast(`🗑️ Revoked access for ${m.member_email}`);
+      if (members && members.length > 0) {
+        members.forEach((m) => {
+          const row = document.createElement('div');
+          row.className = 'family-member-row dynamic-cloud-member';
+          row.innerHTML = `
+            <div class="member-avatar">👨‍👩‍👧</div>
+            <div class="member-info">
+              <strong class="member-email">${m.member_email}</strong>
+              <span class="member-role-tag">${m.role === 'manager' ? 'Manager • Can edit & record' : 'Viewer • Can view bills & payments'}</span>
+            </div>
+            <button type="button" class="btn-remove-member" title="Revoke access">✕</button>
+          `;
+          row.querySelector('.btn-remove-member')?.addEventListener('click', async () => {
+            try {
+              await revokeCloudFamilyMember(m.id);
+              row.remove();
+              const remaining = membersList.querySelectorAll('.dynamic-cloud-member').length;
+              if (badgeCount) badgeCount.textContent = `${remaining} Shared`;
+              showToast(`🗑️ Revoked access for ${m.member_email}`);
+            } catch (revErr) {
+              showToast(`❌ Error revoking access: ${revErr.message}`);
+            }
+          });
+          membersList.appendChild(row);
         });
-        membersList.appendChild(row);
-      });
-      if (badgeCount) {
-        badgeCount.textContent = `${members.length} Shared`;
+        if (badgeCount) {
+          badgeCount.textContent = `${members.length} Shared`;
+        }
+      } else {
+        if (badgeCount) {
+          badgeCount.textContent = `0 Shared`;
+        }
       }
     }
   } catch (err) {
@@ -1822,7 +1840,7 @@ function initEditTenancy() {
   const nativeDate = document.getElementById('edit-native-billing-date');
   const dateDisplay = document.getElementById('edit-billing-date-display');
 
-  trigger?.addEventListener('click', () => {
+  const openEditDatePicker = () => {
     if (nativeDate && typeof nativeDate.showPicker === 'function') {
       try {
         nativeDate.showPicker();
@@ -1832,15 +1850,19 @@ function initEditTenancy() {
     } else {
       nativeDate?.focus();
     }
-  });
+  };
+  trigger?.addEventListener('click', openEditDatePicker);
+  dateDisplay?.addEventListener('click', openEditDatePicker);
 
   nativeDate?.addEventListener('change', (e) => {
     const val = e.target.value;
     if (val && dateDisplay) {
       const day = parseInt(val.split('-')[2], 10);
-      const suffix = getOrdinal(day);
-      dateDisplay.value = `${day}${suffix} of every month`;
-      showToast(`Recurring billing date set to ${day}${suffix} of every month`);
+      if (!isNaN(day)) {
+        const suffix = getOrdinal(day);
+        dateDisplay.value = `${day}${suffix} of every month`;
+        showToast(`Recurring billing date set to ${day}${suffix} of every month`);
+      }
     }
   });
 
@@ -2092,7 +2114,7 @@ function initRecordPaymentPage() {
   const nativeDate = document.getElementById('record-native-payment-date');
   const dateDisplay = document.getElementById('record-payment-date-display');
 
-  trigger?.addEventListener('click', () => {
+  const openPaymentDatePicker = () => {
     if (nativeDate && typeof nativeDate.showPicker === 'function') {
       try {
         nativeDate.showPicker();
@@ -2102,7 +2124,9 @@ function initRecordPaymentPage() {
     } else {
       nativeDate?.focus();
     }
-  });
+  };
+  trigger?.addEventListener('click', openPaymentDatePicker);
+  dateDisplay?.addEventListener('click', openPaymentDatePicker);
 
   nativeDate?.addEventListener('change', (e) => {
     const val = e.target.value;
@@ -2233,7 +2257,11 @@ export function setupGenerateBillScreen(target) {
   if (advanceInput) advanceInput.value = '';
 
   const dueInput = document.getElementById('input-bill-due');
-  if (dueInput) dueInput.value = '';
+  const unpaidPastBills = (cloudBillsList || []).filter(
+    (b) => b.tenancy_id === target.id && b.status === 'unpaid'
+  );
+  const totalPastDue = unpaidPastBills.reduce((acc, b) => acc + parseFloat(b.net_payable || 0), 0);
+  if (dueInput) dueInput.value = totalPastDue > 0 ? totalPastDue : '';
 
   const notesInput = document.getElementById('input-bill-notes');
   if (notesInput) notesInput.value = '';
@@ -2329,9 +2357,12 @@ function initBillGenerationFlow() {
   const endNative = document.getElementById('bill-native-end-date');
   const endDisplay = document.getElementById('bill-end-date-display');
 
-  startTrigger?.addEventListener('click', () => {
+  const openStartDatePicker = () => {
     try { startNative?.showPicker(); } catch (e) { startNative?.focus(); }
-  });
+  };
+  startTrigger?.addEventListener('click', openStartDatePicker);
+  startDisplay?.addEventListener('click', openStartDatePicker);
+
   startNative?.addEventListener('change', (e) => {
     if (e.target.value && startDisplay) {
       const d = new Date(e.target.value + 'T00:00:00');
@@ -2339,9 +2370,12 @@ function initBillGenerationFlow() {
     }
   });
 
-  endTrigger?.addEventListener('click', () => {
+  const openEndDatePicker = () => {
     try { endNative?.showPicker(); } catch (e) { endNative?.focus(); }
-  });
+  };
+  endTrigger?.addEventListener('click', openEndDatePicker);
+  endDisplay?.addEventListener('click', openEndDatePicker);
+
   endNative?.addEventListener('change', (e) => {
     if (e.target.value && endDisplay) {
       const d = new Date(e.target.value + 'T00:00:00');
@@ -2556,7 +2590,13 @@ function initBillGenerationFlow() {
   });
 
   btnBillDetailsBack?.addEventListener('click', () => {
-    navigateToScreen(6);
+    if (state.previousScreen === 18 && activeArchivedTenancy) {
+      navigateToScreen(18);
+    } else if (state.previousScreen === 10 && currentActiveTenancy) {
+      navigateToScreen(10);
+    } else {
+      navigateToScreen(6);
+    }
   });
 
   const handleShareInvoice = () => {
@@ -2772,6 +2812,9 @@ async function openArchivedDetails(tenancy) {
         bills.forEach((b) => {
           const row = document.createElement('div');
           row.className = 'recent-item-card';
+          row.setAttribute('role', 'button');
+          row.setAttribute('tabindex', '0');
+          row.style.cursor = 'pointer';
           row.innerHTML = `
             <div class="recent-item-left">
               <strong class="recent-item-title">${b.duration_start} – ${b.duration_end}</strong>
@@ -2779,8 +2822,18 @@ async function openArchivedDetails(tenancy) {
             </div>
             <div class="recent-item-right">
               <strong class="recent-item-amount">Rs. ${parseFloat(b.net_payable).toLocaleString('en-IN')}</strong>
+              <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
             </div>
           `;
+          row.addEventListener('click', () => {
+            renderBillDetails({
+              ...b,
+              propertyName: tenancy.property_name,
+            });
+            navigateToScreen(15);
+          });
           historyList.appendChild(row);
         });
       } else {
