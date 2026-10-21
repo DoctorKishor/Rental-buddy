@@ -241,12 +241,43 @@ function initStep1Form() {
   const yearlyRadio = document.getElementById('cycle-yearly');
   const monthlyCard = document.querySelector('label[for="cycle-monthly"]');
   const yearlyCard = document.querySelector('label[for="cycle-yearly"]');
+  const nativeDateInput = document.getElementById('native-billing-date');
+  const textDateInput = document.getElementById('input-billing-date');
+  const labelBillingDate = document.getElementById('label-billing-date');
+
+  function updateStep1BillingDate() {
+    const isYearly = yearlyRadio?.checked || state.tenancy.billingCycle === 'Yearly';
+    if (labelBillingDate) {
+      labelBillingDate.textContent = isYearly
+        ? 'Recurring Billing Date (day & month of every year)'
+        : 'Recurring Billing Date (date of the month)';
+    }
+    const val = nativeDateInput?.value;
+    if (!val) {
+      if (textDateInput) textDateInput.placeholder = isYearly ? 'Pick billing date of every year' : 'Pick recurring billing date';
+      return;
+    }
+    const d = new Date(val + 'T00:00:00');
+    if (isNaN(d.getTime())) return;
+    const day = d.getDate();
+    const ordinal = getOrdinal(day);
+    const monthName = d.toLocaleDateString('en-US', { month: 'long' });
+    const formatted = isYearly ? `${ordinal} ${monthName} of every year` : `${ordinal} of every month`;
+    if (textDateInput) textDateInput.value = formatted;
+    state.tenancy.billingDate = formatted;
+
+    const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
+    const monthShort = d.toLocaleDateString('en-US', { month: 'short' });
+    const year = d.getFullYear();
+    state.tenancy.nextBillingDateFormatted = `${weekday} ${day} ${monthShort}, ${year}`;
+  }
 
   monthlyCard?.addEventListener('click', () => {
     monthlyCard.classList.add('selected');
     yearlyCard?.classList.remove('selected');
     monthlyRadio.checked = true;
     state.tenancy.billingCycle = 'Monthly';
+    updateStep1BillingDate();
   });
 
   yearlyCard?.addEventListener('click', () => {
@@ -254,6 +285,7 @@ function initStep1Form() {
     monthlyCard?.classList.remove('selected');
     yearlyRadio.checked = true;
     state.tenancy.billingCycle = 'Yearly';
+    updateStep1BillingDate();
   });
 
   document.getElementById('btn-pick-contact')?.addEventListener('click', () => {
@@ -263,23 +295,10 @@ function initStep1Form() {
   });
 
   // Interactive Date Picker Logic
-  const nativeDateInput = document.getElementById('native-billing-date');
-  const textDateInput = document.getElementById('input-billing-date');
   const datePickerTrigger = document.getElementById('datePickerTrigger');
 
   function updateFromDate(dateStr) {
-    if (!dateStr) return;
-    const d = new Date(dateStr + 'T00:00:00');
-    if (isNaN(d.getTime())) return;
-    const day = d.getDate();
-    const ordinal = getOrdinal(day);
-    if (textDateInput) textDateInput.value = `${ordinal} of every month`;
-    state.tenancy.billingDate = `${ordinal} of every month`;
-
-    const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
-    const month = d.toLocaleDateString('en-US', { month: 'short' });
-    const year = d.getFullYear();
-    state.tenancy.nextBillingDateFormatted = `${weekday} ${day} ${month}, ${year}`;
+    updateStep1BillingDate();
   }
 
   nativeDateInput?.addEventListener('change', (e) => {
@@ -517,7 +536,7 @@ function syncConfirmationScreen() {
       noUtilNotice.id = 'confirm-no-utilities-notice';
       noUtilNotice.style.cssText = 'padding: 14px 16px; color: #5452EC; background: #EFF0FA; border-radius: 14px; font-size: 14px; font-weight: 500; text-align: center; margin-top: 10px;';
       noUtilNotice.textContent = '✨ Rent-Only Tenancy • No utilities included (only rent needs to be paid)';
-      const card = document.querySelector('#screen-9 .confirm-card:last-of-type');
+      const card = document.getElementById('confirm-utilities-card') || document.querySelector('#screen-9 .confirm-card:last-of-type');
       card?.appendChild(noUtilNotice);
     } else {
       noUtilNotice.style.display = 'block';
@@ -1344,7 +1363,16 @@ export async function bindTenancyToDetails(t, targetYear = null) {
   if (propTitle) propTitle.textContent = t.property_name;
   const rentNum = parseFloat(t.base_rent || 0);
   if (rentRate) rentRate.textContent = `Rs. ${rentNum.toLocaleString('en-IN')} • Monthly`;
-  if (nextBilling) nextBilling.textContent = `${getOrdinal(t.billing_day || 1)} of next month`;
+  const bDay = parseInt(t.billing_day, 10) || 1;
+  const now = new Date();
+  let nextDate = new Date(now.getFullYear(), now.getMonth(), bDay);
+  if (now.getDate() > bDay) {
+    nextDate = new Date(now.getFullYear(), now.getMonth() + 1, bDay);
+  }
+  const nextMonthName = nextDate.toLocaleDateString('en-US', { month: 'long' });
+  if (nextBilling) {
+    nextBilling.textContent = `${getOrdinal(bDay)} ${nextMonthName}`;
+  }
 
   // Bind to Edit Tenancy form (Screen 11) inputs too
   const editSubtitle = document.getElementById('edit-stepper-subtitle');
@@ -1361,7 +1389,29 @@ export async function bindTenancyToDetails(t, targetYear = null) {
   if (editRent) editRent.value = t.base_rent || '';
   if (editPhone) editPhone.value = t.tenant_phone || '';
   if (editAdvance) editAdvance.value = t.advance_amount || '';
-  if (editDateDisplay) editDateDisplay.value = `${getOrdinal(t.billing_day || 1)} of every month`;
+
+  const isYearlyCycle = (t.billing_cycle || '').toLowerCase() === 'yearly';
+  const editLabelBillingDate = document.getElementById('label-edit-billing-date');
+  if (editLabelBillingDate) {
+    editLabelBillingDate.textContent = isYearlyCycle ? 'Recurring Billing Date (day & month of every year)' : 'Recurring Billing Date (date of the month)';
+  }
+  const cycleCardMonthly = document.getElementById('edit-cycle-monthly');
+  const cycleCardYearly = document.getElementById('edit-cycle-yearly');
+  const radioMonthly = document.querySelector('input[name="edit-billing-cycle"][value="Monthly"]');
+  const radioYearly = document.querySelector('input[name="edit-billing-cycle"][value="Yearly"]');
+  if (isYearlyCycle) {
+    cycleCardYearly?.classList.add('selected');
+    cycleCardMonthly?.classList.remove('selected');
+    if (radioYearly) radioYearly.checked = true;
+  } else {
+    cycleCardMonthly?.classList.add('selected');
+    cycleCardYearly?.classList.remove('selected');
+    if (radioMonthly) radioMonthly.checked = true;
+  }
+
+  if (editDateDisplay) {
+    editDateDisplay.value = isYearlyCycle ? `${getOrdinal(t.billing_day || 1)} of every year` : `${getOrdinal(t.billing_day || 1)} of every month`;
+  }
   if (editNativeDate) {
     const dayStr = (t.billing_day || 1).toString().padStart(2, '0');
     editNativeDate.value = `2026-04-${dayStr}`;
@@ -2061,6 +2111,19 @@ function initEditTenancy() {
       document.querySelectorAll('.radio-card.mini-radio[id^="edit-cycle-"]').forEach((c) => c.classList.remove('selected'));
       radio.parentElement?.classList.add('selected');
       radio.checked = true;
+      const isYearly = radio.value === 'Yearly';
+      const label = document.getElementById('label-edit-billing-date');
+      if (label) label.textContent = isYearly ? 'Recurring Billing Date (day & month of every year)' : 'Recurring Billing Date (date of the month)';
+      const editDisplay = document.getElementById('edit-billing-date-display');
+      const editNative = document.getElementById('edit-native-billing-date');
+      if (editDisplay && editNative?.value) {
+        const d = new Date(editNative.value + 'T00:00:00');
+        if (!isNaN(d.getTime())) {
+          const ord = getOrdinal(d.getDate());
+          const m = d.toLocaleDateString('en-US', { month: 'long' });
+          editDisplay.value = isYearly ? `${ord} ${m} of every year` : `${ord} of every month`;
+        }
+      }
     });
   });
 
@@ -2510,19 +2573,46 @@ export function setupGenerateBillScreen(target) {
   const subtitle = document.getElementById('genbill-subtitle');
   if (subtitle) subtitle.textContent = `for ${target.property_name}`;
 
-  const elecUtil = target.tenancy_utilities?.find((u) => u.utility_type === 'electricity');
+  const elecUtil = target.tenancy_utilities?.find((u) => u.utility_type === 'electricity' && u.is_enabled !== false);
+  const waterUtil = target.tenancy_utilities?.find((u) => u.utility_type === 'water' && u.is_enabled !== false);
+
+  const groupPrevElec = document.getElementById('group-prev-elec');
+  const groupCurrElec = document.getElementById('group-curr-elec');
   const prevElecInput = document.getElementById('input-prev-elec');
-  if (prevElecInput) prevElecInput.value = (elecUtil?.last_meter_reading ?? 0).toFixed(2);
-
-  const waterUtil = target.tenancy_utilities?.find((u) => u.utility_type === 'water');
-  const prevWaterInput = document.getElementById('input-prev-water');
-  if (prevWaterInput) prevWaterInput.value = (waterUtil?.last_meter_reading ?? 0).toFixed(2);
-
   const currElecInput = document.getElementById('input-curr-elec');
-  if (currElecInput) currElecInput.value = '';
 
+  if (elecUtil) {
+    groupPrevElec?.classList.remove('hidden');
+    groupCurrElec?.classList.remove('hidden');
+    if (prevElecInput) prevElecInput.value = (elecUtil.last_meter_reading ?? 0).toFixed(2);
+    if (currElecInput) {
+      currElecInput.value = '';
+      currElecInput.required = true;
+    }
+  } else {
+    groupPrevElec?.classList.add('hidden');
+    groupCurrElec?.classList.add('hidden');
+    if (currElecInput) {
+      currElecInput.value = '0';
+      currElecInput.required = false;
+    }
+  }
+
+  const groupPrevWater = document.getElementById('group-prev-water');
+  const groupCurrWater = document.getElementById('group-curr-water');
+  const prevWaterInput = document.getElementById('input-prev-water');
   const currWaterInput = document.getElementById('input-curr-water');
-  if (currWaterInput) currWaterInput.value = '';
+
+  if (waterUtil && waterUtil.bill_type === 'meter_reading') {
+    groupPrevWater?.classList.remove('hidden');
+    groupCurrWater?.classList.remove('hidden');
+    if (prevWaterInput) prevWaterInput.value = (waterUtil.last_meter_reading ?? 0).toFixed(2);
+    if (currWaterInput) currWaterInput.value = '';
+  } else {
+    groupPrevWater?.classList.add('hidden');
+    groupCurrWater?.classList.add('hidden');
+    if (currWaterInput) currWaterInput.value = '0';
+  }
 
   const advanceInput = document.getElementById('input-bill-advance');
   if (advanceInput) advanceInput.value = '';

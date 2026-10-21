@@ -653,7 +653,7 @@
 
                 <!-- Recurring Billing Date Picker -->
                 <div class="form-group">
-                  <label class="form-label" for="input-billing-date">Recurring Billing Date (date of the month)</label>
+                  <label class="form-label" for="input-billing-date" id="label-billing-date">Recurring Billing Date (date of the month)</label>
                   <div class="input-with-icon date-picker-box" id="datePickerTrigger">
                     <input
                       type="text"
@@ -931,7 +931,7 @@
               <!-- Summary Section 2: Utilities Information -->
               <div class="section-group" style="margin-top: 18px;">
                 <h2 class="section-label">Utilities Information</h2>
-                <div class="confirm-card">
+                <div class="confirm-card" id="confirm-utilities-card">
                   
                   <!-- Electricity Confirmation -->
                   <div class="confirm-utility-block" id="confirm-block-electricity">
@@ -1283,9 +1283,9 @@
                       <span>Monthly</span>
                       <span class="custom-radio mini"></span>
                     </label>
-                    <label class="radio-card mini-radio" id="edit-cycle-weekly">
-                      <input type="radio" name="edit-billing-cycle" value="Weekly" />
-                      <span>Weekly</span>
+                    <label class="radio-card mini-radio" id="edit-cycle-yearly">
+                      <input type="radio" name="edit-billing-cycle" value="Yearly" />
+                      <span>Yearly</span>
                       <span class="custom-radio mini"></span>
                     </label>
                   </div>
@@ -1293,7 +1293,7 @@
 
                 <!-- Recurring Billing Date Picker -->
                 <div class="form-group">
-                  <label class="form-label" for="edit-billing-date-display">Recurring Billing Date</label>
+                  <label class="form-label" for="edit-billing-date-display" id="label-edit-billing-date">Recurring Billing Date (date of the month)</label>
                   <div class="input-with-icon date-picker-box" id="editDatePickerTrigger">
                     <input
                       type="text"
@@ -1709,25 +1709,25 @@
                 </div>
 
                 <!-- Last Month Electricity Reading (Read-only) -->
-                <div class="form-group">
+                <div class="form-group" id="group-prev-elec">
                   <label class="form-label mini" for="input-prev-elec">Last Month's Electricity Reading</label>
                   <input type="text" id="input-prev-elec" class="form-input mini" value="0.00" readonly style="background: #F4F5FC; color: #52586E;" />
                 </div>
 
                 <!-- Current Electricity Reading -->
-                <div class="form-group">
+                <div class="form-group" id="group-curr-elec">
                   <label class="form-label mini" for="input-curr-elec">Current Electricity Reading</label>
                   <input type="number" step="0.01" id="input-curr-elec" class="form-input mini" value="" placeholder="Enter current meter reading" required />
                 </div>
 
                 <!-- Last Month Water Reading (Read-only) -->
-                <div class="form-group">
+                <div class="form-group" id="group-prev-water">
                   <label class="form-label mini" for="input-prev-water">Last Month's Water Reading</label>
                   <input type="text" id="input-prev-water" class="form-input mini" value="0.00" readonly style="background: #F4F5FC; color: #52586E;" />
                 </div>
 
                 <!-- Current Water Reading -->
-                <div class="form-group">
+                <div class="form-group" id="group-curr-water">
                   <label class="form-label mini" for="input-curr-water">Current Water Reading</label>
                   <input type="number" step="0.01" id="input-curr-water" class="form-input mini" value="" placeholder="Enter current water reading" />
                 </div>
@@ -1813,22 +1813,22 @@
                     <span class="breakdown-label">Rent Amount</span>
                     <strong class="breakdown-value" id="review-rent-val">Rs. 0.00</strong>
                   </div>
-                  <div class="breakdown-row complex">
+                  <div class="breakdown-row complex" id="review-row-elec">
                     <div class="breakdown-label-col">
                       <span class="breakdown-label">Electricity</span>
                       <span class="breakdown-subcalc" id="review-elec-sub">0 units</span>
                     </div>
                     <strong class="breakdown-value" id="review-elec-val">Rs. 0.00</strong>
                   </div>
-                  <div class="breakdown-row">
+                  <div class="breakdown-row" id="review-row-internet">
                     <span class="breakdown-label">Internet</span>
                     <strong class="breakdown-value" id="review-internet-val">Rs. 0.00</strong>
                   </div>
-                  <div class="breakdown-row">
+                  <div class="breakdown-row" id="review-row-water">
                     <span class="breakdown-label">Water</span>
                     <strong class="breakdown-value" id="review-water-val">Rs. 0.00</strong>
                   </div>
-                  <div class="breakdown-row">
+                  <div class="breakdown-row" id="review-row-sewage">
                     <span class="breakdown-label">Sewage</span>
                     <strong class="breakdown-value" id="review-sewage-val">Rs. 0.00</strong>
                   </div>
@@ -1921,22 +1921,22 @@
                     <span class="breakdown-label">Rent Amount</span>
                     <strong class="breakdown-value" id="details-bill-rent-val">Rs. 0.00</strong>
                   </div>
-                  <div class="breakdown-row complex">
+                  <div class="breakdown-row complex" id="details-row-elec">
                     <div class="breakdown-label-col">
                       <span class="breakdown-label">Electricity</span>
                       <span class="breakdown-subcalc" id="details-bill-elec-sub">0 units</span>
                     </div>
                     <strong class="breakdown-value" id="details-bill-elec-val">Rs. 0.00</strong>
                   </div>
-                  <div class="breakdown-row">
+                  <div class="breakdown-row" id="details-row-internet">
                     <span class="breakdown-label">Internet</span>
                     <strong class="breakdown-value" id="details-bill-internet-val">Rs. 0.00</strong>
                   </div>
-                  <div class="breakdown-row">
+                  <div class="breakdown-row" id="details-row-water">
                     <span class="breakdown-label">Water</span>
                     <strong class="breakdown-value" id="details-bill-water-val">Rs. 0.00</strong>
                   </div>
-                  <div class="breakdown-row">
+                  <div class="breakdown-row" id="details-row-sewage">
                     <span class="breakdown-label">Sewage</span>
                     <strong class="breakdown-value" id="details-bill-sewage-val">Rs. 0.00</strong>
                   </div>

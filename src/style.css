@@ -3244,6 +3244,7 @@ html, body {
    Screen 16: Settings & System Preferences
    ========================================================================== */
 .settings-group-card {
+  flex-shrink: 0;
   background-color: var(--bg-surface);
   border-radius: var(--radius-card);
   border: 1px solid rgba(226, 228, 242, 0.7);
@@ -3765,4 +3766,10 @@ html, body {
 .settings-group-card.danger-zone {
   border-color: #FECACA !important;
   background: #FFFBFB;
+}
+
+
+.settings-footer {
+  flex-shrink: 0;
+  padding-bottom: 24px;
 }

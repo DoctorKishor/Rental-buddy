@@ -946,3 +946,38 @@
 - **The Enhancement**:
   - Removed the redundant `Replay Tour` button from Screen 5, leaving a single, full-width `Go to Dashboard` primary pill button for a crisp, frictionless onboarding completion experience.
 
+---
+
+## 33. Responsive Settings Layout Preservation, Yearly/Monthly Dynamic Dates, Utility-Scoping in Billing & Confirmation Placement
+
+### 1. Settings Flex-Shrink Clipping Resolution (Screen 16)
+- **The Defect**:
+  - In `src/style.css`, `.settings-group-card` lacked `flex-shrink: 0;` and had `overflow: hidden;`.
+  - When rendered in mobile screen containers with fixed or viewport height, flexbox squashed the cards, completely clipping and hiding "Family Sharing" in Card 1 and "Request Feature" in Card 2 under overlapping bottom cards.
+- **The Architectural Fix**:
+  - Added `flex-shrink: 0;` to `.settings-group-card` and `.settings-footer`.
+  - Guarantees settings cards never collapse or clip child options, enabling smooth, unconstrained vertical scrolling across all mobile screen sizes.
+
+### 2. Dynamic Billing Date Synchronization for Yearly vs Monthly Cycles
+- **The Enhancement**:
+  - In Screen 7 (Step 1) and Screen 11 (Edit Tenancy), selecting between **Monthly** and **Yearly** dynamically updates both the label and the formatted date string:
+    - **Monthly**: Label is *"Recurring Billing Date (date of the month)"* and value displays *"15th of every month"*.
+    - **Yearly**: Label adapts to *"Recurring Billing Date (day & month of every year)"* and value displays *"15th April of every year"*.
+  - Fixed Edit Tenancy cycle options by replacing the invalid "Weekly" radio button with "Yearly", perfectly aligning with Step 1 tenancy creation.
+
+### 3. Step 3 Confirmation "Utilities Information" Placement
+- **The Fix**:
+  - Attached `id="confirm-utilities-card"` to the Utilities Information confirmation section in `index.html`.
+  - The *"✨ Rent-Only Tenancy • No utilities included (only rent needs to be paid)"* notification badge now renders directly inside the Utilities Information container rather than overflowing into General Information.
+
+### 4. Tenancy Details Next Rent Due Month Name Resolution
+- **The Fix**:
+  - Replaced the static string *"15th of next month"* on Screen 10 with the dynamic calendar month name (e.g., *"15th November"*), dynamically calculating whether the upcoming billing falls into the current calendar month or next month.
+
+### 5. Utility-Scoped Bill Generation & Breakdown (Screens 13, 14, 15)
+- **The Enhancement**:
+  - In Screen 13 (`setupGenerateBillScreen`), the app inspects the active tenancy's enabled utilities:
+    - If Electricity is disabled, last/current electricity reading inputs are completely hidden and unrequired.
+    - If Water is disabled or flat-rate, water meter reading inputs are hidden.
+  - In Screen 14 (Review Bill) and Screen 15 (Bill Details / Invoice), line items for utilities (Electricity, Water, Internet, Sewage/Garbage) are displayed if and only if they are enabled for that specific tenancy and have non-zero amounts. Non-applicable utilities are completely hidden.
+
