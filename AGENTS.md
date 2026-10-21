@@ -1168,12 +1168,26 @@
 
 ### 3. Barcode Stub & Verification Architecture
 - **Ticket Stub**:
-  - Vector SVG barcode with realistic bar weights (`width: 85%; height: 48px; max-width: 280px;`).
-  - Monospace receipt ID: `RB-PAY-XXXXXXXXXX` generated deterministically from the transaction ID.
-  - Caption: `"Show this digital receipt or share with tenant for verified proof of payment."`
-  - Scroll Comfort: `.screen-content` possesses `padding-bottom: 96px;` to guarantee the entire stub is 100% visible and never clipped or obscured by the fixed bottom bar.
+  - Vector SVG barcode with realistic bar weights (`width: 82%; height: 52px; max-width: 270px; margin: 8px auto 14px;`).
+  - Monospace receipt ID: `RB-PAY-XXXXXXXXXX` generated deterministically from the transaction ID (`font-size: 13.5px; letter-spacing: 0.08em; line-height: 1.4;`).
+  - Caption: `"Show this digital receipt or share with tenant for verified proof of payment."` with relaxed line-height (`1.6`) for optimal readability.
 
-### 4. Canonical Bottom Action Bar Architecture
+### 4. Spacious Line Spacing & Full Vertical Utilization (Anti-Clutter Architecture)
+- **Problem Resolved**: When packed tightly, the ticket voucher elements felt congested and left a dead ~150px blank void between the card and the bottom action bar.
+- **Spacious Vertical Rhythm & Relaxed Line Heights**:
+  - Header: `padding: 24px 22px 16px;`, title `font-size: 24px; line-height: 1.35; margin: 0 0 12px 0;`.
+  - Meta Pills: `padding: 6px 13px; font-size: 13.5px; line-height: 1.4; gap: 7px;`.
+  - Key Highlights: `padding: 10px 22px 14px; gap: 18px;`, icon `42px × 42px`, values `line-height: 1.4;`.
+  - Dividers: `margin: 16px 22px; height: 1px; background: #ECEEF8;`.
+  - Amount Hero: `padding: 6px 22px 8px;`, caption `line-height: 1.35;`, amount `clamp(26px, 7vw, 30px); line-height: 1.25;`.
+  - Body Details: `padding: 0 22px; gap: 18px;`, detail body `line-height: 1.55;`, allocation rows `padding: 12px 16px; gap: 12px; border-radius: 14px; line-height: 1.4;`.
+  - Perforation Zone: `height: 32px; margin: 20px 0 12px;` with `32px` inward notches (`left: -16px; right: -16px;`).
+- **Complete Vertical Utilization Architecture**:
+  - The ticket card `.receipt-ticket-card` uses `flex: 1 0 auto; display: flex; flex-direction: column; justify-content: space-between; margin-top: 6px; margin-bottom: 12px;`.
+  - Content partitioned cleanly into `.receipt-card-upper` (growing financial details) and `.receipt-card-lower` (pinned perforation & barcode stub with `margin-top: auto;`).
+  - Container `.receipt-screen-content` uses `padding: 16px 20px 14px;` without excessive inline bottom padding, allowing the voucher to gracefully fill the available vertical space directly above the bottom action bar.
+
+### 5. Canonical Bottom Action Bar Architecture
 - **Strict Anti-Collapse Compliance**:
   - Rendered as `<footer class="bottom-bar two-buttons">` strictly outside `.screen-content`.
   - Both buttons share `54px` min-height, pill geometry, zero flexbox squashing, and proper side-by-side flex allocation.

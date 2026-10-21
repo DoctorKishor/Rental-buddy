@@ -2654,7 +2654,7 @@
 
           <!-- SCREEN 21: Payment Receipt (Movie-Ticket Inspired Payment Voucher) -->
           <section class="screen" id="screen-21" data-screen="21">
-            <div class="screen-content" style="padding-bottom: 96px;">
+            <div class="screen-content receipt-screen-content">
               <!-- Top Navigation Header -->
               <nav class="stepper-header">
                 <button class="nav-back-btn" id="btn-receipt-back" aria-label="Go back">
@@ -2672,170 +2672,176 @@
 
               <!-- The Ticket Voucher Card -->
               <div class="receipt-ticket-card">
-                <!-- 1. Header Information -->
-                <div class="receipt-ticket-header">
-                  <div class="receipt-header-left">
-                    <span class="receipt-brand-tag">RENTAL BUDDY • DIGITAL VOUCHER</span>
-                    <h2 class="receipt-prop-title" id="receipt-prop-title">--</h2>
-                    <div class="receipt-meta-row">
-                      <span class="receipt-meta-pill" id="receipt-tenant-name">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                        <span id="receipt-tenant-text">Tenant</span>
-                      </span>
-                      <span class="receipt-meta-pill" id="receipt-base-rent">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9.5z"></path><circle cx="12" cy="11.5" r="2" fill="currentColor" stroke="none"></circle><path d="M9 18a3 3 0 0 1 6 0"></path></svg>
-                        <span id="receipt-rent-text">Rs. 0 / mo</span>
-                      </span>
+                <!-- Upper Ticket Section (Spacious Financial & Tenant Breakdown) -->
+                <div class="receipt-card-upper">
+                  <!-- 1. Header Information -->
+                  <div class="receipt-ticket-header">
+                    <div class="receipt-header-left">
+                      <span class="receipt-brand-tag">RENTAL BUDDY • DIGITAL VOUCHER</span>
+                      <h2 class="receipt-prop-title" id="receipt-prop-title">--</h2>
+                      <div class="receipt-meta-row">
+                        <span class="receipt-meta-pill" id="receipt-tenant-name">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                          <span id="receipt-tenant-text">Tenant</span>
+                        </span>
+                        <span class="receipt-meta-pill" id="receipt-base-rent">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9.5z"></path><circle cx="12" cy="11.5" r="2" fill="currentColor" stroke="none"></circle><path d="M9 18a3 3 0 0 1 6 0"></path></svg>
+                          <span id="receipt-rent-text">Rs. 0 / mo</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 2. Two-Column Highlight Grid (Date & Mode - Clean Movie-Ticket Style) -->
+                  <div class="receipt-key-grid">
+                    <div class="receipt-grid-col">
+                      <div class="receipt-col-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                          <line x1="16" y1="2" x2="16" y2="6"></line>
+                          <line x1="8" y1="2" x2="8" y2="6"></line>
+                          <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                      </div>
+                      <div class="receipt-col-text">
+                        <strong class="receipt-col-val" id="receipt-payment-date">--</strong>
+                        <span class="receipt-col-sub" id="receipt-billing-cycle">Billing Day: 1st</span>
+                      </div>
+                    </div>
+                    <div class="receipt-grid-col">
+                      <div class="receipt-col-icon" id="receipt-mode-icon-box">
+                        <svg id="receipt-icon-cash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                          <circle cx="12" cy="12" r="2"></circle>
+                          <path d="M6 12h.01M18 12h.01"></path>
+                        </svg>
+                        <svg id="receipt-icon-online" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                          <line x1="1" y1="10" x2="23" y2="10"></line>
+                        </svg>
+                      </div>
+                      <div class="receipt-col-text">
+                        <strong class="receipt-col-val" id="receipt-payment-mode">Cash Payment</strong>
+                        <span class="receipt-col-sub hidden" id="receipt-reference-no"></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Divider Line -->
+                  <div class="receipt-solid-divider"></div>
+
+                  <!-- 3. Financial Amount Hero (Direct, crisp, high contrast - No Stamp) -->
+                  <div class="receipt-amount-hero">
+                    <div class="receipt-amount-left">
+                      <span class="receipt-amount-caption">TOTAL AMOUNT RECEIVED</span>
+                      <strong class="receipt-amount-number" id="receipt-total-amount">Rs. 0</strong>
+                    </div>
+                  </div>
+
+                  <!-- Divider Line -->
+                  <div class="receipt-solid-divider"></div>
+
+                  <!-- 4. Property Address / Location & Covered Cycles Breakdown -->
+                  <div class="receipt-body-details">
+                    <!-- Property Address -->
+                    <div class="receipt-detail-block" id="receipt-address-block">
+                      <div class="receipt-detail-header">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                          <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        <span class="receipt-detail-heading">Property & Unit Location</span>
+                      </div>
+                      <p class="receipt-detail-body" id="receipt-prop-address">--</p>
+                    </div>
+
+                    <!-- Covered Billing Cycles with Exact Breakdown Amounts -->
+                    <div class="receipt-detail-block">
+                      <div class="receipt-detail-header">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                          <polyline points="14 2 14 8 20 8"></polyline>
+                          <line x1="16" y1="13" x2="8" y2="13"></line>
+                          <line x1="16" y1="17" x2="8" y2="17"></line>
+                          <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                        <span class="receipt-detail-heading">Cycle Settlement Breakdown</span>
+                      </div>
+                      <div class="receipt-allocations-table" id="receipt-allocations-list">
+                        <!-- Dynamically populated: Month on left, exact allocated Rs. amount on right -->
+                      </div>
+                    </div>
+
+                    <!-- Optional Notes / Remarks Row -->
+                    <div class="receipt-detail-block hidden" id="receipt-notes-row">
+                      <div class="receipt-detail-header">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <span class="receipt-detail-heading">Payment Note</span>
+                      </div>
+                      <p class="receipt-detail-body" id="receipt-notes-text">--</p>
                     </div>
                   </div>
                 </div>
 
-                <!-- 2. Two-Column Highlight Grid (Date & Mode - Clean Movie-Ticket Style) -->
-                <div class="receipt-key-grid">
-                  <div class="receipt-grid-col">
-                    <div class="receipt-col-icon">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                <!-- Lower Ticket Section (Pinned Authentic Perforation & Barcode Stub) -->
+                <div class="receipt-card-lower">
+                  <!-- 5. Perforation Dashed Cutline with Authentic Ticket Cutouts -->
+                  <div class="receipt-perforation-zone">
+                    <div class="receipt-notch notch-left"></div>
+                    <div class="receipt-cutline"></div>
+                    <div class="receipt-notch notch-right"></div>
+                  </div>
+
+                  <!-- 6. Visible, Prominent Barcode Stub & Verification Code -->
+                  <div class="receipt-stub-section">
+                    <div class="receipt-barcode-wrap" id="receipt-barcode">
+                      <svg viewBox="0 0 280 54" preserveAspectRatio="none" class="barcode-svg">
+                        <g fill="currentColor">
+                          <rect x="0" y="0" width="4" height="54" />
+                          <rect x="7" y="0" width="2" height="54" />
+                          <rect x="13" y="0" width="5" height="54" />
+                          <rect x="22" y="0" width="2" height="54" />
+                          <rect x="28" y="0" width="4" height="54" />
+                          <rect x="36" y="0" width="2" height="54" />
+                          <rect x="42" y="0" width="7" height="54" />
+                          <rect x="53" y="0" width="3" height="54" />
+                          <rect x="60" y="0" width="2" height="54" />
+                          <rect x="66" y="0" width="6" height="54" />
+                          <rect x="76" y="0" width="3" height="54" />
+                          <rect x="83" y="0" width="2" height="54" />
+                          <rect x="89" y="0" width="5" height="54" />
+                          <rect x="98" y="0" width="2" height="54" />
+                          <rect x="104" y="0" width="6" height="54" />
+                          <rect x="114" y="0" width="3" height="54" />
+                          <rect x="121" y="0" width="2" height="54" />
+                          <rect x="127" y="0" width="5" height="54" />
+                          <rect x="136" y="0" width="3" height="54" />
+                          <rect x="143" y="0" width="4" height="54" />
+                          <rect x="151" y="0" width="2" height="54" />
+                          <rect x="157" y="0" width="7" height="54" />
+                          <rect x="168" y="0" width="3" height="54" />
+                          <rect x="175" y="0" width="2" height="54" />
+                          <rect x="181" y="0" width="5" height="54" />
+                          <rect x="190" y="0" width="4" height="54" />
+                          <rect x="198" y="0" width="2" height="54" />
+                          <rect x="204" y="0" width="6" height="54" />
+                          <rect x="214" y="0" width="3" height="54" />
+                          <rect x="221" y="0" width="5" height="54" />
+                          <rect x="230" y="0" width="2" height="54" />
+                          <rect x="236" y="0" width="6" height="54" />
+                          <rect x="246" y="0" width="3" height="54" />
+                          <rect x="253" y="0" width="2" height="54" />
+                          <rect x="259" y="0" width="5" height="54" />
+                          <rect x="268" y="0" width="4" height="54" />
+                          <rect x="276" y="0" width="4" height="54" />
+                        </g>
                       </svg>
                     </div>
-                    <div class="receipt-col-text">
-                      <strong class="receipt-col-val" id="receipt-payment-date">--</strong>
-                      <span class="receipt-col-sub" id="receipt-billing-cycle">Billing Day: 1st</span>
-                    </div>
+                    <div class="receipt-order-id" id="receipt-order-id">Receipt ID: RB-PAY-20261021-9377726</div>
+                    <p class="receipt-verify-text">Show this digital receipt or share with tenant for verified proof of payment.</p>
                   </div>
-                  <div class="receipt-grid-col">
-                    <div class="receipt-col-icon" id="receipt-mode-icon-box">
-                      <svg id="receipt-icon-cash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="6" width="20" height="12" rx="2"></rect>
-                        <circle cx="12" cy="12" r="2"></circle>
-                        <path d="M6 12h.01M18 12h.01"></path>
-                      </svg>
-                      <svg id="receipt-icon-online" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                        <line x1="1" y1="10" x2="23" y2="10"></line>
-                      </svg>
-                    </div>
-                    <div class="receipt-col-text">
-                      <strong class="receipt-col-val" id="receipt-payment-mode">Cash Payment</strong>
-                      <span class="receipt-col-sub hidden" id="receipt-reference-no"></span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Divider Line -->
-                <div class="receipt-solid-divider"></div>
-
-                <!-- 3. Financial Amount Hero (Direct, crisp, high contrast - No Stamp) -->
-                <div class="receipt-amount-hero">
-                  <div class="receipt-amount-left">
-                    <span class="receipt-amount-caption">TOTAL AMOUNT RECEIVED</span>
-                    <strong class="receipt-amount-number" id="receipt-total-amount">Rs. 0</strong>
-                  </div>
-                </div>
-
-                <!-- Divider Line -->
-                <div class="receipt-solid-divider"></div>
-
-                <!-- 4. Property Address / Location & Covered Cycles Breakdown -->
-                <div class="receipt-body-details">
-                  <!-- Property Address -->
-                  <div class="receipt-detail-block" id="receipt-address-block">
-                    <div class="receipt-detail-header">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                        <circle cx="12" cy="10" r="3"></circle>
-                      </svg>
-                      <span class="receipt-detail-heading">Property & Unit Location</span>
-                    </div>
-                    <p class="receipt-detail-body" id="receipt-prop-address">--</p>
-                  </div>
-
-                  <!-- Covered Billing Cycles with Exact Breakdown Amounts -->
-                  <div class="receipt-detail-block">
-                    <div class="receipt-detail-header">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="16" y1="13" x2="8" y2="13"></line>
-                        <line x1="16" y1="17" x2="8" y2="17"></line>
-                        <polyline points="10 9 9 9 8 9"></polyline>
-                      </svg>
-                      <span class="receipt-detail-heading">Cycle Settlement Breakdown</span>
-                    </div>
-                    <div class="receipt-allocations-table" id="receipt-allocations-list">
-                      <!-- Dynamically populated: Month on left, exact allocated Rs. amount on right -->
-                    </div>
-                  </div>
-
-                  <!-- Optional Notes / Remarks Row -->
-                  <div class="receipt-detail-block hidden" id="receipt-notes-row">
-                    <div class="receipt-detail-header">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                      </svg>
-                      <span class="receipt-detail-heading">Payment Note</span>
-                    </div>
-                    <p class="receipt-detail-body" id="receipt-notes-text">--</p>
-                  </div>
-                </div>
-
-                <!-- 5. Perforation Dashed Cutline with Authentic Ticket Cutouts -->
-                <div class="receipt-perforation-zone">
-                  <div class="receipt-notch notch-left"></div>
-                  <div class="receipt-cutline"></div>
-                  <div class="receipt-notch notch-right"></div>
-                </div>
-
-                <!-- 6. Visible, Prominent Barcode Stub & Verification Code -->
-                <div class="receipt-stub-section">
-                  <div class="receipt-barcode-wrap" id="receipt-barcode">
-                    <svg viewBox="0 0 280 54" preserveAspectRatio="none" class="barcode-svg">
-                      <g fill="currentColor">
-                        <rect x="0" y="0" width="4" height="54" />
-                        <rect x="7" y="0" width="2" height="54" />
-                        <rect x="13" y="0" width="5" height="54" />
-                        <rect x="22" y="0" width="2" height="54" />
-                        <rect x="28" y="0" width="4" height="54" />
-                        <rect x="36" y="0" width="2" height="54" />
-                        <rect x="42" y="0" width="7" height="54" />
-                        <rect x="53" y="0" width="3" height="54" />
-                        <rect x="60" y="0" width="2" height="54" />
-                        <rect x="66" y="0" width="6" height="54" />
-                        <rect x="76" y="0" width="3" height="54" />
-                        <rect x="83" y="0" width="2" height="54" />
-                        <rect x="89" y="0" width="5" height="54" />
-                        <rect x="98" y="0" width="2" height="54" />
-                        <rect x="104" y="0" width="6" height="54" />
-                        <rect x="114" y="0" width="3" height="54" />
-                        <rect x="121" y="0" width="2" height="54" />
-                        <rect x="127" y="0" width="5" height="54" />
-                        <rect x="136" y="0" width="3" height="54" />
-                        <rect x="143" y="0" width="4" height="54" />
-                        <rect x="151" y="0" width="2" height="54" />
-                        <rect x="157" y="0" width="7" height="54" />
-                        <rect x="168" y="0" width="3" height="54" />
-                        <rect x="175" y="0" width="2" height="54" />
-                        <rect x="181" y="0" width="5" height="54" />
-                        <rect x="190" y="0" width="4" height="54" />
-                        <rect x="198" y="0" width="2" height="54" />
-                        <rect x="204" y="0" width="6" height="54" />
-                        <rect x="214" y="0" width="3" height="54" />
-                        <rect x="221" y="0" width="5" height="54" />
-                        <rect x="230" y="0" width="2" height="54" />
-                        <rect x="236" y="0" width="6" height="54" />
-                        <rect x="246" y="0" width="3" height="54" />
-                        <rect x="253" y="0" width="2" height="54" />
-                        <rect x="259" y="0" width="5" height="54" />
-                        <rect x="268" y="0" width="4" height="54" />
-                        <rect x="276" y="0" width="4" height="54" />
-                      </g>
-                    </svg>
-                  </div>
-                  <div class="receipt-order-id" id="receipt-order-id">Receipt ID: RB-PAY-20261021-9377726</div>
-                  <p class="receipt-verify-text">Show this digital receipt or share with tenant for verified proof of payment.</p>
                 </div>
               </div>
             </div>
