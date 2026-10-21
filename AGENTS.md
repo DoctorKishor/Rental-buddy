@@ -777,7 +777,55 @@
 ### 7. Navigation Flow: Contextual Back Navigation from Screens 12 & 13
 - **The Enhancement**:
   - Implemented `state.previousScreen` tracking in `navigateToScreen()`.
-  - When a landlord opens Record Payment (Screen 12) or Generate Bill (Screen 13) directly from Tenancy Details (Screen 10), clicking the back button now smoothly returns them to Screen 10 rather than dropping them on the root Dashboard (Screen 6).
+---
+
+## 29. Full-App Autonomous Sweep & Anti-Dead-Click Hardening
+
+### 1. Create Tenancy Form Reset Protocol (`resetCreateTenancyForm`)
+- **The Defect**:
+  - After creating a tenancy or navigating to add a new property, previously inputted fields (`input-tenancy-name`, `input-rent-amount`, `input-advance-amount`, `input-phone-number`, and utility inputs) remained populated with the previous tenant's private data.
+- **The Architectural Fix**:
+  - Implemented `resetCreateTenancyForm()` in `src/main.js` and wired it into `#btn-empty-create`, `#btn-dashboard-add`, `#btn-create-tenancy`, and upon successful creation in `#btn-step3-confirm`.
+
+### 2. Responsive Ledger Interaction (Anti-Dead-Click Enforcement)
+- **The Defect**:
+  - Recent payment items on the Dashboard (`listPayments`) and historical payment rows on Tenancy Details (`historyList`) possessed `role="button"`, `tabindex="0"`, and chevron icons, but lacked click listeners, leaving them unresponsive to user taps.
+- **The Architectural Fix**:
+  - Attached interactive click handlers:
+    - Dashboard payment cards look up the associated property and navigate directly to its Tenancy Details (`#screen-10`), allowing instant inspection of the complete ledger.
+    - Tenancy Details History items display a formatted receipt summary toast.
+
+### 3. Dynamic Overdue Bill Calculation on Screen 12 (Dedicated Record Payment)
+- **The Defect**:
+  - On Screen 12, when a tenancy had overdue unpaid invoices, `#record-page-amount` defaulted to base rent rather than the actual overdue invoice balance. Toggling checkboxes in the overdue cycle list did not update the payment amount.
+- **The Architectural Fix**:
+  - In `setupRecordPaymentForm()`, when unpaid bills exist, the payment field initializes to the first overdue bill's `net_payable`.
+  - Added dynamic `recalculateDueAmount()` that computes the exact sum of all checked overdue cycles in real-time as checkboxes are selected or unselected.
+
+### 4. Universal Floating Action Menu & Modal Auto-Dismissal
+- **The Defect**:
+  - In `navigateToScreen()`, only `#details-menu-dropdown` was hidden, leaving `#archdetails-menu-dropdown` or any other action menus visible across screen transitions.
+- **The Architectural Fix**:
+  - Updated `navigateToScreen()` to dismiss all `.floating-action-menu` dropdowns simultaneously.
+
+### 5. Archived Tenancies Automatic Cloud Synchronization
+- **The Defect**:
+  - Navigating to `#screen-17` via back buttons or routing did not automatically fetch the latest archived tenancies if state had changed.
+- **The Architectural Fix**:
+  - `navigateToScreen()` detects `targetScreenNumber === 17` and immediately triggers `loadArchivedTenancies()`.
+
+### 6. Native `.rhb` Backup Cloud Restoration
+- **The Defect**:
+  - Selecting a `.rhb` backup file on Screen 19 verified JSON structure, but did not persist restored tenancies into Supabase.
+- **The Architectural Fix**:
+  - Integrated cloud persistence in `initBackupRestoreScreen()`: iterates through backup tenancies, safely inserts missing records into Supabase via `createCloudTenancy()`, and triggers a fresh dashboard sync.
+
+### 7. Secure Signout State & DOM Clearance
+- **The Defect**:
+  - Signing out of Supabase kept in-memory arrays (`cloudTenanciesList`, `cloudBillsList`, `cloudPaymentsList`) and rendered card DOM elements populated until page refresh.
+- **The Architectural Fix**:
+  - Updated `#btn-settings-logout` listener to clear all in-memory lists, empty `#tenancies-list-wrapper`, and reset empty state indicators upon signout.
+
 
 
 

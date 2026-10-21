@@ -120,7 +120,9 @@ function navigateToScreen(targetScreenNumber) {
   document.querySelectorAll('.modal-overlay').forEach((modal) => {
     modal.classList.add('hidden');
   });
-  document.getElementById('details-menu-dropdown')?.classList.add('hidden');
+  document.querySelectorAll('.floating-action-menu').forEach((menu) => {
+    menu.classList.add('hidden');
+  });
 
   screens.forEach((screen) => {
     const screenNum = parseInt(screen.dataset.screen, 10);
@@ -138,6 +140,8 @@ function navigateToScreen(targetScreenNumber) {
     updateSummaryScreen();
   } else if (targetScreenNumber === 9) {
     syncConfirmationScreen();
+  } else if (targetScreenNumber === 17) {
+    loadArchivedTenancies();
   }
 }
 
@@ -480,6 +484,34 @@ function syncConfirmationScreen() {
   }
 }
 
+// Helper: Reset create tenancy form inputs
+export function resetCreateTenancyForm() {
+  const nameInput = document.getElementById('input-tenancy-name');
+  if (nameInput) nameInput.value = '';
+  const rentInput = document.getElementById('input-rent-amount');
+  if (rentInput) rentInput.value = '';
+  const advInput = document.getElementById('input-advance-amount');
+  if (advInput) advInput.value = '';
+  const phoneInput = document.getElementById('input-phone-number');
+  if (phoneInput) phoneInput.value = '';
+  const elecReading = document.getElementById('input-elec-reading');
+  if (elecReading) elecReading.value = '';
+  const elecPrice = document.getElementById('input-elec-price');
+  if (elecPrice) elecPrice.value = '';
+  const elecFlat = document.getElementById('input-elec-flat-amount');
+  if (elecFlat) elecFlat.value = '';
+  const waterReading = document.getElementById('input-water-reading');
+  if (waterReading) waterReading.value = '';
+  const waterPrice = document.getElementById('input-water-price');
+  if (waterPrice) waterPrice.value = '';
+  const waterFlat = document.getElementById('input-water-amount');
+  if (waterFlat) waterFlat.value = '';
+  const garbageAmt = document.getElementById('input-garbage-amount');
+  if (garbageAmt) garbageAmt.value = '';
+  const internetAmt = document.getElementById('input-internet-amount');
+  if (internetAmt) internetAmt.value = '';
+}
+
 // Attach All Event Listeners
 function initEventListeners() {
   // Universal Form Submit Protection: Prevent accidental full-page refreshes when pressing Enter
@@ -509,6 +541,7 @@ function initEventListeners() {
 
   document.getElementById('btn-create-tenancy')?.addEventListener('click', () => {
     state.setupMode = 'new';
+    resetCreateTenancyForm();
     navigateToScreen(4);
   });
 
@@ -694,6 +727,7 @@ function initEventListeners() {
         created.tenancy_utilities = utilities;
       }
       currentActiveTenancy = created;
+      resetCreateTenancyForm();
       await syncDashboardFromCloud();
       showToast(`🎉 Tenancy "${nameVal}" created & synced to Supabase Cloud!`, 3500);
       setTimeout(() => {
@@ -816,8 +850,14 @@ function initDashboard() {
   const addTenancyBtn = document.getElementById('btn-dashboard-add');
   const settingsBtn = document.getElementById('btn-dashboard-settings');
 
-  emptyCreateBtn?.addEventListener('click', () => navigateToScreen(7));
-  addTenancyBtn?.addEventListener('click', () => navigateToScreen(7));
+  emptyCreateBtn?.addEventListener('click', () => {
+    resetCreateTenancyForm();
+    navigateToScreen(7);
+  });
+  addTenancyBtn?.addEventListener('click', () => {
+    resetCreateTenancyForm();
+    navigateToScreen(7);
+  });
   settingsBtn?.addEventListener('click', () => navigateToScreen(16));
 
   // Live Cloud Status Banner -> Screen 20
@@ -1151,6 +1191,16 @@ export async function syncDashboardFromCloud() {
               </svg>
             </div>
           `;
+          item.addEventListener('click', () => {
+            const prop = cloudTenanciesList.find((ten) => ten.id === p.tenancy_id);
+            if (prop) {
+              bindTenancyToDetails(prop);
+              navigateToScreen(10);
+              showToast(`Viewing details & ledger for ${prop.property_name}`, 2500);
+            } else {
+              showToast(`Payment receipt: Rs. ${parseFloat(p.amount).toLocaleString('en-IN')} via ${p.payment_mode.toUpperCase()} on ${p.payment_date}`, 3000);
+            }
+          });
           listPayments.appendChild(item);
         });
       }
@@ -1434,6 +1484,9 @@ export async function bindTenancyToDetails(t) {
             </svg>
           </div>
         `;
+        item.addEventListener('click', () => {
+          showToast(`Payment Receipt: Rs. ${parseFloat(p.amount).toLocaleString('en-IN')} paid on ${p.payment_date} (${months})`, 3000);
+        });
         historyList.appendChild(item);
       });
     }
@@ -1916,9 +1969,33 @@ export function setupRecordPaymentForm(tenancy) {
     blockPending?.classList.remove('hidden');
     blockNoPending?.classList.add('hidden');
 
+    const firstDue = parseFloat(unpaidBills[0].net_payable) || baseRent;
+    if (dueHint) {
+      dueHint.textContent = `Pending Dues: Rs. ${firstDue.toLocaleString('en-IN')}`;
+      dueHint.style.color = '#DC2626';
+    }
+    if (amountInput) amountInput.value = firstDue;
+
     const monthsList = blockPending?.querySelector('.months-select-list');
     if (monthsList) {
       monthsList.innerHTML = '';
+      const recalculateDueAmount = () => {
+        const checked = Array.from(monthsList.querySelectorAll('input[name="settle-month"]:checked'));
+        if (checked.length > 0) {
+          const totalDue = checked.reduce((sum, cb) => {
+            const b = unpaidBills.find(ub => ub.id === cb.dataset.billId);
+            return sum + (b ? parseFloat(b.net_payable || 0) : 0);
+          }, 0);
+          if (totalDue > 0 && amountInput) {
+            amountInput.value = totalDue;
+          }
+          if (dueHint) {
+            dueHint.textContent = `Selected Dues: Rs. ${totalDue.toLocaleString('en-IN')}`;
+            dueHint.style.color = '#DC2626';
+          }
+        }
+      };
+
       unpaidBills.forEach((bill, idx) => {
         const label = document.createElement('label');
         label.className = `month-select-option ${idx === 0 ? 'selected' : ''}`;
@@ -1936,12 +2013,14 @@ export function setupRecordPaymentForm(tenancy) {
         const checkbox = label.querySelector('input[type="checkbox"]');
         checkbox?.addEventListener('change', () => {
           label.classList.toggle('selected', checkbox.checked);
+          recalculateDueAmount();
         });
         label.addEventListener('click', (e) => {
           if (e.target !== checkbox) {
             e.preventDefault();
             checkbox.checked = !checkbox.checked;
             label.classList.toggle('selected', checkbox.checked);
+            recalculateDueAmount();
           }
         });
         monthsList.appendChild(label);
@@ -2832,13 +2911,35 @@ function initBackupRestoreScreen() {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const content = event.target?.result;
         const parsed = JSON.parse(content);
 
         if (parsed.format === 'rhb' || parsed.app === 'Rental Buddy' || parsed.tenancies) {
-          showToast(`✅ Successfully parsed backup from ${file.name}!`, 3500);
+          showToast(`📦 Restoring records from ${file.name}...`, 3000);
+          if (Array.isArray(parsed.tenancies) && parsed.tenancies.length > 0 && cloudSession.user) {
+            for (const t of parsed.tenancies) {
+              const alreadyExists = cloudTenanciesList.some(ct => ct.property_name.toLowerCase() === (t.property_name || '').toLowerCase());
+              if (!alreadyExists && t.property_name) {
+                try {
+                  await createCloudTenancy({
+                    propertyName: t.property_name,
+                    tenantName: t.tenant_name || 'Tenant',
+                    tenantPhone: t.tenant_phone || '',
+                    baseRent: t.base_rent || 0,
+                    advanceAmount: t.advance_amount || 0,
+                    billingDay: t.billing_day || 1,
+                    utilities: t.tenancy_utilities || [],
+                  });
+                } catch (createErr) {
+                  console.warn('Restore tenancy notice:', createErr);
+                }
+              }
+            }
+            await syncDashboardFromCloud();
+          }
+          showToast(`✅ Successfully restored backup from ${file.name}!`, 3500);
           setTimeout(() => {
             navigateToScreen(6);
           }, 800);
@@ -3124,7 +3225,15 @@ function initFamilySharingModal() {
 
   btnLogout?.addEventListener('click', async () => {
     await signOutUser();
+    cloudTenanciesList = [];
+    cloudBillsList = [];
+    cloudPaymentsList = [];
+    currentActiveTenancy = null;
     updateAuthUI(null);
+    const wrapper = document.getElementById('tenancies-list-wrapper');
+    if (wrapper) wrapper.innerHTML = '';
+    const emptyState = document.getElementById('dashboard-empty-tenancies');
+    emptyState?.classList.remove('hidden');
     showToast('🔒 Signed out of session');
     setTimeout(() => {
       navigateToScreen(20);
@@ -3190,7 +3299,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.rbFirstTimeOnboarding = true;
       navigateToScreen(2); // Direct first-time user to functional onboarding
     } else {
-      await syncDashboardFromCloud();
+      try {
+        await syncDashboardFromCloud();
+      } catch (bootErr) {
+        console.warn('Boot dashboard sync notice:', bootErr);
+      }
       const hash = window.location.hash;
       if (hash && hash.startsWith('#screen-')) {
         const screenNum = parseInt(hash.replace('#screen-', ''), 10);
