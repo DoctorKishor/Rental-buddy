@@ -92,6 +92,14 @@ function initClock() {
 }
 
 // Toast helper
+// Helper: Detect if a tenancy includes utilities or is rent-only (zero utilities)
+export function tenancyHasUtilities(t) {
+  if (!t) return false;
+  const utils = t.tenancy_utilities;
+  if (!Array.isArray(utils) || utils.length === 0) return false;
+  return utils.some((u) => u && (u.is_enabled === true || (u.is_enabled !== false && (parseFloat(u.price_per_unit || 0) > 0 || parseFloat(u.flat_amount || 0) > 0))));
+}
+
 let toastTimeout = null;
 function showToast(message, duration = 3000) {
   if (!toastPopup) return;
@@ -106,6 +114,13 @@ function showToast(message, duration = 3000) {
 
 // Screen Transition Navigator with Strict Auth Guard
 function navigateToScreen(targetScreenNumber) {
+  // Screen 13 Guard: If target is 13 (Generate Bill) but active tenancy is rent-only, redirect to Screen 12 (Record Payment)
+  if (targetScreenNumber === 13 && currentActiveTenancy && !tenancyHasUtilities(currentActiveTenancy)) {
+    showToast(`ℹ️ "${currentActiveTenancy.property_name}" is a rent-only tenancy. Use "Record Payment" to record rent.`, 3000);
+    openRecordPaymentPage(currentActiveTenancy);
+    return;
+  }
+
   // STRICT PRODUCTION AUTH GUARD:
   // Disallow screens 6 through 19 if the user is not authenticated!
   if (targetScreenNumber >= 6 && targetScreenNumber <= 19 && !cloudSession.user) {
@@ -485,6 +500,23 @@ function syncConfirmationScreen() {
     const internetAmount = document.getElementById('input-internet-amount')?.value || '0';
     const internetEl = document.getElementById('confirm-internet-amount');
     if (internetEl) internetEl.textContent = `${sym}${internetAmount}`;
+  }
+
+  const anyUtility = elecEnabled || waterEnabled || garbageEnabled || internetEnabled;
+  let noUtilNotice = document.getElementById('confirm-no-utilities-notice');
+  if (!anyUtility) {
+    if (!noUtilNotice) {
+      noUtilNotice = document.createElement('div');
+      noUtilNotice.id = 'confirm-no-utilities-notice';
+      noUtilNotice.style.cssText = 'padding: 14px 16px; color: #5452EC; background: #EFF0FA; border-radius: 14px; font-size: 14px; font-weight: 500; text-align: center; margin-top: 10px;';
+      noUtilNotice.textContent = '✨ Rent-Only Tenancy • No utilities included (only rent needs to be paid)';
+      const card = document.querySelector('#screen-9 .confirm-card:last-of-type');
+      card?.appendChild(noUtilNotice);
+    } else {
+      noUtilNotice.style.display = 'block';
+    }
+  } else if (noUtilNotice) {
+    noUtilNotice.style.display = 'none';
   }
 }
 
@@ -1055,12 +1087,46 @@ export async function syncDashboardFromCloud() {
           const card = document.createElement('article');
           card.className = 'tenancy-card dynamic-cloud-card';
           card.dataset.tenancyId = t.id;
+          const hasUtils = tenancyHasUtilities(t);
           const billingDay = t.billing_day || 1;
           const rentFormatted = parseFloat(t.base_rent || 0).toLocaleString('en-IN');
 
+          const actionRowHtml = hasUtils
+            ? `
+            <div class="tenancy-action-row dual-action-row">
+              <button type="button" class="btn-card-action peach-action btn-gen-bill-card">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+                <span>Generate Bill</span>
+              </button>
+              <button type="button" class="btn-card-action lavender-action btn-record-pay-card">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                  <circle cx="12" cy="12" r="2.5"></circle>
+                </svg>
+                <span>Record Payment</span>
+              </button>
+            </div>
+            `
+            : `
+            <div class="tenancy-action-row">
+              <button type="button" class="btn-card-action lavender-action btn-record-pay-card" style="width: 100%;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                  <circle cx="12" cy="12" r="2.5"></circle>
+                </svg>
+                <span>Record Payment</span>
+              </button>
+            </div>
+            `;
+
           card.innerHTML = `
             <div class="tenancy-card-header">
-              <span class="status-pill status-upcoming">Active • Supabase Cloud</span>
+              <span class="status-pill status-upcoming" style="${hasUtils ? '' : 'background: #E8E7FB; color: #5452EC;'};">${hasUtils ? 'Active • Utilities Included' : 'Active • Rent Only'}</span>
             </div>
             <div class="tenancy-card-main-row" role="button" tabindex="0" aria-label="View ${t.property_name} tenancy details">
               <div class="tenancy-info">
@@ -1081,28 +1147,11 @@ export async function syncDashboardFromCloud() {
               </div>
               <div class="metric-col right-align">
                 <span class="metric-title">${billingDay}th of month</span>
-                <span class="metric-label">Billing Date</span>
+                <span class="metric-label">${hasUtils ? 'Billing Date' : 'Rent Due Date'}</span>
               </div>
             </div>
             <div class="tenancy-card-divider"></div>
-            <div class="tenancy-action-row dual-action-row">
-              <button type="button" class="btn-card-action peach-action btn-gen-bill-card">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                </svg>
-                <span>Generate Bill</span>
-              </button>
-              <button type="button" class="btn-card-action lavender-action btn-record-pay-card">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="2" y="6" width="20" height="12" rx="2"></rect>
-                  <circle cx="12" cy="12" r="2.5"></circle>
-                </svg>
-                <span>Record Payment</span>
-              </button>
-            </div>
+            ${actionRowHtml}
           `;
 
           card.querySelector('.tenancy-card-main-row')?.addEventListener('click', () => {
@@ -1318,12 +1367,16 @@ export async function bindTenancyToDetails(t) {
   const editElecPrice = document.getElementById('edit-elec-price');
   if (editElecPrice) editElecPrice.value = elecUtil ? (elecUtil.price_per_unit || '') : '';
   const editToggleElec = document.getElementById('edit-toggle-elec');
-  if (editToggleElec) editToggleElec.checked = elecUtil ? elecUtil.is_enabled !== false : true;
+  if (editToggleElec) editToggleElec.checked = elecUtil ? elecUtil.is_enabled !== false : false;
+  document.getElementById('edit-util-electricity')?.classList.toggle('expanded', editToggleElec?.checked ?? false);
+  document.getElementById('edit-details-elec')?.classList.toggle('hidden', !(editToggleElec?.checked ?? false));
 
   const editWaterAmount = document.getElementById('edit-water-amount');
   if (editWaterAmount) editWaterAmount.value = waterUtil ? (waterUtil.flat_amount || '') : '';
   const editToggleWater = document.getElementById('edit-toggle-water');
-  if (editToggleWater) editToggleWater.checked = waterUtil ? waterUtil.is_enabled !== false : true;
+  if (editToggleWater) editToggleWater.checked = waterUtil ? waterUtil.is_enabled !== false : false;
+  document.getElementById('edit-util-water')?.classList.toggle('expanded', editToggleWater?.checked ?? false);
+  document.getElementById('edit-details-water')?.classList.toggle('hidden', !(editToggleWater?.checked ?? false));
 
   // Restore active scheduled revision banner if present
   const bannerRevision = document.getElementById('scheduled-revision-banner');
@@ -1342,15 +1395,40 @@ export async function bindTenancyToDetails(t) {
     const tenancyBills = (allBills || []).filter(b => b.tenancy_id === t.id);
     const tenancyPayments = (allPayments || []).filter(p => p.tenancy_id === t.id);
 
+    const hasUtils = tenancyHasUtilities(t);
+
+    const sublabel = document.querySelector('.summary-card-sublabel');
+    if (sublabel) sublabel.textContent = hasUtils ? 'Total Bill Paid' : 'Total Rent Paid';
+
+    const nextBillLabel = document.querySelector('#details-next-bill-col .metric-label');
+    if (nextBillLabel) nextBillLabel.textContent = hasUtils ? 'Next Billing' : 'Next Rent Due';
+
     const totalPaid = tenancyPayments.reduce((acc, p) => acc + parseFloat(p.amount || 0), 0);
-    if (billsCount) billsCount.textContent = `${tenancyPayments.length} paid`;
+    if (billsCount) billsCount.textContent = hasUtils ? `${tenancyPayments.length} paid` : `${tenancyPayments.length} payments`;
     if (totalAmount) totalAmount.textContent = `Rs. ${totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
-    if (tenancyBills.length > 0 && lastBillCol && lastBillAmount) {
+    if (hasUtils && tenancyBills.length > 0 && lastBillCol && lastBillAmount) {
       lastBillCol.classList.remove('hidden');
       lastBillAmount.textContent = `Rs. ${parseFloat(tenancyBills[0].net_payable).toLocaleString('en-IN')}`;
     } else if (lastBillCol) {
       lastBillCol.classList.add('hidden');
+    }
+
+    // Update sticky bottom button on Screen 10
+    const generateBillBtn = document.getElementById('btn-details-generate-bill');
+    if (generateBillBtn) {
+      generateBillBtn.textContent = hasUtils ? 'Generate New Bill' : 'Record Payment';
+    }
+
+    const emptyBillsHeading = document.querySelector('#details-empty-bills .empty-recent-heading');
+    const emptyBillsCopy = document.querySelector('#details-empty-bills .empty-recent-copy');
+    if (emptyBillsHeading) {
+      emptyBillsHeading.textContent = hasUtils ? 'No bills or payments yet' : 'No payments recorded yet';
+    }
+    if (emptyBillsCopy) {
+      emptyBillsCopy.textContent = hasUtils
+        ? 'You will see them here once they are generated or recorded.'
+        : 'You will see payments here once they are recorded.';
     }
 
     // 1. Populate Month-wise 12-Month Stack (Jan–Dec for selected Year 2026)
@@ -1423,25 +1501,46 @@ export async function bindTenancyToDetails(t) {
           upcomingCount++;
           card.className = 'month-card month-upcoming';
           card.style.cursor = 'pointer';
-          card.title = 'Click to generate bill for this cycle';
-          card.addEventListener('click', () => {
-            currentActiveTenancy = t;
-            setupGenerateBillScreen(t);
-            navigateToScreen(13);
-          });
-          card.innerHTML = `
-            <div class="month-card-left">
-              <div class="month-badge upcoming">⏳</div>
-              <div class="month-details-col">
-                <strong class="month-name">${monthName} 2026</strong>
-                <span class="month-subtext">Next billing • Click to generate</span>
+          if (hasUtils) {
+            card.title = 'Click to generate bill for this cycle';
+            card.addEventListener('click', () => {
+              currentActiveTenancy = t;
+              setupGenerateBillScreen(t);
+              navigateToScreen(13);
+            });
+            card.innerHTML = `
+              <div class="month-card-left">
+                <div class="month-badge upcoming">⏳</div>
+                <div class="month-details-col">
+                  <strong class="month-name">${monthName} 2026</strong>
+                  <span class="month-subtext">Next billing • Click to generate</span>
+                </div>
               </div>
-            </div>
-            <div class="month-card-right">
-              <span class="month-amount">Rs. ${rentNum.toLocaleString('en-IN')}</span>
-              <span class="month-status-pill upcoming">⏳ Next</span>
-            </div>
-          `;
+              <div class="month-card-right">
+                <span class="month-amount">Rs. ${rentNum.toLocaleString('en-IN')}</span>
+                <span class="month-status-pill upcoming">⏳ Next</span>
+              </div>
+            `;
+          } else {
+            card.title = 'Click to record payment for this month';
+            card.addEventListener('click', () => {
+              currentActiveTenancy = t;
+              openRecordPaymentPage(t);
+            });
+            card.innerHTML = `
+              <div class="month-card-left">
+                <div class="month-badge upcoming">⏳</div>
+                <div class="month-details-col">
+                  <strong class="month-name">${monthName} 2026</strong>
+                  <span class="month-subtext">Rent due • Click to pay</span>
+                </div>
+              </div>
+              <div class="month-card-right">
+                <span class="month-amount">Rs. ${rentNum.toLocaleString('en-IN')}</span>
+                <span class="month-status-pill upcoming">⏳ Due</span>
+              </div>
+            `;
+          }
         } else if (idx > currentMonthIdx) {
           card.className = 'month-card month-future';
           card.innerHTML = `
@@ -1458,20 +1557,67 @@ export async function bindTenancyToDetails(t) {
             </div>
           `;
         } else {
-          card.className = 'month-card month-settled';
-          card.innerHTML = `
-            <div class="month-card-left">
-              <div class="month-badge paid">✔</div>
-              <div class="month-details-col">
-                <strong class="month-name">${monthName} 2026</strong>
-                <span class="month-subtext">No pending dues</span>
+          // Past month (idx < currentMonthIdx)
+          if (!hasUtils) {
+            const tenancyStart = t.created_at ? new Date(t.created_at) : new Date(2026, 0, 1);
+            const monthDate = new Date(2026, idx, 1);
+            const isAfterStart = (monthDate.getFullYear() > tenancyStart.getFullYear()) ||
+              (monthDate.getFullYear() === tenancyStart.getFullYear() && idx >= tenancyStart.getMonth());
+
+            if (isAfterStart) {
+              dueCount++;
+              card.className = 'month-card month-due';
+              card.style.cursor = 'pointer';
+              card.title = 'Click to record overdue rent payment';
+              card.addEventListener('click', () => {
+                currentActiveTenancy = t;
+                openRecordPaymentPage(t);
+              });
+              card.innerHTML = `
+                <div class="month-card-left">
+                  <div class="month-badge due">⚠️</div>
+                  <div class="month-details-col">
+                    <strong class="month-name">${monthName} 2026</strong>
+                    <span class="month-subtext">Rent overdue • Click to pay</span>
+                  </div>
+                </div>
+                <div class="month-card-right">
+                  <span class="month-amount" style="color: #DC2626;">Rs. ${rentNum.toLocaleString('en-IN')}</span>
+                  <span class="month-status-pill due">⚠️ Due</span>
+                </div>
+              `;
+            } else {
+              card.className = 'month-card month-settled';
+              card.innerHTML = `
+                <div class="month-card-left">
+                  <div class="month-badge paid">✔</div>
+                  <div class="month-details-col">
+                    <strong class="month-name">${monthName} 2026</strong>
+                    <span class="month-subtext">Before tenancy started</span>
+                  </div>
+                </div>
+                <div class="month-card-right">
+                  <span class="month-amount">Rs. 0.00</span>
+                  <span class="month-status-pill paid">Clear</span>
+                </div>
+              `;
+            }
+          } else {
+            card.className = 'month-card month-settled';
+            card.innerHTML = `
+              <div class="month-card-left">
+                <div class="month-badge paid">✔</div>
+                <div class="month-details-col">
+                  <strong class="month-name">${monthName} 2026</strong>
+                  <span class="month-subtext">No pending dues</span>
+                </div>
               </div>
-            </div>
-            <div class="month-card-right">
-              <span class="month-amount">Rs. 0.00</span>
-              <span class="month-status-pill paid">Clear</span>
-            </div>
-          `;
+              <div class="month-card-right">
+                <span class="month-amount">Rs. 0.00</span>
+                <span class="month-status-pill paid">Clear</span>
+              </div>
+            `;
+          }
         }
         monthStack.appendChild(card);
       });
@@ -1638,12 +1784,15 @@ function initTenancyDetails() {
     showToast(`Showing payment records for Year ${val}`);
   });
 
-  // Generate New Bill Button -> Screen 13
+  // Bottom Action Button: Generate New Bill (if utilities exist) or Record Payment (if rent-only)
   generateBillBtn?.addEventListener('click', () => {
-    if (currentActiveTenancy) {
+    if (!currentActiveTenancy) return;
+    if (tenancyHasUtilities(currentActiveTenancy)) {
       setupGenerateBillScreen(currentActiveTenancy);
+      navigateToScreen(13);
+    } else {
+      openRecordPaymentPage(currentActiveTenancy);
     }
-    navigateToScreen(13);
   });
 }
 
@@ -1983,9 +2132,40 @@ export function setupRecordPaymentForm(tenancy) {
   const currentMonthTitle = document.getElementById('current-month-title');
   const customMonthPickerRow = document.getElementById('custom-month-picker-row');
 
-  const unpaidBills = (cloudBillsList || []).filter(
-    (b) => b.tenancy_id === tenancy.id && b.status === 'unpaid'
-  );
+  const hasUtils = tenancyHasUtilities(tenancy);
+  const unpaidBills = hasUtils
+    ? (cloudBillsList || []).filter((b) => b.tenancy_id === tenancy.id && b.status === 'unpaid')
+    : [];
+
+  const unpaidRentMonths = [];
+  if (!hasUtils) {
+    const tenancyStart = tenancy.created_at ? new Date(tenancy.created_at) : new Date(2026, 0, 1);
+    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const now = new Date();
+    const currIdx = now.getMonth();
+    const tenancyPayments = (cloudPaymentsList || []).filter((p) => p.tenancy_id === tenancy.id);
+
+    for (let i = 0; i < currIdx; i++) {
+      const monthDate = new Date(2026, i, 1);
+      const isAfterStart = (monthDate.getFullYear() > tenancyStart.getFullYear()) ||
+        (monthDate.getFullYear() === tenancyStart.getFullYear() && i >= tenancyStart.getMonth());
+      if (isAfterStart) {
+        const mName = MONTHS[i];
+        const isPaid = tenancyPayments.some((p) => {
+          if (Array.isArray(p.settled_months)) {
+            return p.settled_months.some((sm) => sm.toLowerCase().includes(mName.toLowerCase()));
+          }
+          return p.payment_date && new Date(p.payment_date).getMonth() === i;
+        });
+        if (!isPaid) {
+          unpaidRentMonths.push({
+            monthLabel: `${mName} 2026`,
+            amount: baseRent,
+          });
+        }
+      }
+    }
+  }
 
   if (unpaidBills.length > 0) {
     blockPending?.classList.remove('hidden');
@@ -2043,6 +2223,53 @@ export function setupRecordPaymentForm(tenancy) {
             checkbox.checked = !checkbox.checked;
             label.classList.toggle('selected', checkbox.checked);
             recalculateDueAmount();
+          }
+        });
+        monthsList.appendChild(label);
+      });
+    }
+  } else if (unpaidRentMonths.length > 0) {
+    blockPending?.classList.remove('hidden');
+    blockNoPending?.classList.add('hidden');
+    if (dueHint) {
+      dueHint.textContent = `Overdue Rent: Rs. ${(unpaidRentMonths[0].amount).toLocaleString('en-IN')}`;
+      dueHint.style.color = '#DC2626';
+    }
+    if (amountInput) amountInput.value = unpaidRentMonths[0].amount;
+    const monthsList = blockPending?.querySelector('.months-select-list');
+    if (monthsList) {
+      monthsList.innerHTML = '';
+      const recalculateRentDue = () => {
+        const checked = Array.from(monthsList.querySelectorAll('input[name="settle-month"]:checked'));
+        const totalDue = checked.length * baseRent;
+        if (totalDue > 0 && amountInput) amountInput.value = totalDue;
+        if (dueHint) {
+          dueHint.textContent = `Selected Rent: Rs. ${totalDue.toLocaleString('en-IN')}`;
+          dueHint.style.color = '#DC2626';
+        }
+      };
+      unpaidRentMonths.forEach((rentM, idx) => {
+        const label = document.createElement('label');
+        label.className = `month-select-option ${idx === 0 ? 'selected' : ''}`;
+        label.innerHTML = `
+          <input type="checkbox" name="settle-month" value="${rentM.monthLabel}" ${idx === 0 ? 'checked' : ''} />
+          <div class="month-opt-details">
+            <strong class="month-opt-title">${rentM.monthLabel}</strong>
+            <span class="month-opt-sub status-overdue">Unpaid Rent • Rs. ${parseFloat(rentM.amount).toLocaleString('en-IN')}</span>
+          </div>
+          <span class="custom-checkbox"></span>
+        `;
+        const checkbox = label.querySelector('input[type="checkbox"]');
+        checkbox?.addEventListener('change', () => {
+          label.classList.toggle('selected', checkbox.checked);
+          recalculateRentDue();
+        });
+        label.addEventListener('click', (e) => {
+          if (e.target !== checkbox) {
+            e.preventDefault();
+            checkbox.checked = !checkbox.checked;
+            label.classList.toggle('selected', checkbox.checked);
+            recalculateRentDue();
           }
         });
         monthsList.appendChild(label);
@@ -2234,6 +2461,11 @@ export let activeBillDraft = null;
 
 export function setupGenerateBillScreen(target) {
   if (!target) return;
+  if (!tenancyHasUtilities(target)) {
+    showToast(`ℹ️ "${target.property_name}" is a rent-only tenancy. Use "Record Payment" to record rent.`, 3500);
+    openRecordPaymentPage(target);
+    return;
+  }
   currentActiveTenancy = target;
 
   const subtitle = document.getElementById('genbill-subtitle');

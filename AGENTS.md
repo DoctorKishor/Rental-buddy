@@ -866,15 +866,51 @@
 - **The Fix**:
   - Included `#input-additional-notes` in `resetCreateTenancyForm()`, ensuring Step 2 custom notes never persist across tenancy creation cycles.
 
+---
 
+## 31. Rent-Only Tenancy Architecture & Utility-Conditional UI Enforcement
 
+### 1. The Architectural Problem
+- In standard rental setups, landlords frequently rent out rooms or flats where rent is strictly all-inclusive (no separate electricity, water, or meter readings).
+- Displaying "Generate Bill", meter reading prompts, or utility invoices for rent-only tenants adds unnecessary cognitive friction, creates user confusion, and exposes non-applicable features.
 
+### 2. Utility Presence Detection (`tenancyHasUtilities`)
+- **Deterministic Evaluation**:
+  - A tenancy is classified as having utilities if and only if `t.tenancy_utilities` contains at least one utility with `is_enabled === true` (or active rate/flat amount).
+  - If a landlord disables all utilities during Step 2 of Tenancy Creation or toggles off all utilities in Edit Tenancy, the tenancy is strictly classified as **Rent-Only**.
 
+### 3. Dashboard UI Conditional Branching (Screen 6)
+- **Tenancy Cards**:
+  - **Tenancy With Utilities**:
+    - Header badge: `Active • Utilities Included`.
+    - Metric row: Displays "Billing Date".
+    - Action row: Dual buttons (`dual-action-row`) showing `Generate Bill` (.peach-action) and `Record Payment` (.lavender-action).
+  - **Rent-Only Tenancy**:
+    - Header badge: `Active • Rent Only` (lavender background `#E8E7FB`, primary indigo text `#5452EC`).
+    - Metric row: Displays "Rent Due Date".
+    - Action row: Single full-width pill button (`Record Payment`, zero shrink, `height: 48px`).
+    - The "Generate Bill" button is completely suppressed.
 
+### 4. Tenancy Details Dynamic Adaptation (Screen 10)
+- **Summary Metrics**:
+  - Header sublabel switches dynamically between `Total Bill Paid` and `Total Rent Paid`.
+  - Paid count badge reflects `X payments` rather than `X bills`.
+  - Next billing metric column adapts label to `Next Rent Due`.
+  - `Last Generated Bill` column remains permanently hidden for rent-only properties.
+- **Sticky Bottom Action Button**:
+  - For tenancies with utilities: Displays `Generate New Bill` and navigates to Screen 13.
+  - For rent-only tenancies: Displays `Record Payment` and directly launches Screen 12 (`openRecordPaymentPage`), entirely bypassing bill generation.
+- **Month-Wise 12-Month Ledger Stack**:
+  - Current cycle card displays "Rent due • Click to pay" with pill `⏳ Due` (instead of "Next billing • Click to generate").
+  - Past overdue months automatically detect unpaid rent after tenancy start and display "Rent overdue • Click to pay" with pill `⚠️ Due`.
+  - Clicking any due month directly opens Screen 12 to settle rent.
 
+### 5. Multi-Layer Screen 13 (Generate Bill) Access Guard
+- If a user navigates to Screen 13 via direct deep-link or hash while an active rent-only tenancy is selected:
+  - The navigator immediately halts bill generation.
+  - Displays a toast: *"ℹ️ '{Property}' is a rent-only tenancy. Use 'Record Payment' to record rent."*
+  - Automatically redirects the user to Screen 12 (Record Payment).
 
-
-
-
-
+### 6. Dedicated Record Payment Support for Rent-Only Dues (Screen 12)
+- For rent-only tenancies with past unpaid months, `blockPending` dynamically generates checkboxes for each overdue rent month (e.g. *August 2026 • Rs. 15,000*), enabling multi-month rent settlement without requiring invoice generation.
 
