@@ -379,6 +379,12 @@ export async function unarchiveCloudTenancy(tenancyId) {
 
 export async function deleteCloudTenancy(tenancyId) {
   try {
+    // Delete child records first to satisfy foreign key constraints
+    await supabase.from('payments').delete().eq('tenancy_id', tenancyId);
+    await supabase.from('bills').delete().eq('tenancy_id', tenancyId);
+    await supabase.from('tenancy_utilities').delete().eq('tenancy_id', tenancyId);
+    await supabase.from('rent_revisions').delete().eq('tenancy_id', tenancyId);
+
     const { error } = await supabase
       .from('tenancies')
       .delete()

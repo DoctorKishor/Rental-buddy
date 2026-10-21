@@ -222,10 +222,17 @@ function updateSummaryScreen() {
 }
 
 // Ordinal suffix helper (1st, 2nd, 3rd, 4th...)
-export function getOrdinal(n) {
+export function getOrdinalSuffix(n) {
+  const num = parseInt(n, 10);
+  if (isNaN(num)) return 'th';
   const s = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  const v = num % 100;
+  return s[(v - 20) % 10] || s[v] || s[0];
+}
+
+export function getOrdinal(n) {
+  const num = parseInt(n, 10) || 1;
+  return `${num}${getOrdinalSuffix(num)}`;
 }
 
 // Tenancy Step 1 Form Listeners
@@ -1314,7 +1321,7 @@ export async function syncDashboardFromCloud() {
 // TENANCY DETAILS CONTROLLER & MONTH-WISE STATUS (SCREEN 10)
 // ==========================================================================
 
-export async function bindTenancyToDetails(t) {
+export async function bindTenancyToDetails(t, targetYear = null) {
   if (!t) return;
   currentActiveTenancy = t;
 
@@ -1337,7 +1344,7 @@ export async function bindTenancyToDetails(t) {
   if (propTitle) propTitle.textContent = t.property_name;
   const rentNum = parseFloat(t.base_rent || 0);
   if (rentRate) rentRate.textContent = `Rs. ${rentNum.toLocaleString('en-IN')} • Monthly`;
-  if (nextBilling) nextBilling.textContent = `${t.billing_day || 1}${getOrdinal(t.billing_day || 1)} of next month`;
+  if (nextBilling) nextBilling.textContent = `${getOrdinal(t.billing_day || 1)} of next month`;
 
   // Bind to Edit Tenancy form (Screen 11) inputs too
   const editSubtitle = document.getElementById('edit-stepper-subtitle');
@@ -1354,7 +1361,7 @@ export async function bindTenancyToDetails(t) {
   if (editRent) editRent.value = t.base_rent || '';
   if (editPhone) editPhone.value = t.tenant_phone || '';
   if (editAdvance) editAdvance.value = t.advance_amount || '';
-  if (editDateDisplay) editDateDisplay.value = `${t.billing_day || 1}${getOrdinal(t.billing_day || 1)} of every month`;
+  if (editDateDisplay) editDateDisplay.value = `${getOrdinal(t.billing_day || 1)} of every month`;
   if (editNativeDate) {
     const dayStr = (t.billing_day || 1).toString().padStart(2, '0');
     editNativeDate.value = `2026-04-${dayStr}`;
@@ -1431,10 +1438,21 @@ export async function bindTenancyToDetails(t) {
         : 'You will see payments here once they are recorded.';
     }
 
-    // 1. Populate Month-wise 12-Month Stack (Jan–Dec for selected Year 2026)
-    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    // 1. Populate Month-wise 12-Month Stack for targetYear
+    const yearSelect = document.getElementById('details-year-select');
     const now = new Date();
-    const currentMonthIdx = now.getMonth(); // 0-indexed (9 for October)
+    const currentYear = now.getFullYear();
+    const currentMonthIdx = now.getMonth(); // 0-indexed
+    const activeYear = targetYear !== null ? parseInt(targetYear, 10) : (parseInt(yearSelect?.value, 10) || currentYear);
+    if (yearSelect && targetYear !== null) {
+      yearSelect.value = activeYear.toString();
+    }
+    const yearIndicator = document.getElementById('details-year-indicator');
+    if (yearIndicator) {
+      yearIndicator.textContent = `Year ${activeYear} (Jan–Dec)`;
+    }
+
+    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     let paidCount = 0;
     let dueCount = 0;
     let upcomingCount = 0;
@@ -1442,20 +1460,30 @@ export async function bindTenancyToDetails(t) {
     if (monthStack) {
       monthStack.innerHTML = '';
       MONTHS.forEach((monthName, idx) => {
-        // Check if settled in payments
+        // Check if settled in payments for activeYear
         const matchedPayment = tenancyPayments.find(p => {
           if (Array.isArray(p.settled_months)) {
-            return p.settled_months.some(m => m.toLowerCase().includes(monthName.toLowerCase()) || monthName.toLowerCase().includes(m.toLowerCase()));
+            return p.settled_months.some(m => {
+              const lower = m.toLowerCase();
+              const monthMatch = lower.includes(monthName.toLowerCase()) || monthName.toLowerCase().includes(lower);
+              const yearMatch = lower.includes(activeYear.toString()) || (p.payment_date && new Date(p.payment_date).getFullYear() === activeYear);
+              return monthMatch && yearMatch;
+            });
           }
-          return p.payment_date && new Date(p.payment_date).getMonth() === idx;
+          if (p.payment_date) {
+            const pDate = new Date(p.payment_date);
+            return pDate.getFullYear() === activeYear && pDate.getMonth() === idx;
+          }
+          return false;
         });
 
-        // Check if unpaid bill exists
+        // Check if unpaid bill exists for activeYear
         const matchedBill = tenancyBills.find(b => {
-          return b.status === 'unpaid' && (
-            (b.duration_start && new Date(b.duration_start).getMonth() === idx) ||
-            (b.duration_end && new Date(b.duration_end).getMonth() === idx)
-          );
+          if (b.status !== 'unpaid') return false;
+          const sDate = b.duration_start ? new Date(b.duration_start) : null;
+          const eDate = b.duration_end ? new Date(b.duration_end) : null;
+          return (sDate && sDate.getFullYear() === activeYear && sDate.getMonth() === idx) ||
+                 (eDate && eDate.getFullYear() === activeYear && eDate.getMonth() === idx);
         });
 
         const card = document.createElement('div');
@@ -1466,7 +1494,7 @@ export async function bindTenancyToDetails(t) {
             <div class="month-card-left">
               <div class="month-badge paid">✔</div>
               <div class="month-details-col">
-                <strong class="month-name">${monthName} 2026</strong>
+                <strong class="month-name">${monthName} ${activeYear}</strong>
                 <span class="month-subtext">Paid on ${matchedPayment.payment_date} • ${(matchedPayment.payment_mode || 'Cash').toUpperCase()}</span>
               </div>
             </div>
@@ -1488,7 +1516,7 @@ export async function bindTenancyToDetails(t) {
             <div class="month-card-left">
               <div class="month-badge due">⚠️</div>
               <div class="month-details-col">
-                <strong class="month-name">${monthName} 2026</strong>
+                <strong class="month-name">${monthName} ${activeYear}</strong>
                 <span class="month-subtext">Billing overdue • Click to pay</span>
               </div>
             </div>
@@ -1497,7 +1525,7 @@ export async function bindTenancyToDetails(t) {
               <span class="month-status-pill due">⚠️ Due</span>
             </div>
           `;
-        } else if (idx === currentMonthIdx) {
+        } else if (activeYear === currentYear && idx === currentMonthIdx) {
           upcomingCount++;
           card.className = 'month-card month-upcoming';
           card.style.cursor = 'pointer';
@@ -1512,7 +1540,7 @@ export async function bindTenancyToDetails(t) {
               <div class="month-card-left">
                 <div class="month-badge upcoming">⏳</div>
                 <div class="month-details-col">
-                  <strong class="month-name">${monthName} 2026</strong>
+                  <strong class="month-name">${monthName} ${activeYear}</strong>
                   <span class="month-subtext">Next billing • Click to generate</span>
                 </div>
               </div>
@@ -1531,7 +1559,7 @@ export async function bindTenancyToDetails(t) {
               <div class="month-card-left">
                 <div class="month-badge upcoming">⏳</div>
                 <div class="month-details-col">
-                  <strong class="month-name">${monthName} 2026</strong>
+                  <strong class="month-name">${monthName} ${activeYear}</strong>
                   <span class="month-subtext">Rent due • Click to pay</span>
                 </div>
               </div>
@@ -1541,14 +1569,14 @@ export async function bindTenancyToDetails(t) {
               </div>
             `;
           }
-        } else if (idx > currentMonthIdx) {
+        } else if ((activeYear > currentYear) || (activeYear === currentYear && idx > currentMonthIdx)) {
           card.className = 'month-card month-future';
           card.innerHTML = `
             <div class="month-card-left">
               <div class="month-badge future">📅</div>
               <div class="month-details-col">
-                <strong class="month-name">${monthName} 2026</strong>
-                <span class="month-subtext">Scheduled cycle • ${t.billing_day || 1}${getOrdinal(t.billing_day || 1)}</span>
+                <strong class="month-name">${monthName} ${activeYear}</strong>
+                <span class="month-subtext">Scheduled cycle • ${getOrdinal(t.billing_day || 1)}</span>
               </div>
             </div>
             <div class="month-card-right">
@@ -1559,8 +1587,8 @@ export async function bindTenancyToDetails(t) {
         } else {
           // Past month (idx < currentMonthIdx)
           if (!hasUtils) {
-            const tenancyStart = t.created_at ? new Date(t.created_at) : new Date(2026, 0, 1);
-            const monthDate = new Date(2026, idx, 1);
+            const tenancyStart = t.created_at ? new Date(t.created_at) : new Date(activeYear, 0, 1);
+            const monthDate = new Date(activeYear, idx, 1);
             const isAfterStart = (monthDate.getFullYear() > tenancyStart.getFullYear()) ||
               (monthDate.getFullYear() === tenancyStart.getFullYear() && idx >= tenancyStart.getMonth());
 
@@ -1577,7 +1605,7 @@ export async function bindTenancyToDetails(t) {
                 <div class="month-card-left">
                   <div class="month-badge due">⚠️</div>
                   <div class="month-details-col">
-                    <strong class="month-name">${monthName} 2026</strong>
+                    <strong class="month-name">${monthName} ${activeYear}</strong>
                     <span class="month-subtext">Rent overdue • Click to pay</span>
                   </div>
                 </div>
@@ -1592,7 +1620,7 @@ export async function bindTenancyToDetails(t) {
                 <div class="month-card-left">
                   <div class="month-badge paid">✔</div>
                   <div class="month-details-col">
-                    <strong class="month-name">${monthName} 2026</strong>
+                    <strong class="month-name">${monthName} ${activeYear}</strong>
                     <span class="month-subtext">Before tenancy started</span>
                   </div>
                 </div>
@@ -1608,7 +1636,7 @@ export async function bindTenancyToDetails(t) {
               <div class="month-card-left">
                 <div class="month-badge paid">✔</div>
                 <div class="month-details-col">
-                  <strong class="month-name">${monthName} 2026</strong>
+                  <strong class="month-name">${monthName} ${activeYear}</strong>
                   <span class="month-subtext">No pending dues</span>
                 </div>
               </div>
@@ -1710,30 +1738,38 @@ function initTenancyDetails() {
   actionArchive?.addEventListener('click', async () => {
     menuDropdown?.classList.add('hidden');
     if (currentActiveTenancy?.id) {
+      const targetId = currentActiveTenancy.id;
+      const targetName = currentActiveTenancy.property_name;
       try {
-        await archiveCloudTenancy(currentActiveTenancy.id);
-        showToast(`🗃️ Tenancy "${currentActiveTenancy.property_name}" archived in Supabase Cloud`);
+        await archiveCloudTenancy(targetId);
+        cloudTenanciesList = cloudTenanciesList.filter(t => t.id !== targetId);
+        currentActiveTenancy = null;
+        showToast(`🗃️ Tenancy "${targetName}" archived in Supabase Cloud`);
         await syncDashboardFromCloud();
+        navigateToScreen(6);
       } catch (e) {
         showToast(`❌ Archive error: ${e.message}`);
       }
     }
-    setTimeout(() => navigateToScreen(6), 600);
   });
 
   actionDelete?.addEventListener('click', async () => {
     menuDropdown?.classList.add('hidden');
     if (currentActiveTenancy?.id) {
-      if (!confirm(`Are you sure you want to delete "${currentActiveTenancy.property_name}"?`)) return;
+      const targetId = currentActiveTenancy.id;
+      const targetName = currentActiveTenancy.property_name;
+      if (!confirm(`Are you sure you want to delete "${targetName}"?`)) return;
       try {
-        await deleteCloudTenancy(currentActiveTenancy.id);
+        await deleteCloudTenancy(targetId);
+        cloudTenanciesList = cloudTenanciesList.filter(t => t.id !== targetId);
+        currentActiveTenancy = null;
         showToast('🗑️ Tenancy deleted from Supabase Cloud');
         await syncDashboardFromCloud();
+        navigateToScreen(6);
       } catch (e) {
         showToast(`❌ Delete error: ${e.message}`);
       }
     }
-    setTimeout(() => navigateToScreen(6), 600);
   });
 
   // View Switcher: Month-wise vs Transaction History
@@ -1773,13 +1809,16 @@ function initTenancyDetails() {
     }
   });
 
-  // Year Dropdown change
+  // Year Dropdown change: dynamically re-render month ledger for selected financial year
   const yearSelect = document.getElementById('details-year-select');
   const yearIndicator = document.getElementById('details-year-indicator');
   yearSelect?.addEventListener('change', () => {
-    const val = yearSelect.value;
+    const val = parseInt(yearSelect.value, 10) || new Date().getFullYear();
     if (yearIndicator) {
       yearIndicator.textContent = `Year ${val} (Jan–Dec)`;
+    }
+    if (currentActiveTenancy) {
+      bindTenancyToDetails(currentActiveTenancy, val);
     }
     showToast(`Showing payment records for Year ${val}`);
   });
@@ -2008,9 +2047,9 @@ function initEditTenancy() {
     if (val && dateDisplay) {
       const day = parseInt(val.split('-')[2], 10);
       if (!isNaN(day)) {
-        const suffix = getOrdinal(day);
-        dateDisplay.value = `${day}${suffix} of every month`;
-        showToast(`Recurring billing date set to ${day}${suffix} of every month`);
+        const formatted = getOrdinal(day);
+        dateDisplay.value = `${formatted} of every month`;
+        showToast(`Recurring billing date set to ${formatted} of every month`);
       }
     }
   });

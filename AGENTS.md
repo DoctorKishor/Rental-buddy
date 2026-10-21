@@ -914,3 +914,35 @@
 ### 6. Dedicated Record Payment Support for Rent-Only Dues (Screen 12)
 - For rent-only tenancies with past unpaid months, `blockPending` dynamically generates checkboxes for each overdue rent month (e.g. *August 2026 • Rs. 15,000*), enabling multi-month rent settlement without requiring invoice generation.
 
+---
+
+## 32. Tenancy Lifecycle Deletion/Archiving, Ordinal String Hygiene, Dynamic Financial Year Switching & Onboarding Tour Streamlining
+
+### 1. Cascade Deletion & Instant UI Removal Resolution (`deleteCloudTenancy` & `archiveCloudTenancy`)
+- **The Defect**:
+  - In `src/supabase.js`, `deleteCloudTenancy()` attempted to delete directly from `tenancies`. If a tenancy had associated records in `payments`, `bills`, `tenancy_utilities`, or `rent_revisions`, PostgreSQL raised a foreign key constraint violation.
+  - The UI caught the error but prematurely executed an unawaited `setTimeout(() => navigateToScreen(6), 600)`, leaving the tenancy active and visible on screen until hard page reload.
+- **The Architectural Fix**:
+  - `deleteCloudTenancy()` now cascades deletes through child foreign-key tables (`payments`, `bills`, `tenancy_utilities`, `rent_revisions`) before removing the tenancy from `tenancies`.
+  - In `src/main.js`, `actionArchive` and `actionDelete` immediately remove the target tenancy from in-memory `cloudTenanciesList`, nullify `currentActiveTenancy`, await `syncDashboardFromCloud()`, and transition to Screen 6 only upon confirmed completion.
+
+### 2. Ordinal String Concatenation Fix (`getOrdinal` vs `getOrdinalSuffix`)
+- **The Defect**:
+  - `getOrdinal(n)` returned the formatted string with the number already attached (e.g. `"10th"`).
+  - Several templates throughout the app concatenated the day with `getOrdinal(day)` (e.g. `${day}${getOrdinal(day)}`), producing erroneous strings like `"1010th of every month"` and `"1010th of next month"`.
+- **The Architectural Fix**:
+  - Separated `getOrdinalSuffix(n)` (returning purely `'st'`, `'nd'`, `'rd'`, `'th'`) from `getOrdinal(n)` (returning `${n}${suffix}`).
+  - Updated all template strings across Screen 10 (Tenancy Details), Screen 11 (Edit Tenancy), and Screen 7 (Step 1) to use `getOrdinal(day)` directly without duplicate day prefixes.
+
+### 3. Dynamic Financial Year Ledger Switching
+- **The Defect**:
+  - Changing the year dropdown (`#details-year-select`) on Screen 10 between `Year 2026` and `Year 2025` only updated the text badge and displayed a toast; the 12-month stack was hardcoded to 2026 and did not re-render.
+- **The Architectural Fix**:
+  - Parameterized `bindTenancyToDetails(t, targetYear = null)`.
+  - When `#details-year-select` changes, it immediately invokes `bindTenancyToDetails(currentActiveTenancy, selectedYear)`.
+  - The 12-month card generator evaluates payment settlements and bill records specifically for the chosen calendar year, correctly displaying historical, overdue, or scheduled cycles.
+
+### 4. Screen 5 Onboarding Tour Streamlining
+- **The Enhancement**:
+  - Removed the redundant `Replay Tour` button from Screen 5, leaving a single, full-width `Go to Dashboard` primary pill button for a crisp, frictionless onboarding completion experience.
+
