@@ -1010,3 +1010,30 @@
     - The past 3 months for retrospective cycle settlements.
   - Added clean container styling (`.custom-month-picker-row`) with distinct label and native select chevron styling.
   - Automatically selects the next upcoming advance cycle when opened and updates the settlement status pill in real-time.
+
+## 35. Elderly-Friendly & Decluttered Month Settlement Architecture (Screen 12)
+
+### 1. The UX Flaw & Trapped State Defect
+- **The Defect**:
+  - In Screen 12, tapping `+ Settle for another month / Advance` and selecting an advance cycle mutated the static headline pill to `"November 2026 (Advance)"` while retaining a green `"Current"` badge, creating an illogical oxymoron.
+  - Furthermore, the user was trapped: there was no button or toggle to switch back to the actual current billing cycle (e.g. October 2026) without closing the page and reopening it.
+  - The UI was visually congested with multiple nested alerts, text action toggles, and dropdown rows that confused non-tech-savvy and elderly landlords.
+
+### 2. The Two-Option Radio Card Architecture (Foolproof & High Contrast)
+- **The Architectural Fix**:
+  - Replaced the clunky nested alerts and text links with two prominent, high-contrast radio choice cards:
+    1. **Choice 1: Current Month (Default)**
+       - Displays the exact calendar month (e.g., `October 2026`) with a green `Current` pill.
+       - Subtitle explains: *"Regular monthly billing cycle"*.
+    2. **Choice 2: Advance / Future Month**
+       - Displays `Advance / Another Month` with a sky-blue `Advance` pill.
+       - Subtitle explains: *"Pay ahead for upcoming or other months"*.
+  - When **Choice 1** is selected:
+    - The advance dropdown is smoothly hidden.
+    - Payment is automatically locked to the current billing month.
+  - When **Choice 2** is selected:
+    - The advance dropdown panel (`#advance-dropdown-panel`) slides into view with clear, large typography.
+    - Landlords can select any of the upcoming 12 months.
+  - **Single-Tap Reversibility**:
+    - Landlords can switch back to Current Month at any time simply by tapping Choice 1.
+    - Zero trapped states, zero confusing text mutations, and 100% accessible touch targets for older users.

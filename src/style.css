@@ -3119,12 +3119,97 @@ select.form-input:disabled {
   cursor: not-allowed;
 }
 
-.custom-month-picker-row {
+.settle-cycle-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cycle-choice-card {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  background-color: var(--bg-surface);
+  border: 1.5px solid #E2E4F2;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.cycle-choice-card input[type="radio"] {
+  display: none;
+}
+
+.cycle-choice-card.selected {
+  border-color: var(--color-primary);
+  background-color: rgba(84, 82, 236, 0.04);
+}
+
+.choice-card-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.choice-radio-circle {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 50%;
+  border: 2px solid #C4C8D8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.cycle-choice-card.selected .choice-radio-circle {
+  border-color: var(--color-primary);
+}
+
+.cycle-choice-card.selected .choice-radio-circle::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+}
+
+.choice-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.choice-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.choice-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.choice-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.advance-dropdown-panel {
   background: #F8F9FE;
   border: 1.5px solid #E2E4F2;
   border-radius: 12px;
-  padding: 10px 12px;
-  margin-top: 10px;
+  padding: 12px 14px;
+  margin-top: 2px;
+  animation: fadeIn 0.2s ease;
 }
 
 .custom-month-label {

@@ -2245,8 +2245,10 @@ export function setupRecordPaymentForm(tenancy) {
   // Check unpaid bills for this tenancy
   const blockPending = document.getElementById('block-pending-months');
   const blockNoPending = document.getElementById('block-no-pending-months');
-  const currentMonthTitle = document.getElementById('current-month-title');
-  const customMonthPickerRow = document.getElementById('custom-month-picker-row');
+  const currentMonthDisplay = document.getElementById('current-month-display-title');
+  const choiceCurrent = document.getElementById('choice-cycle-current');
+  const choiceAdvance = document.getElementById('choice-cycle-advance');
+  const advancePanel = document.getElementById('advance-dropdown-panel');
 
   const hasUtils = tenancyHasUtilities(tenancy);
   const unpaidBills = hasUtils
@@ -2396,8 +2398,14 @@ export function setupRecordPaymentForm(tenancy) {
     blockNoPending?.classList.remove('hidden');
     const now = new Date();
     const currMonthText = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    if (currentMonthTitle) currentMonthTitle.textContent = currMonthText;
-    customMonthPickerRow?.classList.add('hidden');
+    if (currentMonthDisplay) currentMonthDisplay.textContent = currMonthText;
+
+    // Reset default to Current Month
+    const radioCurrent = document.querySelector('input[name="settle-cycle-type"][value="current"]');
+    if (radioCurrent) radioCurrent.checked = true;
+    choiceCurrent?.classList.add('selected');
+    choiceAdvance?.classList.remove('selected');
+    advancePanel?.classList.add('hidden');
   }
 }
 
@@ -2408,9 +2416,33 @@ function initRecordPaymentPage() {
   const cardOnline = document.getElementById('card-mode-online');
   const onlineSubfields = document.getElementById('online-channel-subfields');
   const channelChips = document.querySelectorAll('.channel-chips-row .channel-chip');
-  const btnToggleCustomMonth = document.getElementById('btn-toggle-custom-month');
-  const customMonthPickerRow = document.getElementById('custom-month-picker-row');
+  const choiceCurrent = document.getElementById('choice-cycle-current');
+  const choiceAdvance = document.getElementById('choice-cycle-advance');
+  const radioCurrent = document.querySelector('input[name="settle-cycle-type"][value="current"]');
+  const radioAdvance = document.querySelector('input[name="settle-cycle-type"][value="advance"]');
+  const advancePanel = document.getElementById('advance-dropdown-panel');
+  const customMonthSelect = document.getElementById('select-custom-settle-month');
   const btnSave = document.getElementById('btn-save-full-payment');
+
+  const setCycleChoice = (mode) => {
+    if (mode === 'advance') {
+      if (radioAdvance) radioAdvance.checked = true;
+      choiceCurrent?.classList.remove('selected');
+      choiceAdvance?.classList.add('selected');
+      advancePanel?.classList.remove('hidden');
+      if (customMonthSelect && customMonthSelect.selectedIndex <= 0 && customMonthSelect.options.length > 1) {
+        customMonthSelect.selectedIndex = 1;
+      }
+    } else {
+      if (radioCurrent) radioCurrent.checked = true;
+      choiceAdvance?.classList.remove('selected');
+      choiceCurrent?.classList.add('selected');
+      advancePanel?.classList.add('hidden');
+    }
+  };
+
+  choiceCurrent?.addEventListener('click', () => setCycleChoice('current'));
+  choiceAdvance?.addEventListener('click', () => setCycleChoice('advance'));
 
   selectTenancy?.addEventListener('change', (e) => {
     const target = (cloudTenanciesList || []).find((t) => t.id === e.target.value);
@@ -2481,29 +2513,6 @@ function initRecordPaymentPage() {
     }
   });
 
-  btnToggleCustomMonth?.addEventListener('click', () => {
-    customMonthPickerRow?.classList.toggle('hidden');
-    if (!customMonthPickerRow?.classList.contains('hidden')) {
-      const select = document.getElementById('select-custom-settle-month');
-      if (select && select.selectedIndex <= 0 && select.options.length > 1) {
-        select.selectedIndex = 1; // Default to next upcoming advance month
-        const currentMonthTitle = document.getElementById('current-month-title');
-        if (currentMonthTitle && select.value) {
-          currentMonthTitle.textContent = select.value;
-        }
-      }
-    }
-  });
-
-  const customMonthDropdown = document.getElementById('select-custom-settle-month');
-  customMonthDropdown?.addEventListener('change', (e) => {
-    const val = e.target.value;
-    const currentMonthTitle = document.getElementById('current-month-title');
-    if (val && currentMonthTitle) {
-      currentMonthTitle.textContent = val;
-    }
-  });
-
   btnSave?.addEventListener('click', async () => {
     if (!selectedRecordTenancy) {
       showToast('⚠️ No tenancy selected', 3000);
@@ -2540,11 +2549,15 @@ function initRecordPaymentPage() {
     if (checkedMonths.length > 0) {
       settledMonthText = checkedMonths.join(', ');
     } else {
-      const customVal = document.getElementById('select-custom-settle-month')?.value;
-      if (customMonthPickerRow && !customMonthPickerRow.classList.contains('hidden') && customVal) {
-        settledMonthText = customVal;
+      const cycleType = document.querySelector('input[name="settle-cycle-type"]:checked')?.value || 'current';
+      if (cycleType === 'advance') {
+        const customVal = document.getElementById('select-custom-settle-month')?.value;
+        const now = new Date();
+        const fallback = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) + ' (Advance)';
+        settledMonthText = customVal || fallback;
       } else {
-        settledMonthText = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        const now = new Date();
+        settledMonthText = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
       }
     }
 
