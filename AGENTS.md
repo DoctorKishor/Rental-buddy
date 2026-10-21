@@ -1037,3 +1037,26 @@
   - **Single-Tap Reversibility**:
     - Landlords can switch back to Current Month at any time simply by tapping Choice 1.
     - Zero trapped states, zero confusing text mutations, and 100% accessible touch targets for older users.
+
+## 36. Smart Waterfall & Auto-Allocation Ledger Architecture (Screen 12)
+
+### 1. The Multi-Payment & Partial-Rent Accounting Dilemma
+- **The Problem**:
+  - In real-world property management, tenants frequently:
+    1. Pay **partial rent** (e.g. Rs. 2,000 on a Rs. 5,000 rent), leaving an unsettled balance to carry forward.
+    2. Pay for **multiple months in a lump sum** (e.g. Rs. 15,000 covering current month + 2 future advance months).
+    3. Pay a lump sum that clears **past overdue months + part/all of current rent**.
+  - Traditional checkbox forms force landlords to perform mental arithmetic, figure out calendar math, and manually split payments across multiple receipts.
+
+### 2. The FIFO Waterfall Engine & Live Real-Time Breakdown
+- **The Architectural Solution**:
+  - Implemented an automated **Waterfall (FIFO: First-In, First-Out)** engine (`computeWaterfallAllocations`):
+    - **Step 1 (Oldest Arrears First)**: Automatically applies funds to clear past overdue bills/rent chronologically.
+    - **Step 2 (Current Rent)**: Applies remaining funds to clear the current calendar billing cycle. If underpaid, flags the month as `⚠️ Partial Payment` with exact remaining due balance.
+    - **Step 3 (Advance Credit)**: If a surplus remains, seamlessly pre-pays future cycles (`⏩ November 2026 (Advance)`, `⏩ December 2026 (Advance)`).
+  - **Live Real-Time Re-calculation**:
+    - Typing into `#record-page-amount` instantly recalculates and re-renders the breakdown cards right before the user's eyes without page reloads.
+  - **Optional Single-Month Manual Override**:
+    - Landlords who specifically wish to credit a custom month can open the manual assignment accordion (`#manual-override-panel`) with one tap, effortlessly overriding auto-split if desired.
+  - **Persistent Transparency**:
+    - `settledMonths` stores exact structured descriptions (e.g., `["October 2026 (Partial: Rs. 2,000 / Rs. 5,000)"]` or `["September 2026", "October 2026", "November 2026 (Advance)"]`), automatically displaying across the Dashboard and tenant WhatsApp receipts.

@@ -2202,36 +2202,6 @@ export function setupRecordPaymentForm(tenancy) {
     chipsContainer.style.display = 'none';
   }
 
-  // Populate Advance / Custom settlement months dropdown
-  const customMonthSelect = document.getElementById('select-custom-settle-month');
-  if (customMonthSelect) {
-    const MONTH_NAMES = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    const now = new Date();
-    const currYear = now.getFullYear();
-    const currMonth = now.getMonth();
-
-    let optionsHtml = '<option value="" disabled selected>-- Select Advance / Custom Month --</option>';
-
-    // Generate upcoming 12 months for advance settlement
-    for (let i = 1; i <= 12; i++) {
-      const d = new Date(currYear, currMonth + i, 1);
-      const mLabel = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
-      optionsHtml += `<option value="${mLabel} (Advance)">${mLabel} (Advance)</option>`;
-    }
-
-    // Also add past 3 months in case settling previous cycle
-    for (let i = 1; i <= 3; i++) {
-      const d = new Date(currYear, currMonth - i, 1);
-      const mLabel = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
-      optionsHtml += `<option value="${mLabel}">${mLabel} (Past Cycle)</option>`;
-    }
-
-    customMonthSelect.innerHTML = optionsHtml;
-  }
-
   // Initialize payment date inputs to current date if blank
   const nativeDate = document.getElementById('record-native-payment-date');
   const dateDisplay = document.getElementById('record-payment-date-display');
@@ -2242,33 +2212,90 @@ export function setupRecordPaymentForm(tenancy) {
     dateDisplay.value = now.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
-  // Check unpaid bills for this tenancy
-  const blockPending = document.getElementById('block-pending-months');
-  const blockNoPending = document.getElementById('block-no-pending-months');
-  const currentMonthDisplay = document.getElementById('current-month-display-title');
-  const choiceCurrent = document.getElementById('choice-cycle-current');
-  const choiceAdvance = document.getElementById('choice-cycle-advance');
-  const advancePanel = document.getElementById('advance-dropdown-panel');
+  // Reset manual override state
+  isManualAllocationOverride = false;
+  selectedManualOverrideMonth = null;
+  const manualPanel = document.getElementById('manual-override-panel');
+  manualPanel?.classList.add('hidden');
+  const toggleLabel = document.getElementById('label-toggle-manual-override');
+  if (toggleLabel) toggleLabel.textContent = '⚙️ Assign payment manually to a specific month';
+
+  // Populate manual override options
+  const manualSelect = document.getElementById('select-manual-override-month');
+  if (manualSelect) {
+    const MONTH_NAMES = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    const currYear = now.getFullYear();
+    const currMonth = now.getMonth();
+    const currMonthLabel = `${MONTH_NAMES[currMonth]} ${currYear}`;
+
+    let optionsHtml = `<option value="${currMonthLabel}" selected>${currMonthLabel} (Current Month)</option>`;
+    for (let i = 1; i <= 12; i++) {
+      const d = new Date(currYear, currMonth + i, 1);
+      const mLabel = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()} (Advance)`;
+      optionsHtml += `<option value="${mLabel}">${mLabel}</option>`;
+    }
+    for (let i = 1; i <= 3; i++) {
+      const d = new Date(currYear, currMonth - i, 1);
+      const mLabel = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+      optionsHtml += `<option value="${mLabel}">${mLabel} (Past Cycle)</option>`;
+    }
+    manualSelect.innerHTML = optionsHtml;
+  }
+
+  // Render initial waterfall breakdown
+  renderWaterfallBreakdown(tenancy);
+}
+
+export let isManualAllocationOverride = false;
+export let selectedManualOverrideMonth = null;
+
+export function computeWaterfallAllocations(tenancy, amountVal) {
+  const baseRent = parseFloat(tenancy.base_rent || 0);
+  const amount = parseFloat(amountVal) || 0;
+  let remaining = amount;
+  const allocations = [];
 
   const hasUtils = tenancyHasUtilities(tenancy);
   const unpaidBills = hasUtils
     ? (cloudBillsList || []).filter((b) => b.tenancy_id === tenancy.id && b.status === 'unpaid')
     : [];
 
-  const unpaidRentMonths = [];
-  if (!hasUtils) {
-    const tenancyStart = tenancy.created_at ? new Date(tenancy.created_at) : new Date(2026, 0, 1);
-    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const now = new Date();
-    const currIdx = now.getMonth();
-    const tenancyPayments = (cloudPaymentsList || []).filter((p) => p.tenancy_id === tenancy.id);
+  const MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  const now = new Date();
+  const currentMonthIdx = now.getMonth();
+  const currentYear = now.getFullYear();
+  const currMonthLabel = `${MONTH_NAMES[currentMonthIdx]} ${currentYear}`;
 
-    for (let i = 0; i < currIdx; i++) {
-      const monthDate = new Date(2026, i, 1);
+  // 1. Gather all past overdue items (chronological oldest to newest)
+  const overdueQueue = [];
+  if (unpaidBills.length > 0) {
+    const sortedBills = [...unpaidBills].sort((a, b) => (a.duration_start || '').localeCompare(b.duration_start || ''));
+    sortedBills.forEach((b) => {
+      const mLabel = b.duration_start
+        ? new Date(b.duration_start + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+        : 'Billing Cycle';
+      overdueQueue.push({
+        monthLabel: mLabel,
+        due: parseFloat(b.net_payable) || baseRent,
+        billId: b.id,
+        isPastDue: true,
+      });
+    });
+  } else if (!hasUtils) {
+    const tenancyStart = tenancy.created_at ? new Date(tenancy.created_at) : new Date(2026, 0, 1);
+    const tenancyPayments = (cloudPaymentsList || []).filter((p) => p.tenancy_id === tenancy.id);
+    for (let i = 0; i < currentMonthIdx; i++) {
+      const monthDate = new Date(currentYear, i, 1);
       const isAfterStart = (monthDate.getFullYear() > tenancyStart.getFullYear()) ||
         (monthDate.getFullYear() === tenancyStart.getFullYear() && i >= tenancyStart.getMonth());
       if (isAfterStart) {
-        const mName = MONTHS[i];
+        const mName = MONTH_NAMES[i];
         const isPaid = tenancyPayments.some((p) => {
           if (Array.isArray(p.settled_months)) {
             return p.settled_months.some((sm) => sm.toLowerCase().includes(mName.toLowerCase()));
@@ -2276,136 +2303,269 @@ export function setupRecordPaymentForm(tenancy) {
           return p.payment_date && new Date(p.payment_date).getMonth() === i;
         });
         if (!isPaid) {
-          unpaidRentMonths.push({
-            monthLabel: `${mName} 2026`,
-            amount: baseRent,
+          overdueQueue.push({
+            monthLabel: `${mName} ${currentYear}`,
+            due: baseRent,
+            billId: null,
+            isPastDue: true,
           });
         }
       }
     }
   }
 
-  if (unpaidBills.length > 0) {
-    blockPending?.classList.remove('hidden');
-    blockNoPending?.classList.add('hidden');
-
-    const firstDue = parseFloat(unpaidBills[0].net_payable) || baseRent;
-    if (dueHint) {
-      dueHint.textContent = `Pending Dues: Rs. ${firstDue.toLocaleString('en-IN')}`;
-      dueHint.style.color = '#DC2626';
+  // Step 1: Waterfall across Past Overdue Months
+  overdueQueue.forEach((item) => {
+    if (remaining <= 0) {
+      allocations.push({
+        monthLabel: item.monthLabel,
+        allocated: 0,
+        due: item.due,
+        balanceLeft: item.due,
+        status: 'unpaid',
+        type: 'past_due',
+        billId: item.billId,
+        badgeText: 'Unsettled Due',
+        badgeClass: 'badge-overdue',
+        icon: '⚠️',
+      });
+      return;
     }
-    if (amountInput) amountInput.value = firstDue;
 
-    const monthsList = blockPending?.querySelector('.months-select-list');
-    if (monthsList) {
-      monthsList.innerHTML = '';
-      const recalculateDueAmount = () => {
-        const checked = Array.from(monthsList.querySelectorAll('input[name="settle-month"]:checked'));
-        if (checked.length > 0) {
-          const totalDue = checked.reduce((sum, cb) => {
-            const b = unpaidBills.find(ub => ub.id === cb.dataset.billId);
-            return sum + (b ? parseFloat(b.net_payable || 0) : 0);
-          }, 0);
-          if (totalDue > 0 && amountInput) {
-            amountInput.value = totalDue;
-          }
-          if (dueHint) {
-            dueHint.textContent = `Selected Dues: Rs. ${totalDue.toLocaleString('en-IN')}`;
-            dueHint.style.color = '#DC2626';
-          }
-        }
-      };
+    if (remaining >= item.due) {
+      allocations.push({
+        monthLabel: item.monthLabel,
+        allocated: item.due,
+        due: item.due,
+        balanceLeft: 0,
+        status: 'settled',
+        type: 'past_due',
+        billId: item.billId,
+        badgeText: 'Past Due Cleared',
+        badgeClass: 'badge-cleared',
+        icon: '✓',
+      });
+      remaining -= item.due;
+    } else {
+      const bal = item.due - remaining;
+      allocations.push({
+        monthLabel: item.monthLabel,
+        allocated: remaining,
+        due: item.due,
+        balanceLeft: bal,
+        status: 'partial',
+        type: 'past_due',
+        billId: item.billId,
+        badgeText: `Partial (Bal: Rs. ${bal.toLocaleString('en-IN')})`,
+        badgeClass: 'badge-partial',
+        icon: '⚠️',
+      });
+      remaining = 0;
+    }
+  });
 
-      unpaidBills.forEach((bill, idx) => {
-        const label = document.createElement('label');
-        label.className = `month-select-option ${idx === 0 ? 'selected' : ''}`;
-        const monthLabel = bill.duration_start
-          ? new Date(bill.duration_start + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-          : 'Pending Billing Cycle';
-        label.innerHTML = `
-          <input type="checkbox" name="settle-month" value="${monthLabel}" data-bill-id="${bill.id}" ${idx === 0 ? 'checked' : ''} />
-          <div class="month-opt-details">
-            <strong class="month-opt-title">${monthLabel}</strong>
-            <span class="month-opt-sub status-overdue">Unpaid Invoice • Rs. ${parseFloat(bill.net_payable).toLocaleString('en-IN')}</span>
-          </div>
-          <span class="custom-checkbox"></span>
-        `;
-        const checkbox = label.querySelector('input[type="checkbox"]');
-        checkbox?.addEventListener('change', () => {
-          label.classList.toggle('selected', checkbox.checked);
-          recalculateDueAmount();
-        });
-        label.addEventListener('click', (e) => {
-          if (e.target !== checkbox) {
-            e.preventDefault();
-            checkbox.checked = !checkbox.checked;
-            label.classList.toggle('selected', checkbox.checked);
-            recalculateDueAmount();
-          }
-        });
-        monthsList.appendChild(label);
+  // Step 2: Waterfall to Current Month
+  const currentMonthAlreadyInQueue = overdueQueue.some((o) => o.monthLabel.toLowerCase() === currMonthLabel.toLowerCase());
+  if (!currentMonthAlreadyInQueue) {
+    if (remaining >= baseRent) {
+      allocations.push({
+        monthLabel: currMonthLabel,
+        allocated: baseRent,
+        due: baseRent,
+        balanceLeft: 0,
+        status: 'settled',
+        type: 'current',
+        billId: null,
+        badgeText: 'Current Month Cleared',
+        badgeClass: 'badge-current',
+        icon: '✓',
+      });
+      remaining -= baseRent;
+    } else if (remaining > 0) {
+      const bal = baseRent - remaining;
+      allocations.push({
+        monthLabel: currMonthLabel,
+        allocated: remaining,
+        due: baseRent,
+        balanceLeft: bal,
+        status: 'partial',
+        type: 'current',
+        billId: null,
+        badgeText: `Partial (Bal: Rs. ${bal.toLocaleString('en-IN')})`,
+        badgeClass: 'badge-partial',
+        icon: '⚠️',
+      });
+      remaining = 0;
+    } else if (allocations.length === 0) {
+      allocations.push({
+        monthLabel: currMonthLabel,
+        allocated: 0,
+        due: baseRent,
+        balanceLeft: baseRent,
+        status: 'unpaid',
+        type: 'current',
+        billId: null,
+        badgeText: 'Current Month',
+        badgeClass: 'badge-current',
+        icon: '📅',
       });
     }
-  } else if (unpaidRentMonths.length > 0) {
-    blockPending?.classList.remove('hidden');
-    blockNoPending?.classList.add('hidden');
-    if (dueHint) {
-      dueHint.textContent = `Overdue Rent: Rs. ${(unpaidRentMonths[0].amount).toLocaleString('en-IN')}`;
-      dueHint.style.color = '#DC2626';
-    }
-    if (amountInput) amountInput.value = unpaidRentMonths[0].amount;
-    const monthsList = blockPending?.querySelector('.months-select-list');
-    if (monthsList) {
-      monthsList.innerHTML = '';
-      const recalculateRentDue = () => {
-        const checked = Array.from(monthsList.querySelectorAll('input[name="settle-month"]:checked'));
-        const totalDue = checked.length * baseRent;
-        if (totalDue > 0 && amountInput) amountInput.value = totalDue;
-        if (dueHint) {
-          dueHint.textContent = `Selected Rent: Rs. ${totalDue.toLocaleString('en-IN')}`;
-          dueHint.style.color = '#DC2626';
-        }
-      };
-      unpaidRentMonths.forEach((rentM, idx) => {
-        const label = document.createElement('label');
-        label.className = `month-select-option ${idx === 0 ? 'selected' : ''}`;
-        label.innerHTML = `
-          <input type="checkbox" name="settle-month" value="${rentM.monthLabel}" ${idx === 0 ? 'checked' : ''} />
-          <div class="month-opt-details">
-            <strong class="month-opt-title">${rentM.monthLabel}</strong>
-            <span class="month-opt-sub status-overdue">Unpaid Rent • Rs. ${parseFloat(rentM.amount).toLocaleString('en-IN')}</span>
-          </div>
-          <span class="custom-checkbox"></span>
-        `;
-        const checkbox = label.querySelector('input[type="checkbox"]');
-        checkbox?.addEventListener('change', () => {
-          label.classList.toggle('selected', checkbox.checked);
-          recalculateRentDue();
-        });
-        label.addEventListener('click', (e) => {
-          if (e.target !== checkbox) {
-            e.preventDefault();
-            checkbox.checked = !checkbox.checked;
-            label.classList.toggle('selected', checkbox.checked);
-            recalculateRentDue();
-          }
-        });
-        monthsList.appendChild(label);
+  }
+
+  // Step 3: Waterfall to Future Advance Months
+  let advIndex = 1;
+  while (remaining > 0 && advIndex <= 12) {
+    const advDate = new Date(currentYear, currentMonthIdx + advIndex, 1);
+    const advLabel = `${MONTH_NAMES[advDate.getMonth()]} ${advDate.getFullYear()} (Advance)`;
+
+    if (remaining >= baseRent) {
+      allocations.push({
+        monthLabel: advLabel,
+        allocated: baseRent,
+        due: baseRent,
+        balanceLeft: 0,
+        status: 'advance',
+        type: 'advance',
+        billId: null,
+        badgeText: 'Advance Cleared',
+        badgeClass: 'badge-advance',
+        icon: '⏩',
       });
+      remaining -= baseRent;
+    } else {
+      allocations.push({
+        monthLabel: advLabel,
+        allocated: remaining,
+        due: baseRent,
+        balanceLeft: baseRent - remaining,
+        status: 'advance_partial',
+        type: 'advance',
+        billId: null,
+        badgeText: `Advance Credit (Rs. ${remaining.toLocaleString('en-IN')})`,
+        badgeClass: 'badge-advance',
+        icon: '⏩',
+      });
+      remaining = 0;
+      break;
+    }
+    advIndex++;
+  }
+
+  return allocations;
+}
+
+export function renderWaterfallBreakdown(tenancy) {
+  if (!tenancy) return;
+  const listContainer = document.getElementById('waterfall-items-list');
+  const amountInput = document.getElementById('record-page-amount');
+  const totalAllocatedEl = document.getElementById('waterfall-total-allocated');
+  const balanceRow = document.getElementById('waterfall-balance-row');
+  const remainingBalanceEl = document.getElementById('waterfall-remaining-balance');
+  const badgeMode = document.getElementById('badge-allocation-mode');
+  const summaryTitle = document.getElementById('waterfall-summary-title');
+  const summarySub = document.getElementById('waterfall-summary-sub');
+
+  if (!listContainer) return;
+  listContainer.innerHTML = '';
+
+  const amountVal = parseFloat(amountInput?.value || 0) || 0;
+
+  if (isManualAllocationOverride && selectedManualOverrideMonth) {
+    if (badgeMode) {
+      badgeMode.textContent = 'Manual';
+      badgeMode.style.backgroundColor = '#FEF3C7';
+      badgeMode.style.color = '#B45309';
+    }
+    if (summaryTitle) summaryTitle.textContent = `Manually assigned to ${selectedManualOverrideMonth}:`;
+    if (summarySub) summarySub.textContent = `All Rs. ${amountVal.toLocaleString('en-IN')} applied directly to this single cycle`;
+
+    const itemCard = document.createElement('div');
+    itemCard.className = 'waterfall-item-card settled';
+    itemCard.innerHTML = `
+      <div class="waterfall-card-left">
+        <span class="waterfall-status-icon">✓</span>
+        <div class="waterfall-card-details">
+          <strong class="waterfall-month-title">${selectedManualOverrideMonth}</strong>
+          <span class="waterfall-month-note">Manual single-month assignment</span>
+        </div>
+      </div>
+      <div class="waterfall-card-right">
+        <span class="waterfall-amount-applied">Rs. ${amountVal.toLocaleString('en-IN')}</span>
+        <span class="badge-pill" style="background: #EDE9FE; color: #5452EC; font-weight: 700;">Manual Credit</span>
+      </div>
+    `;
+    listContainer.appendChild(itemCard);
+
+    if (totalAllocatedEl) totalAllocatedEl.textContent = `Rs. ${amountVal.toLocaleString('en-IN')}`;
+    balanceRow?.classList.add('hidden');
+    return;
+  }
+
+  // Automatic Waterfall mode
+  if (badgeMode) {
+    badgeMode.textContent = 'Auto-Split';
+    badgeMode.style.backgroundColor = '#EDE9FE';
+    badgeMode.style.color = '#6D28D9';
+  }
+  if (summaryTitle) summaryTitle.textContent = 'How this payment will be applied:';
+  if (summarySub) summarySub.textContent = 'Oldest dues cleared first, then current rent, then advance';
+
+  const allocations = computeWaterfallAllocations(tenancy, amountVal);
+  let totalBalanceLeft = 0;
+
+  allocations.forEach((item) => {
+    if (item.balanceLeft > 0 && item.status !== 'unpaid') {
+      totalBalanceLeft += item.balanceLeft;
+    }
+
+    const card = document.createElement('div');
+    let cardClass = 'waterfall-item-card';
+    if (item.status === 'settled') cardClass += ' settled';
+    else if (item.status === 'partial') cardClass += ' partial';
+    else if (item.status === 'advance' || item.status === 'advance_partial') cardClass += ' advance';
+    else if (item.status === 'unpaid') cardClass += ' past-due';
+
+    let noteText = '';
+    if (item.status === 'settled') {
+      noteText = item.type === 'past_due' ? 'Overdue cycle settled in full ✓' : 'Settled in full ✓';
+    } else if (item.status === 'partial') {
+      noteText = `Partially paid • Rs. ${item.balanceLeft.toLocaleString('en-IN')} remaining due`;
+    } else if (item.status === 'advance') {
+      noteText = 'Advance month pre-paid in full ⏩';
+    } else if (item.status === 'advance_partial') {
+      noteText = `Partial advance credit • Balance to carry: Rs. ${item.balanceLeft.toLocaleString('en-IN')}`;
+    } else if (item.status === 'unpaid') {
+      noteText = `Unpaid balance • Rs. ${item.due.toLocaleString('en-IN')} due`;
+    }
+
+    card.className = cardClass;
+    card.innerHTML = `
+      <div class="waterfall-card-left">
+        <span class="waterfall-status-icon">${item.icon}</span>
+        <div class="waterfall-card-details">
+          <strong class="waterfall-month-title">${item.monthLabel}</strong>
+          <span class="waterfall-month-note">${noteText}</span>
+        </div>
+      </div>
+      <div class="waterfall-card-right">
+        <span class="waterfall-amount-applied">Rs. ${(item.allocated || 0).toLocaleString('en-IN')}</span>
+        <span class="badge-pill ${item.badgeClass}">${item.badgeText}</span>
+      </div>
+    `;
+    listContainer.appendChild(card);
+  });
+
+  if (totalAllocatedEl) {
+    totalAllocatedEl.textContent = `Rs. ${amountVal.toLocaleString('en-IN')}`;
+  }
+
+  if (totalBalanceLeft > 0) {
+    balanceRow?.classList.remove('hidden');
+    if (remainingBalanceEl) {
+      remainingBalanceEl.textContent = `Rs. ${totalBalanceLeft.toLocaleString('en-IN')}`;
     }
   } else {
-    blockPending?.classList.add('hidden');
-    blockNoPending?.classList.remove('hidden');
-    const now = new Date();
-    const currMonthText = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    if (currentMonthDisplay) currentMonthDisplay.textContent = currMonthText;
-
-    // Reset default to Current Month
-    const radioCurrent = document.querySelector('input[name="settle-cycle-type"][value="current"]');
-    if (radioCurrent) radioCurrent.checked = true;
-    choiceCurrent?.classList.add('selected');
-    choiceAdvance?.classList.remove('selected');
-    advancePanel?.classList.add('hidden');
+    balanceRow?.classList.add('hidden');
   }
 }
 
@@ -2416,33 +2576,45 @@ function initRecordPaymentPage() {
   const cardOnline = document.getElementById('card-mode-online');
   const onlineSubfields = document.getElementById('online-channel-subfields');
   const channelChips = document.querySelectorAll('.channel-chips-row .channel-chip');
-  const choiceCurrent = document.getElementById('choice-cycle-current');
-  const choiceAdvance = document.getElementById('choice-cycle-advance');
-  const radioCurrent = document.querySelector('input[name="settle-cycle-type"][value="current"]');
-  const radioAdvance = document.querySelector('input[name="settle-cycle-type"][value="advance"]');
-  const advancePanel = document.getElementById('advance-dropdown-panel');
-  const customMonthSelect = document.getElementById('select-custom-settle-month');
+  const amountInput = document.getElementById('record-page-amount');
+  const btnToggleManual = document.getElementById('btn-toggle-manual-override');
+  const manualPanel = document.getElementById('manual-override-panel');
+  const toggleLabel = document.getElementById('label-toggle-manual-override');
+  const manualSelect = document.getElementById('select-manual-override-month');
   const btnSave = document.getElementById('btn-save-full-payment');
 
-  const setCycleChoice = (mode) => {
-    if (mode === 'advance') {
-      if (radioAdvance) radioAdvance.checked = true;
-      choiceCurrent?.classList.remove('selected');
-      choiceAdvance?.classList.add('selected');
-      advancePanel?.classList.remove('hidden');
-      if (customMonthSelect && customMonthSelect.selectedIndex <= 0 && customMonthSelect.options.length > 1) {
-        customMonthSelect.selectedIndex = 1;
-      }
-    } else {
-      if (radioCurrent) radioCurrent.checked = true;
-      choiceAdvance?.classList.remove('selected');
-      choiceCurrent?.classList.add('selected');
-      advancePanel?.classList.add('hidden');
+  // Live real-time waterfall allocation as user types
+  amountInput?.addEventListener('input', () => {
+    if (selectedRecordTenancy) {
+      renderWaterfallBreakdown(selectedRecordTenancy);
     }
-  };
+  });
 
-  choiceCurrent?.addEventListener('click', () => setCycleChoice('current'));
-  choiceAdvance?.addEventListener('click', () => setCycleChoice('advance'));
+  // Manual allocation override toggle
+  btnToggleManual?.addEventListener('click', () => {
+    const isHidden = manualPanel?.classList.contains('hidden');
+    if (isHidden) {
+      manualPanel?.classList.remove('hidden');
+      isManualAllocationOverride = true;
+      selectedManualOverrideMonth = manualSelect?.value;
+      if (toggleLabel) toggleLabel.textContent = '🔄 Switch back to automatic waterfall split';
+    } else {
+      manualPanel?.classList.add('hidden');
+      isManualAllocationOverride = false;
+      selectedManualOverrideMonth = null;
+      if (toggleLabel) toggleLabel.textContent = '⚙️ Assign payment manually to a specific month';
+    }
+    if (selectedRecordTenancy) {
+      renderWaterfallBreakdown(selectedRecordTenancy);
+    }
+  });
+
+  manualSelect?.addEventListener('change', (e) => {
+    selectedManualOverrideMonth = e.target.value;
+    if (selectedRecordTenancy) {
+      renderWaterfallBreakdown(selectedRecordTenancy);
+    }
+  });
 
   selectTenancy?.addEventListener('change', (e) => {
     const target = (cloudTenanciesList || []).find((t) => t.id === e.target.value);
@@ -2540,25 +2712,26 @@ function initRecordPaymentPage() {
       if (ref) modeLabel += ` (Ref: ${ref})`;
     }
 
-    // Determine settled month string and collect linked bill IDs
-    let settledMonthText = '';
-    const checkedCheckboxes = Array.from(document.querySelectorAll('input[name="settle-month"]:checked'));
-    const checkedMonths = checkedCheckboxes.map(cb => cb.value);
-    const settledBillIds = checkedCheckboxes.map(cb => cb.dataset.billId).filter(Boolean);
+    // Determine settled months and bills using waterfall engine
+    let settledMonths = [];
+    let settledBillIds = [];
 
-    if (checkedMonths.length > 0) {
-      settledMonthText = checkedMonths.join(', ');
+    if (isManualAllocationOverride && selectedManualOverrideMonth) {
+      settledMonths = [selectedManualOverrideMonth];
     } else {
-      const cycleType = document.querySelector('input[name="settle-cycle-type"]:checked')?.value || 'current';
-      if (cycleType === 'advance') {
-        const customVal = document.getElementById('select-custom-settle-month')?.value;
-        const now = new Date();
-        const fallback = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) + ' (Advance)';
-        settledMonthText = customVal || fallback;
-      } else {
-        const now = new Date();
-        settledMonthText = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      }
+      const allocations = computeWaterfallAllocations(selectedRecordTenancy, amountVal);
+      const activeAllocations = allocations.filter((a) => (a.allocated || 0) > 0);
+      settledMonths = activeAllocations.map((a) => {
+        if (a.status === 'partial') {
+          return `${a.monthLabel} (Partial: Rs. ${a.allocated.toLocaleString('en-IN')}/${a.due.toLocaleString('en-IN')})`;
+        }
+        return a.monthLabel;
+      });
+      settledBillIds = activeAllocations.filter((a) => a.status === 'settled' && a.billId).map((a) => a.billId);
+    }
+
+    if (settledMonths.length === 0) {
+      settledMonths = [new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })];
     }
 
     const notes = document.getElementById('record-payment-notes')?.value?.trim();
@@ -2575,7 +2748,7 @@ function initRecordPaymentPage() {
         paymentMode: payMode.toLowerCase() === 'online' ? 'online' : 'cash',
         channel: channel,
         referenceNo: ref,
-        settledMonths: [settledMonthText],
+        settledMonths: settledMonths,
         settledBillIds: settledBillIds,
         billId: settledBillIds[0] || null,
         paymentDate: paymentDate,
@@ -2584,8 +2757,8 @@ function initRecordPaymentPage() {
       await syncDashboardFromCloud();
 
       const toastMsg = sendWhatsApp
-        ? `✅ Rs. ${parseFloat(amountVal).toLocaleString('en-IN')} recorded for ${selectedRecordTenancy.property_name}! Receipt queued for WhatsApp.`
-        : `✅ Rs. ${parseFloat(amountVal).toLocaleString('en-IN')} payment recorded & synced to cloud!`;
+        ? `✅ Rs. ${parseFloat(amountVal).toLocaleString('en-IN')} recorded for ${selectedRecordTenancy.property_name}! Applied to: ${settledMonths.join(', ')}. Receipt queued for WhatsApp.`
+        : `✅ Rs. ${parseFloat(amountVal).toLocaleString('en-IN')} recorded! Applied to: ${settledMonths.join(', ')}.`;
 
       showToast(toastMsg, 3500);
 

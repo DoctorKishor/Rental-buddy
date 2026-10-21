@@ -1579,68 +1579,48 @@
                     <span class="text-caption" style="color: #52586E; font-size: 12px;">Settlement Cycle</span>
                   </div>
 
-                  <!-- Dynamic Container: Changes based on Pending vs No Pending -->
+                  <!-- Dynamic Smart Waterfall Settlement Card -->
                   <div class="month-settle-card" id="month-settle-container">
                     
-                    <!-- STATE A: Pending Months Available (Allows manual selection) -->
-                    <div class="pending-months-block hidden" id="block-pending-months">
-                      <div class="settle-card-alert warning">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;">
-                          <circle cx="12" cy="12" r="10"></circle>
-                          <line x1="12" y1="8" x2="12" y2="12"></line>
-                          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                        </svg>
-                        <span>Pending dues found. Select month(s) to settle:</span>
+                    <!-- Waterfall Header -->
+                    <div class="waterfall-header">
+                      <div class="waterfall-header-icon">💧</div>
+                      <div class="waterfall-header-text">
+                        <strong class="waterfall-title">Smart Settlement Allocation</strong>
+                        <span class="waterfall-sub">Oldest dues cleared first, then current rent, then advance</span>
                       </div>
+                      <span class="badge-pill auto-badge" id="badge-allocation-mode">Auto-Split</span>
+                    </div>
 
-                      <div class="months-select-list" id="record-pending-months-list">
+                    <!-- Realtime Dynamic List of Allocated Months -->
+                    <div class="waterfall-items-list" id="waterfall-items-list">
+                      <!-- Populated dynamically in real-time as amount is entered -->
+                    </div>
+
+                    <!-- Waterfall Footer: Total & Remaining Balance Summary -->
+                    <div class="waterfall-footer" id="waterfall-footer">
+                      <div class="waterfall-footer-row">
+                        <span class="footer-label">Total Allocated:</span>
+                        <strong class="footer-val" id="waterfall-total-allocated">Rs. 0</strong>
+                      </div>
+                      <div class="waterfall-footer-row hidden" id="waterfall-balance-row">
+                        <span class="footer-label" id="waterfall-balance-label" style="color: #DC2626; font-weight: 600;">Remaining Balance Due:</span>
+                        <strong class="footer-val" id="waterfall-remaining-balance" style="color: #DC2626; font-weight: 700;">Rs. 0</strong>
                       </div>
                     </div>
 
-                    <!-- STATE B: No Pending Dues (Defaults to Current Month, easily switchable) -->
-                    <div class="no-pending-months-block" id="block-no-pending-months">
-                      <div class="settle-cycle-options">
-                        
-                        <!-- Choice 1: Current Month (Default) -->
-                        <div class="cycle-choice-card selected" id="choice-cycle-current">
-                          <input type="radio" name="settle-cycle-type" value="current" checked />
-                          <div class="choice-card-body">
-                            <span class="choice-radio-circle"></span>
-                            <div class="choice-info">
-                              <div class="choice-header-row">
-                                <strong class="choice-title" id="current-month-display-title">Current Month</strong>
-                                <span class="badge-pill" style="background: #DCFCE7; color: #16A34A; font-weight: 700;">Current</span>
-                              </div>
-                              <span class="choice-desc">Regular monthly billing cycle</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <!-- Choice 2: Advance / Future Month -->
-                        <div class="cycle-choice-card" id="choice-cycle-advance">
-                          <input type="radio" name="settle-cycle-type" value="advance" />
-                          <div class="choice-card-body">
-                            <span class="choice-radio-circle"></span>
-                            <div class="choice-info">
-                              <div class="choice-header-row">
-                                <strong class="choice-title">Advance / Another Month</strong>
-                                <span class="badge-pill" style="background: #E0F2FE; color: #0284C7; font-weight: 700;">Advance</span>
-                              </div>
-                              <span class="choice-desc">Pay ahead for upcoming or other months</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <!-- Advance Month Dropdown Panel (Shown when Choice 2 selected) -->
-                        <div class="advance-dropdown-panel hidden" id="advance-dropdown-panel">
-                          <label for="select-custom-settle-month" class="custom-month-label">
-                            Choose Advance Month:
-                          </label>
-                          <select id="select-custom-settle-month" class="form-input mini" style="width: 100%; cursor: pointer; font-weight: 600;">
-                            <option value="" disabled selected>-- Select Advance Month --</option>
-                          </select>
-                        </div>
-
+                    <!-- Optional Manual Override Accordion -->
+                    <div class="manual-override-wrap" style="margin-top: 10px; border-top: 1px dashed #E2E4F2; padding-top: 8px;">
+                      <button type="button" class="btn-text-action" id="btn-toggle-manual-override" style="font-size: 12.5px;">
+                        <span id="label-toggle-manual-override">⚙️ Assign payment manually to a specific month</span>
+                      </button>
+                      <div class="manual-override-panel hidden" id="manual-override-panel" style="margin-top: 8px;">
+                        <label for="select-manual-override-month" class="custom-month-label" style="font-size: 12px; margin-bottom: 4px;">
+                          Force assign entire amount to:
+                        </label>
+                        <select id="select-manual-override-month" class="form-input mini" style="width: 100%; cursor: pointer; font-weight: 600;">
+                          <!-- Populated dynamically with current, past, and advance months -->
+                        </select>
                       </div>
                     </div>
 
