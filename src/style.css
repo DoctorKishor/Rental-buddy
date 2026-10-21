@@ -3120,42 +3120,19 @@ select.form-input:disabled {
 }
 
 /* Waterfall Ledger & Auto-Allocation */
-.waterfall-header {
+.waterfall-header-clean {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
   margin-bottom: 12px;
-  padding-bottom: 10px;
+  padding-bottom: 8px;
   border-bottom: 1px solid #EAEBF6;
 }
 
-.waterfall-header-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background-color: #E8E7FB;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  flex-shrink: 0;
-}
-
-.waterfall-header-text {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.waterfall-title {
-  font-size: 13.5px;
+.waterfall-clean-title {
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-heading);
-}
-
-.waterfall-sub {
-  font-size: 11px;
-  color: var(--text-muted);
 }
 
 .badge-pill.auto-badge {
@@ -3176,10 +3153,10 @@ select.form-input:disabled {
 
 .waterfall-item-card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-radius: 12px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 14px;
   border: 1.5px solid #E2E4F2;
   background-color: #FFFFFF;
   transition: all 0.15s ease;
@@ -3205,21 +3182,27 @@ select.form-input:disabled {
   background-color: #FEF2F2;
 }
 
-.waterfall-card-left {
+/* 2-Row Layout inside each card for 100% Alignment Guarantee */
+.waterfall-card-top-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex: 1;
+  justify-content: space-between;
+}
+
+.waterfall-card-month-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .waterfall-status-icon {
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -3244,36 +3227,73 @@ select.form-input:disabled {
   color: #DC2626;
 }
 
-.waterfall-card-details {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
 .waterfall-month-title {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--text-heading);
-}
-
-.waterfall-month-note {
-  font-size: 11px;
-  color: var(--text-body);
-}
-
-.waterfall-card-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.waterfall-amount-applied {
   font-size: 14px;
   font-weight: 700;
   color: var(--text-heading);
+}
+
+.waterfall-amount-applied {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text-heading);
+  white-space: nowrap;
+}
+
+.waterfall-card-bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 30px; /* Aligns precisely under month title, clearing 22px icon + 8px gap */
+}
+
+.waterfall-month-note {
+  font-size: 12px;
+  color: var(--text-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Concise Status Badges */
+.badge-pill.badge-settled {
+  background-color: #DCFCE7;
+  color: #16A34A;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.badge-pill.badge-partial {
+  background-color: #FEF3C7;
+  color: #B45309;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.badge-pill.badge-advance {
+  background-color: #E0F2FE;
+  color: #0284C7;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.badge-pill.badge-overdue {
+  background-color: #FEE2E2;
+  color: #DC2626;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  white-space: nowrap;
 }
 
 .waterfall-footer {
@@ -3289,7 +3309,7 @@ select.form-input:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 .waterfall-footer-row .footer-label {
@@ -3298,17 +3318,9 @@ select.form-input:disabled {
 }
 
 .waterfall-footer-row .footer-val {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--text-heading);
-}
-
-.custom-month-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: #52586E;
-  margin-bottom: 6px;
 }
 
 /* 360px adjustments for Record Payment Page */

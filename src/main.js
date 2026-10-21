@@ -2212,45 +2212,9 @@ export function setupRecordPaymentForm(tenancy) {
     dateDisplay.value = now.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
-  // Reset manual override state
-  isManualAllocationOverride = false;
-  selectedManualOverrideMonth = null;
-  const manualPanel = document.getElementById('manual-override-panel');
-  manualPanel?.classList.add('hidden');
-  const toggleLabel = document.getElementById('label-toggle-manual-override');
-  if (toggleLabel) toggleLabel.textContent = '⚙️ Assign payment manually to a specific month';
-
-  // Populate manual override options
-  const manualSelect = document.getElementById('select-manual-override-month');
-  if (manualSelect) {
-    const MONTH_NAMES = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    const currYear = now.getFullYear();
-    const currMonth = now.getMonth();
-    const currMonthLabel = `${MONTH_NAMES[currMonth]} ${currYear}`;
-
-    let optionsHtml = `<option value="${currMonthLabel}" selected>${currMonthLabel} (Current Month)</option>`;
-    for (let i = 1; i <= 12; i++) {
-      const d = new Date(currYear, currMonth + i, 1);
-      const mLabel = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()} (Advance)`;
-      optionsHtml += `<option value="${mLabel}">${mLabel}</option>`;
-    }
-    for (let i = 1; i <= 3; i++) {
-      const d = new Date(currYear, currMonth - i, 1);
-      const mLabel = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
-      optionsHtml += `<option value="${mLabel}">${mLabel} (Past Cycle)</option>`;
-    }
-    manualSelect.innerHTML = optionsHtml;
-  }
-
   // Render initial waterfall breakdown
   renderWaterfallBreakdown(tenancy);
 }
-
-export let isManualAllocationOverride = false;
-export let selectedManualOverrideMonth = null;
 
 export function computeWaterfallAllocations(tenancy, amountVal) {
   const baseRent = parseFloat(tenancy.base_rent || 0);
@@ -2325,9 +2289,10 @@ export function computeWaterfallAllocations(tenancy, amountVal) {
         status: 'unpaid',
         type: 'past_due',
         billId: item.billId,
-        badgeText: 'Unsettled Due',
+        badgeText: 'Due',
         badgeClass: 'badge-overdue',
         icon: '⚠️',
+        noteText: 'Past due balance',
       });
       return;
     }
@@ -2341,9 +2306,10 @@ export function computeWaterfallAllocations(tenancy, amountVal) {
         status: 'settled',
         type: 'past_due',
         billId: item.billId,
-        badgeText: 'Past Due Cleared',
-        badgeClass: 'badge-cleared',
+        badgeText: 'Cleared',
+        badgeClass: 'badge-settled',
         icon: '✓',
+        noteText: 'Past due cleared',
       });
       remaining -= item.due;
     } else {
@@ -2356,9 +2322,10 @@ export function computeWaterfallAllocations(tenancy, amountVal) {
         status: 'partial',
         type: 'past_due',
         billId: item.billId,
-        badgeText: `Partial (Bal: Rs. ${bal.toLocaleString('en-IN')})`,
+        badgeText: 'Partial',
         badgeClass: 'badge-partial',
         icon: '⚠️',
+        noteText: `Rs. ${bal.toLocaleString('en-IN')} due`,
       });
       remaining = 0;
     }
@@ -2376,9 +2343,10 @@ export function computeWaterfallAllocations(tenancy, amountVal) {
         status: 'settled',
         type: 'current',
         billId: null,
-        badgeText: 'Current Month Cleared',
-        badgeClass: 'badge-current',
+        badgeText: 'Paid',
+        badgeClass: 'badge-settled',
         icon: '✓',
+        noteText: 'Current cycle',
       });
       remaining -= baseRent;
     } else if (remaining > 0) {
@@ -2391,9 +2359,10 @@ export function computeWaterfallAllocations(tenancy, amountVal) {
         status: 'partial',
         type: 'current',
         billId: null,
-        badgeText: `Partial (Bal: Rs. ${bal.toLocaleString('en-IN')})`,
+        badgeText: 'Partial',
         badgeClass: 'badge-partial',
         icon: '⚠️',
+        noteText: `Rs. ${bal.toLocaleString('en-IN')} due`,
       });
       remaining = 0;
     } else if (allocations.length === 0) {
@@ -2405,9 +2374,10 @@ export function computeWaterfallAllocations(tenancy, amountVal) {
         status: 'unpaid',
         type: 'current',
         billId: null,
-        badgeText: 'Current Month',
-        badgeClass: 'badge-current',
+        badgeText: 'Due',
+        badgeClass: 'badge-overdue',
         icon: '📅',
+        noteText: 'Current cycle',
       });
     }
   }
@@ -2416,7 +2386,7 @@ export function computeWaterfallAllocations(tenancy, amountVal) {
   let advIndex = 1;
   while (remaining > 0 && advIndex <= 12) {
     const advDate = new Date(currentYear, currentMonthIdx + advIndex, 1);
-    const advLabel = `${MONTH_NAMES[advDate.getMonth()]} ${advDate.getFullYear()} (Advance)`;
+    const advLabel = `${MONTH_NAMES[advDate.getMonth()]} ${advDate.getFullYear()}`;
 
     if (remaining >= baseRent) {
       allocations.push({
@@ -2427,9 +2397,10 @@ export function computeWaterfallAllocations(tenancy, amountVal) {
         status: 'advance',
         type: 'advance',
         billId: null,
-        badgeText: 'Advance Cleared',
+        badgeText: 'Advance',
         badgeClass: 'badge-advance',
         icon: '⏩',
+        noteText: 'Advance credit',
       });
       remaining -= baseRent;
     } else {
@@ -2438,12 +2409,13 @@ export function computeWaterfallAllocations(tenancy, amountVal) {
         allocated: remaining,
         due: baseRent,
         balanceLeft: baseRent - remaining,
-        status: 'advance_partial',
+        status: 'advance',
         type: 'advance',
         billId: null,
-        badgeText: `Advance Credit (Rs. ${remaining.toLocaleString('en-IN')})`,
+        badgeText: 'Advance',
         badgeClass: 'badge-advance',
         icon: '⏩',
+        noteText: 'Advance credit',
       });
       remaining = 0;
       break;
@@ -2461,55 +2433,11 @@ export function renderWaterfallBreakdown(tenancy) {
   const totalAllocatedEl = document.getElementById('waterfall-total-allocated');
   const balanceRow = document.getElementById('waterfall-balance-row');
   const remainingBalanceEl = document.getElementById('waterfall-remaining-balance');
-  const badgeMode = document.getElementById('badge-allocation-mode');
-  const summaryTitle = document.getElementById('waterfall-summary-title');
-  const summarySub = document.getElementById('waterfall-summary-sub');
 
   if (!listContainer) return;
   listContainer.innerHTML = '';
 
   const amountVal = parseFloat(amountInput?.value || 0) || 0;
-
-  if (isManualAllocationOverride && selectedManualOverrideMonth) {
-    if (badgeMode) {
-      badgeMode.textContent = 'Manual';
-      badgeMode.style.backgroundColor = '#FEF3C7';
-      badgeMode.style.color = '#B45309';
-    }
-    if (summaryTitle) summaryTitle.textContent = `Manually assigned to ${selectedManualOverrideMonth}:`;
-    if (summarySub) summarySub.textContent = `All Rs. ${amountVal.toLocaleString('en-IN')} applied directly to this single cycle`;
-
-    const itemCard = document.createElement('div');
-    itemCard.className = 'waterfall-item-card settled';
-    itemCard.innerHTML = `
-      <div class="waterfall-card-left">
-        <span class="waterfall-status-icon">✓</span>
-        <div class="waterfall-card-details">
-          <strong class="waterfall-month-title">${selectedManualOverrideMonth}</strong>
-          <span class="waterfall-month-note">Manual single-month assignment</span>
-        </div>
-      </div>
-      <div class="waterfall-card-right">
-        <span class="waterfall-amount-applied">Rs. ${amountVal.toLocaleString('en-IN')}</span>
-        <span class="badge-pill" style="background: #EDE9FE; color: #5452EC; font-weight: 700;">Manual Credit</span>
-      </div>
-    `;
-    listContainer.appendChild(itemCard);
-
-    if (totalAllocatedEl) totalAllocatedEl.textContent = `Rs. ${amountVal.toLocaleString('en-IN')}`;
-    balanceRow?.classList.add('hidden');
-    return;
-  }
-
-  // Automatic Waterfall mode
-  if (badgeMode) {
-    badgeMode.textContent = 'Auto-Split';
-    badgeMode.style.backgroundColor = '#EDE9FE';
-    badgeMode.style.color = '#6D28D9';
-  }
-  if (summaryTitle) summaryTitle.textContent = 'How this payment will be applied:';
-  if (summarySub) summarySub.textContent = 'Oldest dues cleared first, then current rent, then advance';
-
   const allocations = computeWaterfallAllocations(tenancy, amountVal);
   let totalBalanceLeft = 0;
 
@@ -2522,33 +2450,20 @@ export function renderWaterfallBreakdown(tenancy) {
     let cardClass = 'waterfall-item-card';
     if (item.status === 'settled') cardClass += ' settled';
     else if (item.status === 'partial') cardClass += ' partial';
-    else if (item.status === 'advance' || item.status === 'advance_partial') cardClass += ' advance';
+    else if (item.status === 'advance') cardClass += ' advance';
     else if (item.status === 'unpaid') cardClass += ' past-due';
-
-    let noteText = '';
-    if (item.status === 'settled') {
-      noteText = item.type === 'past_due' ? 'Overdue cycle settled in full ✓' : 'Settled in full ✓';
-    } else if (item.status === 'partial') {
-      noteText = `Partially paid • Rs. ${item.balanceLeft.toLocaleString('en-IN')} remaining due`;
-    } else if (item.status === 'advance') {
-      noteText = 'Advance month pre-paid in full ⏩';
-    } else if (item.status === 'advance_partial') {
-      noteText = `Partial advance credit • Balance to carry: Rs. ${item.balanceLeft.toLocaleString('en-IN')}`;
-    } else if (item.status === 'unpaid') {
-      noteText = `Unpaid balance • Rs. ${item.due.toLocaleString('en-IN')} due`;
-    }
 
     card.className = cardClass;
     card.innerHTML = `
-      <div class="waterfall-card-left">
-        <span class="waterfall-status-icon">${item.icon}</span>
-        <div class="waterfall-card-details">
+      <div class="waterfall-card-top-row">
+        <div class="waterfall-card-month-group">
+          <span class="waterfall-status-icon">${item.icon}</span>
           <strong class="waterfall-month-title">${item.monthLabel}</strong>
-          <span class="waterfall-month-note">${noteText}</span>
         </div>
-      </div>
-      <div class="waterfall-card-right">
         <span class="waterfall-amount-applied">Rs. ${(item.allocated || 0).toLocaleString('en-IN')}</span>
+      </div>
+      <div class="waterfall-card-bottom-row">
+        <span class="waterfall-month-note">${item.noteText}</span>
         <span class="badge-pill ${item.badgeClass}">${item.badgeText}</span>
       </div>
     `;
@@ -2577,40 +2492,10 @@ function initRecordPaymentPage() {
   const onlineSubfields = document.getElementById('online-channel-subfields');
   const channelChips = document.querySelectorAll('.channel-chips-row .channel-chip');
   const amountInput = document.getElementById('record-page-amount');
-  const btnToggleManual = document.getElementById('btn-toggle-manual-override');
-  const manualPanel = document.getElementById('manual-override-panel');
-  const toggleLabel = document.getElementById('label-toggle-manual-override');
-  const manualSelect = document.getElementById('select-manual-override-month');
   const btnSave = document.getElementById('btn-save-full-payment');
 
   // Live real-time waterfall allocation as user types
   amountInput?.addEventListener('input', () => {
-    if (selectedRecordTenancy) {
-      renderWaterfallBreakdown(selectedRecordTenancy);
-    }
-  });
-
-  // Manual allocation override toggle
-  btnToggleManual?.addEventListener('click', () => {
-    const isHidden = manualPanel?.classList.contains('hidden');
-    if (isHidden) {
-      manualPanel?.classList.remove('hidden');
-      isManualAllocationOverride = true;
-      selectedManualOverrideMonth = manualSelect?.value;
-      if (toggleLabel) toggleLabel.textContent = '🔄 Switch back to automatic waterfall split';
-    } else {
-      manualPanel?.classList.add('hidden');
-      isManualAllocationOverride = false;
-      selectedManualOverrideMonth = null;
-      if (toggleLabel) toggleLabel.textContent = '⚙️ Assign payment manually to a specific month';
-    }
-    if (selectedRecordTenancy) {
-      renderWaterfallBreakdown(selectedRecordTenancy);
-    }
-  });
-
-  manualSelect?.addEventListener('change', (e) => {
-    selectedManualOverrideMonth = e.target.value;
     if (selectedRecordTenancy) {
       renderWaterfallBreakdown(selectedRecordTenancy);
     }
@@ -2712,23 +2597,17 @@ function initRecordPaymentPage() {
       if (ref) modeLabel += ` (Ref: ${ref})`;
     }
 
-    // Determine settled months and bills using waterfall engine
-    let settledMonths = [];
-    let settledBillIds = [];
-
-    if (isManualAllocationOverride && selectedManualOverrideMonth) {
-      settledMonths = [selectedManualOverrideMonth];
-    } else {
-      const allocations = computeWaterfallAllocations(selectedRecordTenancy, amountVal);
-      const activeAllocations = allocations.filter((a) => (a.allocated || 0) > 0);
-      settledMonths = activeAllocations.map((a) => {
-        if (a.status === 'partial') {
-          return `${a.monthLabel} (Partial: Rs. ${a.allocated.toLocaleString('en-IN')}/${a.due.toLocaleString('en-IN')})`;
-        }
-        return a.monthLabel;
-      });
-      settledBillIds = activeAllocations.filter((a) => a.status === 'settled' && a.billId).map((a) => a.billId);
-    }
+    // Determine settled months and bills using pure waterfall engine
+    const allocations = computeWaterfallAllocations(selectedRecordTenancy, amountVal);
+    const activeAllocations = allocations.filter((a) => (a.allocated || 0) > 0);
+    let settledMonths = activeAllocations.map((a) => {
+      if (a.type === 'advance') return `${a.monthLabel} (Advance)`;
+      if (a.status === 'partial') {
+        return `${a.monthLabel} (Partial: Rs. ${a.allocated.toLocaleString('en-IN')}/${a.due.toLocaleString('en-IN')})`;
+      }
+      return a.monthLabel;
+    });
+    let settledBillIds = activeAllocations.filter((a) => a.status === 'settled' && a.billId).map((a) => a.billId);
 
     if (settledMonths.length === 0) {
       settledMonths = [new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })];

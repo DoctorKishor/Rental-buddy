@@ -1060,3 +1060,37 @@
     - Landlords who specifically wish to credit a custom month can open the manual assignment accordion (`#manual-override-panel`) with one tap, effortlessly overriding auto-split if desired.
   - **Persistent Transparency**:
     - `settledMonths` stores exact structured descriptions (e.g., `["October 2026 (Partial: Rs. 2,000 / Rs. 5,000)"]` or `["September 2026", "October 2026", "November 2026 (Advance)"]`), automatically displaying across the Dashboard and tenant WhatsApp receipts.
+
+---
+
+## 37. Decluttered Allocation Architecture & 2-Row Flex Alignment (Screen 12)
+
+### 1. UX Simplification & Elimination of Overdescriptive Texts
+- **Elimination of Wordy Headings**:
+  - Replaced the bulky 2-line header (`Smart Settlement Allocation` + `Oldest dues cleared first, then current rent, then advance`) with a sleek, minimalist `.waterfall-header-clean`:
+    - Clean title: `Allocation Breakdown` (`14px`, bold).
+    - Compact status pill: `Auto-Split` (`#EDE9FE` background, `#6D28D9` text).
+- **Concise Card Copy & 1-Word Badges**:
+  - Removed multi-line verbose status phrases (`Partial advance credit • Balance to carry: Rs. 2,500`, `Current Month Cleared`, `Manual single-month assignment`).
+  - Replaced with concise, scannable labels:
+    - Current month: `Current cycle` with `Paid` chip.
+    - Advance month: `Advance credit` with `Advance` chip.
+    - Past due: `Past due cleared` with `Cleared` chip, or `Rs. X due` with `Partial` chip.
+
+### 2. The 2-Row Card Layout (Zero-Truncation Guarantee)
+- **The Squashing / Truncation Flaw**:
+  - Previously, placing month titles, descriptions, amounts, and wide badges on a single flex row consumed >60% of card width on 360px mobile viewports, clipping amounts (`Rs. 2,5...`) and forcing awkward text wrapping.
+- **The 2-Row Solution (`.waterfall-item-card`)**:
+  - **Top Row (`.waterfall-card-top-row`)**:
+    - Left: 22px status icon (`✓`, `⏩`, `⚠️`, `📅`) + Month Name (`October 2026`, `November 2026`).
+    - Right: Bold amount applied (`Rs. 5,000`, `Rs. 2,500`) with `white-space: nowrap;`.
+  - **Bottom Row (`.waterfall-card-bottom-row`)**:
+    - Left: Short explanatory note with `padding-left: 30px;` (aligning directly beneath the month title, past the 22px icon + 8px gap).
+    - Right: Compact 1-word pill badge (`Paid`, `Advance`, `Partial`, `Due`).
+  - **Result**: Zero text collisions, zero card squashing, and perfect vertical alignment across all screen sizes down to 320px.
+
+### 3. Removal of Confusing Manual Override Accordion ("7.5k for single month?" Resolution)
+- **The Conflict**:
+  - An optional manual override accordion allowed force-assigning 7,500 into a 5,000 rent cycle, leading to confusing states where a single month displayed 7.5k allocation.
+- **The Resolution**:
+  - Removed the confusing manual override accordion. The pure, automatic waterfall engine rigorously enforces financial rent limits: capping October at Rs. 5,000 (`Paid`) and immediately allocating the remaining Rs. 2,500 surplus to November (`Advance`), maintaining mathematical and accounting integrity.
