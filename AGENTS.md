@@ -1194,3 +1194,20 @@
   - Secondary button: `"WhatsApp Receipt"` with green WhatsApp icon.
   - Primary button: `"Done"` returning directly to Tenancy Details or Dashboard.
 
+### 6. WhatsApp Receipt Dual Sharing Workflow (Text vs High-Res PNG Image)
+- **Modal Prompt Architecture**:
+  - Clicking `"WhatsApp Receipt"` triggers the dedicated bottom sheet modal (`#modal-share-receipt-choice`) presenting two clear choices:
+    1. **`Send as Text`** (`#btn-share-as-text`): Present text summary workflow.
+    2. **`Send as Image (PNG)`** (`#btn-share-as-image`): Full visual voucher snapshot workflow.
+- **Text Workflow & Corrupted Symbol Fix**:
+  - **The Root Cause of ``**: `wa.me/?text=` URLs issue a server-side 302 HTTP redirect where emoji surrogate pairs (🧾, 🏠, 📅, 💳, 📋, ✔) get mangled into unicode replacement diamonds (`\uFFFD`).
+  - **Resolution**:
+    - Replaced vulnerable 4-byte emojis with clean, native WhatsApp bold formatting (`*Property:*`, `*Date:*`, `*Channel:*`, `*Status:* Verified & Settled [OK]`).
+    - Direct WhatsApp Endpoint: Routes via `https://api.whatsapp.com/send?${phoneParam}text=${encodeURIComponent(msg)}` to bypass the 302 redirect header encoding bug.
+    - Automatic clipboard synchronization: Copies clean text to clipboard simultaneously.
+- **Image Workflow (Exact Visible PNG Voucher)**:
+  - Captures the exact `.receipt-ticket-card` element using client-side `html2canvas` at 3x retina scale.
+  - Semicircular Cutout Fidelity: Background set to `backgroundColor: '#EFF0FA'` so the perforation bites render seamlessly.
+  - Native Mobile Web Share: When supported (`navigator.canShare({ files: [file] })`), directly invokes the mobile OS share sheet with the PNG file attached for one-tap WhatsApp photo sharing.
+  - Desktop Fallback: Automatically triggers download of `RentalBuddy-Receipt-${cleanId}.png` and opens WhatsApp with a concise caption and attachment guidance.
+

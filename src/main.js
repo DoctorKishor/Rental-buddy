@@ -30,6 +30,7 @@ import {
   updateUserProfile,
   deleteUserAccountAndData,
 } from './supabase.js';
+import html2canvas from 'html2canvas';
 
 const state = {
   currentScreen: 1,
@@ -4117,46 +4118,161 @@ export function openPaymentReceipt(payment, tenancy = null) {
   navigateToScreen(21);
 }
 
-function handleShareReceipt() {
+function openShareReceiptModal() {
+  const modal = document.getElementById('modal-share-receipt-choice');
+  if (modal) {
+    modal.classList.remove('hidden');
+  }
+}
+
+function closeShareReceiptModal() {
+  const modal = document.getElementById('modal-share-receipt-choice');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+}
+
+function generateReceiptTextMessage(p, t) {
+  const pName = t?.property_name || p?.tenancies?.property_name || 'Rental Unit';
+  const rawDate = p?.payment_date || new Date().toISOString().split('T')[0];
+  const d = new Date(rawDate + 'T00:00:00');
+  const dateFormatted = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  const amtPNum = parseFloat(p?.amount || 0);
+  const amtFormatted = amtPNum % 1 === 0 ? amtPNum.toLocaleString('en-IN') : amtPNum.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+  const isCash = (p?.payment_mode || 'cash').toLowerCase() === 'cash';
+  const mode = isCash ? 'CASH' : `ONLINE (${(p?.channel || 'UPI').toUpperCase()})`;
+  const months = Array.isArray(p?.settled_months) ? p.settled_months.join(', ') : (p?.settled_months || 'Settled');
+  const cleanId = (p?.id ? String(p.id).replace(/[^a-zA-Z0-9]/g, '').slice(0, 10) : String(Date.now()).slice(-8)).toUpperCase();
+
+  // Clean, universally supported text formatting (strictly avoids 4-byte surrogate emojis that get corrupted into )
+  return (
+    `*RENTAL BUDDY — PAYMENT RECEIPT*\n` +
+    `Receipt ID: *RB-PAY-${cleanId}*\n` +
+    `--------------------------------\n` +
+    `*Property:* ${pName}\n` +
+    `*Date:* ${dateFormatted}\n` +
+    `*Channel:* ${mode}${p?.reference_no ? ' (Ref: ' + p.reference_no + ')' : ''}\n` +
+    `*Covered Cycles:* ${months}\n` +
+    `--------------------------------\n` +
+    `*TOTAL RECEIVED: Rs. ${amtFormatted}*\n` +
+    `*Status:* Verified & Settled [OK]\n` +
+    `--------------------------------\n` +
+    `Thank you! This digital voucher confirms payment receipt via Rental Buddy.`
+  );
+}
+
+function handleShareReceiptText() {
+  closeShareReceiptModal();
   if (!currentReceiptPayment) return;
   const p = currentReceiptPayment;
   const t = currentReceiptTenancy;
-  const pName = t?.property_name || p.tenancies?.property_name || 'Rental Unit';
-  const rawDate = p.payment_date || new Date().toISOString().split('T')[0];
-  const d = new Date(rawDate + 'T00:00:00');
-  const dateFormatted = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
-  const amtPNum = parseFloat(p.amount || 0);
-  const amtFormatted = amtPNum % 1 === 0 ? amtPNum.toLocaleString('en-IN') : amtPNum.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-  const isCash = (p.payment_mode || 'cash').toLowerCase() === 'cash';
-  const mode = isCash ? 'CASH' : `ONLINE (${(p.channel || 'UPI').toUpperCase()})`;
-  const months = Array.isArray(p.settled_months) ? p.settled_months.join(', ') : (p.settled_months || 'Settled');
-  const cleanId = (p.id ? String(p.id).replace(/[^a-zA-Z0-9]/g, '').slice(0, 10) : String(Date.now()).slice(-8)).toUpperCase();
-
-  const receiptMsg = `🧾 *RENTAL BUDDY — PAYMENT RECEIPT*\n` +
-    `Receipt ID: *RB-PAY-${cleanId}*\n` +
-    `--------------------------------\n` +
-    `🏠 Property: *${pName}*\n` +
-    `📅 Date: ${dateFormatted}\n` +
-    `💳 Channel: *${mode}* ${p.reference_no ? '(Ref: ' + p.reference_no + ')' : ''}\n` +
-    `📋 Covered Cycles: ${months}\n` +
-    `--------------------------------\n` +
-    `*TOTAL RECEIVED: Rs. ${amtFormatted}*\n` +
-    `Status: *Verified & Settled ✔*\n` +
-    `--------------------------------\n` +
-    `Thank you! This digital voucher confirms payment receipt via Rental Buddy.`;
+  const receiptMsg = generateReceiptTextMessage(p, t);
 
   if (navigator.clipboard) {
     navigator.clipboard.writeText(receiptMsg).catch(() => {});
   }
-  const waUrl = `https://wa.me/?text=${encodeURIComponent(receiptMsg)}`;
+
+  const phoneClean = t?.tenant_phone ? String(t.tenant_phone).replace(/[^0-9]/g, '') : '';
+  const phoneParam = phoneClean.length >= 10 ? `phone=${phoneClean}&` : '';
+  // Use direct api.whatsapp.com instead of wa.me to bypass 302 redirect header encoding corruption
+  const waUrl = `https://api.whatsapp.com/send?${phoneParam}text=${encodeURIComponent(receiptMsg)}`;
   window.open(waUrl, '_blank');
-  showToast('📱 Receipt copied & opening WhatsApp...', 3500);
+  showToast('Receipt text copied & opening WhatsApp...', 3500);
+}
+
+async function handleShareReceiptImage() {
+  closeShareReceiptModal();
+  if (!currentReceiptPayment) return;
+  const p = currentReceiptPayment;
+  const t = currentReceiptTenancy;
+  const pName = t?.property_name || p?.tenancies?.property_name || 'Rental Unit';
+  const amtPNum = parseFloat(p?.amount || 0);
+  const amtFormatted = amtPNum % 1 === 0 ? amtPNum.toLocaleString('en-IN') : amtPNum.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+  const cleanId = (p?.id ? String(p.id).replace(/[^a-zA-Z0-9]/g, '').slice(0, 10) : String(Date.now()).slice(-8)).toUpperCase();
+
+  const cardElement = document.querySelector('#screen-21 .receipt-ticket-card');
+  if (!cardElement) {
+    showToast('Unable to find receipt card element', 3000);
+    return;
+  }
+
+  showToast('Generating high-resolution voucher PNG...', 2200);
+
+  try {
+    const canvas = await html2canvas(cardElement, {
+      scale: 3,
+      useCORS: true,
+      backgroundColor: '#EFF0FA', // Canvas background guarantees clean inward cutouts
+      logging: false,
+    });
+
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        showToast('Could not generate receipt image', 3000);
+        return;
+      }
+
+      const fileName = `RentalBuddy-Receipt-${cleanId}.png`;
+      const file = new File([blob], fileName, { type: 'image/png' });
+
+      // Web Share API with files (Android / iOS native sharing)
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: `Rental Buddy Receipt - ${pName}`,
+            text: `Payment Receipt: Rs. ${amtFormatted} for ${pName} (Receipt ID: RB-PAY-${cleanId})`,
+            files: [file]
+          });
+          showToast('Voucher image shared successfully!', 3500);
+          return;
+        } catch (shareErr) {
+          if (shareErr.name === 'AbortError') return; // Cancelled by user
+          console.warn('Native share failed, using download fallback:', shareErr);
+        }
+      }
+
+      // Desktop / Web Fallback: download PNG file & open WhatsApp
+      const downloadUrl = URL.createObjectURL(blob);
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.href = downloadUrl;
+      downloadAnchor.download = fileName;
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      document.body.removeChild(downloadAnchor);
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 8000);
+
+      const briefCaption = `*RENTAL BUDDY — PAYMENT RECEIPT*\n` +
+        `Receipt ID: *RB-PAY-${cleanId}*\n` +
+        `Property: *${pName}*\n` +
+        `Amount: *Rs. ${amtFormatted}* (Verified & Settled)\n` +
+        `_Receipt voucher image downloaded to your device — attach PNG in WhatsApp chat._`;
+
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(briefCaption).catch(() => {});
+      }
+
+      const phoneClean = t?.tenant_phone ? String(t.tenant_phone).replace(/[^0-9]/g, '') : '';
+      const phoneParam = phoneClean.length >= 10 ? `phone=${phoneClean}&` : '';
+      const waUrl = `https://api.whatsapp.com/send?${phoneParam}text=${encodeURIComponent(briefCaption)}`;
+      window.open(waUrl, '_blank');
+      showToast('Receipt PNG downloaded & opening WhatsApp...', 4500);
+    }, 'image/png');
+
+  } catch (canvasErr) {
+    console.error('Failed to capture receipt snapshot:', canvasErr);
+    showToast('Failed to generate receipt image. Falling back to text...', 3000);
+    handleShareReceiptText();
+  }
 }
 
 function initReceiptPage() {
   const btnBack = document.getElementById('btn-receipt-back');
   const btnDone = document.getElementById('btn-receipt-done');
   const btnShareWa = document.getElementById('btn-receipt-share-wa');
+  const modalShareChoice = document.getElementById('modal-share-receipt-choice');
+  const btnCloseChoice = document.getElementById('btn-close-share-choice');
+  const btnShareText = document.getElementById('btn-share-as-text');
+  const btnShareImage = document.getElementById('btn-share-as-image');
 
   btnBack?.addEventListener('click', () => {
     if (state.previousScreen === 10 && currentActiveTenancy) {
@@ -4174,7 +4290,15 @@ function initReceiptPage() {
     }
   });
 
-  btnShareWa?.addEventListener('click', handleShareReceipt);
+  // Prompt the modal with two options (Text vs Image)
+  btnShareWa?.addEventListener('click', openShareReceiptModal);
+  btnCloseChoice?.addEventListener('click', closeShareReceiptModal);
+  modalShareChoice?.addEventListener('click', (e) => {
+    if (e.target === modalShareChoice) closeShareReceiptModal();
+  });
+
+  btnShareText?.addEventListener('click', handleShareReceiptText);
+  btnShareImage?.addEventListener('click', handleShareReceiptImage);
 }
 
 // ==========================================================================
