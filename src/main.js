@@ -122,8 +122,8 @@ function navigateToScreen(targetScreenNumber) {
   }
 
   // STRICT PRODUCTION AUTH GUARD:
-  // Disallow screens 6 through 19 if the user is not authenticated!
-  if (targetScreenNumber >= 6 && targetScreenNumber <= 19 && !cloudSession.user) {
+  // Disallow screens 6 through 21 if the user is not authenticated!
+  if (targetScreenNumber >= 6 && targetScreenNumber <= 21 && !cloudSession.user) {
     showToast('🔒 Please sign in or create an account to access Rental Buddy', 3000);
     targetScreenNumber = 20;
   }
@@ -1328,13 +1328,7 @@ export async function syncDashboardFromCloud() {
           `;
           item.addEventListener('click', () => {
             const prop = cloudTenanciesList.find((ten) => ten.id === p.tenancy_id);
-            if (prop) {
-              bindTenancyToDetails(prop);
-              navigateToScreen(10);
-              showToast(`Viewing details & ledger for ${prop.property_name}`, 2500);
-            } else {
-              showToast(`Payment receipt: Rs. ${parseFloat(p.amount).toLocaleString('en-IN')} via ${p.payment_mode.toUpperCase()} on ${p.payment_date}`, 3000);
-            }
+            openPaymentReceipt(p, prop);
           });
           listPayments.appendChild(item);
         });
@@ -1645,6 +1639,11 @@ export async function bindTenancyToDetails(t, targetYear = null) {
           if (isAdvancePayment && monthAllocatedAmount < rentNum) {
             // Partial Advance Credit (Not full settled)
             card.className = 'month-card month-upcoming';
+            card.style.cursor = 'pointer';
+            card.title = 'Click to view payment receipt';
+            card.addEventListener('click', () => {
+              openPaymentReceipt(matchedPayment, t);
+            });
             card.innerHTML = `
               <div class="month-card-left">
                 <div class="month-badge" style="background-color: #E0F2FE; color: #0284C7;">⏩</div>
@@ -1685,6 +1684,11 @@ export async function bindTenancyToDetails(t, targetYear = null) {
             // Full Settled Payment
             paidCount++;
             card.className = 'month-card month-paid';
+            card.style.cursor = 'pointer';
+            card.title = 'Click to view payment receipt';
+            card.addEventListener('click', () => {
+              openPaymentReceipt(matchedPayment, t);
+            });
             card.innerHTML = `
               <div class="month-card-left">
                 <div class="month-badge paid">✔</div>
@@ -1834,7 +1838,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
           </div>
         `;
         item.addEventListener('click', () => {
-          showToast(`Payment Receipt: Rs. ${parseFloat(p.amount).toLocaleString('en-IN')} paid on ${p.payment_date} (${months})`, 3000);
+          openPaymentReceipt(p, t);
         });
         historyList.appendChild(item);
       });
@@ -2760,7 +2764,7 @@ function initRecordPaymentPage() {
     btnSave.textContent = 'Saving Payment...';
 
     try {
-      await recordCloudPayment({
+      const recordedPayment = await recordCloudPayment({
         tenancyId: selectedRecordTenancy.id,
         amount: parseFloat(amountVal),
         paymentMode: payMode.toLowerCase() === 'online' ? 'online' : 'cash',
@@ -2775,14 +2779,14 @@ function initRecordPaymentPage() {
       await syncDashboardFromCloud();
 
       const toastMsg = sendWhatsApp
-        ? `✅ Rs. ${parseFloat(amountVal).toLocaleString('en-IN')} recorded for ${selectedRecordTenancy.property_name}! Applied to: ${settledMonths.join(', ')}. Receipt queued for WhatsApp.`
-        : `✅ Rs. ${parseFloat(amountVal).toLocaleString('en-IN')} recorded! Applied to: ${settledMonths.join(', ')}.`;
+        ? `✅ Rs. ${parseFloat(amountVal).toLocaleString('en-IN')} recorded for ${selectedRecordTenancy.property_name}! Opening receipt...`
+        : `✅ Rs. ${parseFloat(amountVal).toLocaleString('en-IN')} recorded! Opening receipt...`;
 
-      showToast(toastMsg, 3500);
+      showToast(toastMsg, 2500);
 
       setTimeout(() => {
-        navigateToScreen(6);
-      }, 500);
+        openPaymentReceipt(recordedPayment || (cloudPaymentsList && cloudPaymentsList[0]), selectedRecordTenancy);
+      }, 400);
     } catch (err) {
       showToast(`❌ Error saving payment: ${err.message}`, 4000);
     } finally {
@@ -3893,6 +3897,207 @@ function initFamilySharingModal() {
 }
 
 // ==========================================================================
+// PAYMENT RECEIPT & MOVIE-TICKET VOUCHER (SCREEN 21)
+// ==========================================================================
+
+export let currentReceiptPayment = null;
+export let currentReceiptTenancy = null;
+
+export function openPaymentReceipt(payment, tenancy = null) {
+  if (!payment) return;
+  currentReceiptPayment = payment;
+
+  // Fallback to resolve tenancy if not passed directly
+  if (!tenancy && payment.tenancy_id) {
+    tenancy = (cloudTenanciesList || []).find((t) => t.id === payment.tenancy_id);
+  }
+  currentReceiptTenancy = tenancy;
+
+  const propTitle = document.getElementById('receipt-prop-title');
+  const tenantName = document.getElementById('receipt-tenant-name');
+  const baseRent = document.getElementById('receipt-base-rent');
+  const statusPill = document.getElementById('receipt-status-pill');
+  const paymentDate = document.getElementById('receipt-payment-date');
+  const billingCycle = document.getElementById('receipt-billing-cycle');
+  const paymentMode = document.getElementById('receipt-payment-mode');
+  const referenceNo = document.getElementById('receipt-reference-no');
+  const totalAmount = document.getElementById('receipt-total-amount');
+  const propAddress = document.getElementById('receipt-prop-address');
+  const allocationsList = document.getElementById('receipt-allocations-list');
+  const notesRow = document.getElementById('receipt-notes-row');
+  const notesText = document.getElementById('receipt-notes-text');
+  const orderId = document.getElementById('receipt-order-id');
+
+  const pName = tenancy?.property_name || payment.tenancies?.property_name || 'Rental Unit';
+  if (propTitle) propTitle.textContent = pName;
+  if (tenantName) tenantName.textContent = `Tenant: ${tenancy?.tenant_name || pName}`;
+
+  const rentVal = tenancy?.base_rent ? parseFloat(tenancy.base_rent) : 0;
+  if (baseRent) {
+    baseRent.textContent = rentVal > 0 ? `Monthly Rent: Rs. ${rentVal.toLocaleString('en-IN')}` : 'Monthly Rent';
+  }
+
+  // Format payment date
+  const rawDate = payment.payment_date || new Date().toISOString().split('T')[0];
+  const d = new Date(rawDate + 'T00:00:00');
+  const dateFormatted = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  if (paymentDate) paymentDate.textContent = dateFormatted;
+
+  const cycleDay = tenancy?.billing_day || 1;
+  if (billingCycle) billingCycle.textContent = `Cycle: ${getOrdinal(cycleDay)} monthly`;
+
+  const mode = (payment.payment_mode || 'Cash').toUpperCase();
+  if (paymentMode) paymentMode.textContent = `Paid via ${mode}`;
+  if (referenceNo) {
+    referenceNo.textContent = payment.reference_no ? `Ref: ${payment.reference_no}` : 'Ref: Direct Cash';
+  }
+
+  const amtNum = parseFloat(payment.amount || 0);
+  if (totalAmount) {
+    totalAmount.textContent = `Rs. ${amtNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  }
+
+  if (propAddress) {
+    propAddress.textContent = tenancy?.address || `${pName} • Verified Unit`;
+  }
+
+  // Parse settled months
+  let monthsArr = [];
+  if (Array.isArray(payment.settled_months)) {
+    monthsArr = payment.settled_months;
+  } else if (typeof payment.settled_months === 'string') {
+    try {
+      const parsed = JSON.parse(payment.settled_months);
+      monthsArr = Array.isArray(parsed) ? parsed : [payment.settled_months];
+    } catch {
+      monthsArr = [payment.settled_months];
+    }
+  }
+
+  const hasAdvance = monthsArr.some((m) => m && m.toLowerCase().includes('advance'));
+  if (statusPill) {
+    if (hasAdvance) {
+      statusPill.className = 'status-pill status-upcoming';
+      statusPill.style.backgroundColor = '#E0F2FE';
+      statusPill.style.color = '#0284C7';
+      statusPill.style.border = '1px solid #BAE6FD';
+      statusPill.textContent = '⏩ Advance Included';
+    } else {
+      statusPill.className = 'status-pill status-paid';
+      statusPill.style.backgroundColor = '#DCFCE7';
+      statusPill.style.color = '#16A34A';
+      statusPill.style.border = '1px solid #BBF7D0';
+      statusPill.textContent = '✔ Settled';
+    }
+  }
+
+  // Render allocation breakdown chips
+  if (allocationsList) {
+    allocationsList.innerHTML = '';
+    if (monthsArr.length > 0) {
+      monthsArr.forEach((mStr) => {
+        const row = document.createElement('div');
+        row.className = 'receipt-alloc-chip';
+
+        const isAdv = mStr.toLowerCase().includes('advance');
+        const isPart = mStr.toLowerCase().includes('partial');
+
+        row.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="color: ${isAdv ? '#0284C7' : isPart ? '#B45309' : '#16A34A'}; font-weight: 700;">
+              ${isAdv ? '⏩' : isPart ? '⚠️' : '✓'}
+            </span>
+            <span class="receipt-alloc-month">${mStr}</span>
+          </div>
+        `;
+        allocationsList.appendChild(row);
+      });
+    } else {
+      const row = document.createElement('div');
+      row.className = 'receipt-alloc-chip';
+      row.innerHTML = `<span class="receipt-alloc-month">General Rent Settlement</span>`;
+      allocationsList.appendChild(row);
+    }
+  }
+
+  // Notes
+  if (payment.notes && notesRow && notesText) {
+    notesText.textContent = payment.notes;
+    notesRow.classList.remove('hidden');
+  } else if (notesRow) {
+    notesRow.classList.add('hidden');
+  }
+
+  // Generate Receipt ID
+  const cleanId = (payment.id ? String(payment.id).replace(/[^a-zA-Z0-9]/g, '').slice(0, 10) : String(Date.now()).slice(-8)).toUpperCase();
+  if (orderId) {
+    orderId.textContent = `Receipt ID: RB-PAY-${cleanId}`;
+  }
+
+  navigateToScreen(21);
+}
+
+function handleShareReceipt() {
+  if (!currentReceiptPayment) return;
+  const p = currentReceiptPayment;
+  const t = currentReceiptTenancy;
+  const pName = t?.property_name || p.tenancies?.property_name || 'Rental Unit';
+  const rawDate = p.payment_date || new Date().toISOString().split('T')[0];
+  const d = new Date(rawDate + 'T00:00:00');
+  const dateFormatted = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  const amtFormatted = parseFloat(p.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+  const mode = (p.payment_mode || 'Cash').toUpperCase();
+  const months = Array.isArray(p.settled_months) ? p.settled_months.join(', ') : (p.settled_months || 'Settled');
+  const cleanId = (p.id ? String(p.id).replace(/[^a-zA-Z0-9]/g, '').slice(0, 10) : String(Date.now()).slice(-8)).toUpperCase();
+
+  const receiptMsg = `🧾 *RENTAL BUDDY — PAYMENT RECEIPT*\n` +
+    `Receipt ID: *RB-PAY-${cleanId}*\n` +
+    `--------------------------------\n` +
+    `🏠 Property: *${pName}*\n` +
+    `📅 Date: ${dateFormatted}\n` +
+    `💳 Paid via: *${mode}* ${p.reference_no ? '(Ref: ' + p.reference_no + ')' : ''}\n` +
+    `📋 Covered Cycles: ${months}\n` +
+    `--------------------------------\n` +
+    `*TOTAL RECEIVED: Rs. ${amtFormatted}*\n` +
+    `Status: *Verified & Settled ✔*\n` +
+    `--------------------------------\n` +
+    `Thank you! This digital voucher confirms payment receipt via Rental Buddy.`;
+
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(receiptMsg).catch(() => {});
+  }
+  const waUrl = `https://wa.me/?text=${encodeURIComponent(receiptMsg)}`;
+  window.open(waUrl, '_blank');
+  showToast('📱 Receipt copied & opening WhatsApp...', 3500);
+}
+
+function initReceiptPage() {
+  const btnBack = document.getElementById('btn-receipt-back');
+  const btnDone = document.getElementById('btn-receipt-done');
+  const btnShareWa = document.getElementById('btn-receipt-share-wa');
+  const btnShareTop = document.getElementById('btn-receipt-share-top');
+
+  btnBack?.addEventListener('click', () => {
+    if (state.previousScreen === 10 && currentActiveTenancy) {
+      navigateToScreen(10);
+    } else {
+      navigateToScreen(6);
+    }
+  });
+
+  btnDone?.addEventListener('click', () => {
+    if (currentActiveTenancy) {
+      navigateToScreen(10);
+    } else {
+      navigateToScreen(6);
+    }
+  });
+
+  btnShareWa?.addEventListener('click', handleShareReceipt);
+  btnShareTop?.addEventListener('click', handleShareReceipt);
+}
+
+// ==========================================================================
 // INITIAL APPLICATION BOOT & STRICT AUTH GUARD
 // ==========================================================================
 
@@ -3911,6 +4116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initBackupRestoreScreen();
   initAuthScreen();
   initFamilySharingModal();
+  initReceiptPage();
 
   // Check Supabase Cloud Session on Boot
   const session = await getCurrentSession();
@@ -3958,7 +4164,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const hash = window.location.hash;
       if (hash && hash.startsWith('#screen-')) {
         const screenNum = parseInt(hash.replace('#screen-', ''), 10);
-        if (!isNaN(screenNum) && screenNum >= 1 && screenNum <= 20) {
+        if (!isNaN(screenNum) && screenNum >= 1 && screenNum <= 21) {
           navigateToScreen(screenNum);
         } else {
           navigateToScreen(6);

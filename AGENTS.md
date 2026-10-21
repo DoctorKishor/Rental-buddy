@@ -1134,3 +1134,46 @@
     - Underpaid current/past month (`monthAllocatedAmount < rentNum`): Displays amber `⚠️ Partial` badge.
     - Advance credit month (`monthAllocatedAmount < rentNum` in upcoming cycle): Displays blue `⏩ Advance` badge with subtext `"(Advance Credit)"`—NEVER falsely marked as `✔ Settled`.
     - Fully settled month (`monthAllocatedAmount >= rentNum`): Displays green `✔ Settled` badge.
+
+---
+
+## 39. Movie-Ticket Inspired Payment Receipt Voucher Architecture (Screen 21)
+
+### 1. Aesthetic Inspiration & Rental Domain Adaptation
+- **Design Origin**: Adapted from cinema/movie ticket voucher patterns (compact thumbnail poster, 2-column key info block, side perforation punch cutouts, horizontal dashed perforation line, and realistic barcode stub).
+- **Rental Domain Translation**:
+  - **Poster Box**: A glossy, vibrant gradient container (`68px × 88px` on mobile, `linear-gradient(135deg, #5452EC 0%, #3532C7 100%)`) featuring a crisp white home/person logo with a subtle `"RENTAL"` micro-pill badge.
+  - **Property & Tenant Meta**: Prominent property title with tenant name, monthly rent rate, and a dynamic verification status chip (`✔ Settled` or `⏩ Advance Included`).
+  - **2-Column Highlights Block**:
+    - Column 1: Payment date (`21 Oct 2026`) and billing cycle recurrence (`Cycle: 3rd monthly`).
+    - Column 2: Payment channel (`Paid via CASH`, `Online UPI`, `NEFT`) and transaction reference.
+  - **Financial Breakdown Section**:
+    - Highlighted total paid banner (`Rs. 6,000.00`).
+    - Verified property address / unit identifier.
+    - Covered billing cycles breakdown list showing exact allocations per cycle (e.g. October 2026: `Rs. 5,000` + November 2026: `Rs. 1,000 (Advance)`).
+    - Payment memo/notes if attached.
+
+### 2. Physical Ticket Punch Cutouts & Perforation Geometry
+- **The Signature Ticket Effect**:
+  - Left Notch: Semicircular punch cutout (`width: 28px; height: 28px; left: -14px; border-radius: 50%; background: var(--bg-canvas);`).
+  - Right Notch: Semicircular punch cutout (`width: 28px; height: 28px; right: -14px; border-radius: 50%; background: var(--bg-canvas);`).
+  - Connecting Cutline: `border-top: 2px dashed #D6D8EC; width: 100%; margin: 0 18px;`.
+  - Gives the card an authentic physical voucher look floating directly on the periwinkle/lavender canvas.
+
+### 3. Barcode Stub & Verification Architecture
+- **Ticket Stub**:
+  - Vector SVG barcode with varying bar weights (`width: 82%; height: 48px; max-width: 280px;`).
+  - Monospace receipt ID: `RB-PAY-XXXXXXXXXX` generated from the unique payment transaction ID.
+  - Caption: `"Show this digital receipt or share with tenant for proof of payment."`
+
+### 4. Interactive Entry Points & Lifecycle
+- **Tenancy Details (Screen 10)**:
+  - History Tab: Tapping any past payment card immediately opens the receipt voucher page.
+  - Month-Wise Tab: Tapping settled or advance months immediately opens their payment receipt.
+- **Home Dashboard (Screen 6)**:
+  - Tapping any transaction in the Recent Payments list opens the full voucher.
+- **Record Payment Flow (Screen 12)**:
+  - Upon completing a payment, the app immediately routes to the generated receipt voucher for instant landlord review and 1-tap WhatsApp sharing.
+- **WhatsApp Integration**:
+  - Formatted WhatsApp share text with emojis, bold markdown, receipt ID, and breakdown summary.
+
