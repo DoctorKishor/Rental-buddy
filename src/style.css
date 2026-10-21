@@ -3999,15 +3999,16 @@ select.form-input:disabled {
   border-radius: 20px;
   border: 1px solid rgba(226, 228, 242, 0.95);
   box-shadow: 0 10px 30px rgba(28, 33, 66, 0.08), 0 2px 6px rgba(28, 33, 66, 0.03);
-  margin-top: 8px;
-  margin-bottom: 24px;
+  margin-top: 4px;
+  margin-bottom: 16px;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .receipt-ticket-header {
   display: flex;
   flex-direction: column;
-  padding: 20px 20px 14px;
+  padding: 16px 18px 10px;
 }
 
 .receipt-header-left {
@@ -4022,15 +4023,15 @@ select.form-input:disabled {
   letter-spacing: 0.08em;
   color: var(--color-primary);
   text-transform: uppercase;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .receipt-prop-title {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
   color: var(--text-heading);
   letter-spacing: -0.01em;
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4040,24 +4041,24 @@ select.form-input:disabled {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .receipt-meta-pill {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--text-body);
   background: #F1F3FA;
-  padding: 4px 10px;
+  padding: 3px 9px;
   border-radius: 8px;
 }
 
 .receipt-meta-pill svg {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   color: var(--color-primary);
   flex-shrink: 0;
 }
@@ -4067,7 +4068,7 @@ select.form-input:disabled {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  padding: 6px 16px 10px;
+  padding: 4px 16px 8px;
   margin: 0;
   background: transparent;
   border: none;
@@ -4123,7 +4124,7 @@ select.form-input:disabled {
 .receipt-solid-divider {
   height: 1px;
   background: #ECEEF8;
-  margin: 14px 20px;
+  margin: 10px 18px;
 }
 
 /* Amount Hero Block (Clean, high contrast, strict NO-WRAP - No Stamp) */
@@ -4131,20 +4132,20 @@ select.form-input:disabled {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 18px;
 }
 
 .receipt-amount-left {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .receipt-amount-caption {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   color: var(--text-muted);
   letter-spacing: 0.05em;
@@ -4153,7 +4154,7 @@ select.form-input:disabled {
 }
 
 .receipt-amount-number {
-  font-size: clamp(22px, 6.5vw, 28px);
+  font-size: clamp(22px, 6vw, 26px);
   font-weight: 800;
   color: var(--text-heading);
   letter-spacing: -0.02em;
@@ -4163,23 +4164,23 @@ select.form-input:disabled {
 
 /* Details Section */
 .receipt-body-details {
-  padding: 0 20px;
+  padding: 0 18px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .receipt-detail-block {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .receipt-detail-header {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -4187,25 +4188,25 @@ select.form-input:disabled {
 }
 
 .receipt-detail-header svg {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   color: var(--color-primary);
   flex-shrink: 0;
 }
 
 .receipt-detail-body {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--text-heading);
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 /* Settlement Allocation Rows (Short month names and clean currency) */
 .receipt-allocations-table {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   margin-top: 2px;
 }
 
@@ -4213,29 +4214,29 @@ select.form-input:disabled {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 14px;
+  padding: 8px 12px;
   background: #F8F9FE;
   border: 1px solid #ECEEF8;
-  border-radius: 12px;
-  gap: 10px;
+  border-radius: 10px;
+  gap: 8px;
 }
 
 .receipt-alloc-row-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
   flex: 1;
 }
 
 .receipt-alloc-row-icon {
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1;
   flex-shrink: 0;
 }
 
 .receipt-alloc-row-title {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text-heading);
   white-space: nowrap;
@@ -4244,15 +4245,15 @@ select.form-input:disabled {
 .receipt-alloc-row-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
 .receipt-alloc-tag {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 6px;
+  padding: 2px 6px;
+  border-radius: 5px;
   white-space: nowrap;
 }
 
@@ -4272,7 +4273,7 @@ select.form-input:disabled {
 }
 
 .receipt-alloc-row-amount {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--text-heading);
   white-space: nowrap;
@@ -4283,85 +4284,88 @@ select.form-input:disabled {
   position: relative;
   display: flex;
   align-items: center;
-  height: 28px;
-  margin: 18px 0 10px;
+  height: 26px;
+  margin: 12px 0 6px;
 }
 
 .receipt-notch {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background-color: var(--bg-canvas);
   z-index: 2;
 }
 
 .receipt-notch.notch-left {
-  left: -14px;
+  left: -13px;
   box-shadow: inset -1.5px 0 0 rgba(226, 228, 242, 0.95);
 }
 
 .receipt-notch.notch-right {
-  right: -14px;
+  right: -13px;
   box-shadow: inset 1.5px 0 0 rgba(226, 228, 242, 0.95);
 }
 
 .receipt-cutline {
   width: 100%;
-  margin: 0 18px;
+  margin: 0 16px;
   border-top: 2px dashed #CBD5E1;
 }
 
 /* Ticket Stub */
 .receipt-stub-section {
-  padding: 10px 20px 24px;
+  padding: 6px 18px 18px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .receipt-barcode-wrap {
   width: 85%;
-  max-width: 280px;
-  height: 48px;
-  margin: 6px auto 10px;
+  max-width: 260px;
+  height: 44px;
+  margin: 4px auto 8px;
   color: #0E1326;
+  flex-shrink: 0;
 }
 
 .barcode-svg {
   width: 100%;
   height: 100%;
+  display: block;
 }
 
 .receipt-order-id {
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   color: #334155;
   letter-spacing: 0.05em;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .receipt-verify-text {
-  font-size: 12px;
+  font-size: 11px;
   color: #64748B;
-  max-width: 280px;
-  line-height: 1.45;
+  max-width: 270px;
+  line-height: 1.35;
   margin: 0 auto;
 }
 
 @media (max-width: 380px) {
   .receipt-ticket-header {
-    padding: 16px 16px 12px;
+    padding: 14px 14px 10px;
   }
   .receipt-prop-title {
-    font-size: 19px;
+    font-size: 18px;
   }
   .receipt-key-grid {
-    padding: 6px 12px 10px;
+    padding: 4px 12px 8px;
     margin: 0;
     gap: 8px;
   }
@@ -4369,10 +4373,13 @@ select.form-input:disabled {
     font-size: 12.5px;
   }
   .receipt-amount-number {
-    font-size: 22px;
+    font-size: 21px;
   }
   .receipt-body-details {
-    padding: 0 16px;
+    padding: 0 14px;
+  }
+  .receipt-stub-section {
+    padding: 6px 14px 16px;
   }
 }
 
