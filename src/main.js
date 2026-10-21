@@ -3914,13 +3914,16 @@ export function openPaymentReceipt(payment, tenancy = null) {
   currentReceiptTenancy = tenancy;
 
   const propTitle = document.getElementById('receipt-prop-title');
-  const tenantName = document.getElementById('receipt-tenant-name');
-  const baseRent = document.getElementById('receipt-base-rent');
+  const tenantText = document.getElementById('receipt-tenant-text');
+  const rentText = document.getElementById('receipt-rent-text');
   const statusPill = document.getElementById('receipt-status-pill');
+  const stampPill = document.getElementById('receipt-stamp-pill');
   const paymentDate = document.getElementById('receipt-payment-date');
   const billingCycle = document.getElementById('receipt-billing-cycle');
   const paymentMode = document.getElementById('receipt-payment-mode');
   const referenceNo = document.getElementById('receipt-reference-no');
+  const iconCash = document.getElementById('receipt-icon-cash');
+  const iconOnline = document.getElementById('receipt-icon-online');
   const totalAmount = document.getElementById('receipt-total-amount');
   const propAddress = document.getElementById('receipt-prop-address');
   const allocationsList = document.getElementById('receipt-allocations-list');
@@ -3928,13 +3931,23 @@ export function openPaymentReceipt(payment, tenancy = null) {
   const notesText = document.getElementById('receipt-notes-text');
   const orderId = document.getElementById('receipt-order-id');
 
-  const pName = tenancy?.property_name || payment.tenancies?.property_name || 'Rental Unit';
+  const pName = tenancy?.property_name || payment.tenancies?.property_name || 'Rental Property';
   if (propTitle) propTitle.textContent = pName;
-  if (tenantName) tenantName.textContent = `Tenant: ${tenancy?.tenant_name || pName}`;
+
+  // Refined tenant presentation: avoid "Tenant: Tenant"
+  if (tenantText) {
+    if (tenancy?.tenant_name && tenancy.tenant_name.toLowerCase() !== 'tenant' && tenancy.tenant_name !== pName) {
+      tenantText.textContent = tenancy.tenant_name;
+    } else if (tenancy?.tenant_phone) {
+      tenantText.textContent = tenancy.tenant_phone;
+    } else {
+      tenantText.textContent = 'Tenant';
+    }
+  }
 
   const rentVal = tenancy?.base_rent ? parseFloat(tenancy.base_rent) : 0;
-  if (baseRent) {
-    baseRent.textContent = rentVal > 0 ? `Monthly Rent: Rs. ${rentVal.toLocaleString('en-IN')}` : 'Monthly Rent';
+  if (rentText) {
+    rentText.textContent = rentVal > 0 ? `Rs. ${rentVal.toLocaleString('en-IN')}/mo` : 'Monthly';
   }
 
   // Format payment date
@@ -3944,12 +3957,24 @@ export function openPaymentReceipt(payment, tenancy = null) {
   if (paymentDate) paymentDate.textContent = dateFormatted;
 
   const cycleDay = tenancy?.billing_day || 1;
-  if (billingCycle) billingCycle.textContent = `Cycle: ${getOrdinal(cycleDay)} monthly`;
+  if (billingCycle) billingCycle.textContent = `Billing Day: ${getOrdinal(cycleDay)}`;
 
-  const mode = (payment.payment_mode || 'Cash').toUpperCase();
-  if (paymentMode) paymentMode.textContent = `Paid via ${mode}`;
-  if (referenceNo) {
-    referenceNo.textContent = payment.reference_no ? `Ref: ${payment.reference_no}` : 'Ref: Direct Cash';
+  const isCash = (payment.payment_mode || 'cash').toLowerCase() === 'cash';
+  if (isCash) {
+    iconCash?.classList.remove('hidden');
+    iconOnline?.classList.add('hidden');
+    if (paymentMode) paymentMode.textContent = 'Cash Payment';
+    if (referenceNo) {
+      referenceNo.textContent = payment.reference_no ? `Ref: ${payment.reference_no}` : 'Direct Handover';
+    }
+  } else {
+    iconCash?.classList.add('hidden');
+    iconOnline?.classList.remove('hidden');
+    const ch = (payment.channel || 'Online').toUpperCase();
+    if (paymentMode) paymentMode.textContent = `Online (${ch})`;
+    if (referenceNo) {
+      referenceNo.textContent = payment.reference_no ? `Ref: ${payment.reference_no}` : 'Instant Settlement';
+    }
   }
 
   const amtNum = parseFloat(payment.amount || 0);
@@ -3958,7 +3983,7 @@ export function openPaymentReceipt(payment, tenancy = null) {
   }
 
   if (propAddress) {
-    propAddress.textContent = tenancy?.address || `${pName} • Verified Unit`;
+    propAddress.textContent = tenancy?.address || `${pName} • Residential Tenancy`;
   }
 
   // Parse settled months
@@ -3976,46 +4001,77 @@ export function openPaymentReceipt(payment, tenancy = null) {
 
   const hasAdvance = monthsArr.some((m) => m && m.toLowerCase().includes('advance'));
   if (statusPill) {
-    if (hasAdvance) {
-      statusPill.className = 'status-pill status-upcoming';
-      statusPill.style.backgroundColor = '#E0F2FE';
-      statusPill.style.color = '#0284C7';
-      statusPill.style.border = '1px solid #BAE6FD';
-      statusPill.textContent = '⏩ Advance Included';
-    } else {
-      statusPill.className = 'status-pill status-paid';
-      statusPill.style.backgroundColor = '#DCFCE7';
-      statusPill.style.color = '#16A34A';
-      statusPill.style.border = '1px solid #BBF7D0';
-      statusPill.textContent = '✔ Settled';
-    }
+    statusPill.textContent = '✔ Verified & Settled';
+  }
+  if (stampPill) {
+    stampPill.textContent = hasAdvance ? 'PAID (ADVANCE INCLUDED)' : 'PAID IN FULL';
   }
 
-  // Render allocation breakdown chips
+  // Render allocation breakdown table with EXACT Rs. amounts
   if (allocationsList) {
     allocationsList.innerHTML = '';
     if (monthsArr.length > 0) {
       monthsArr.forEach((mStr) => {
         const row = document.createElement('div');
-        row.className = 'receipt-alloc-chip';
+        row.className = 'receipt-alloc-row';
 
         const isAdv = mStr.toLowerCase().includes('advance');
         const isPart = mStr.toLowerCase().includes('partial');
 
+        // Extract amount if present e.g. "October 2026 (Rs. 5,000)" or "November 2026 (Advance: Rs. 1,000)"
+        let allocatedNum = rentVal;
+        const amtMatch = mStr.match(/Rs\.?\s*([\d,]+(?:\.\d+)?)/i);
+        if (amtMatch) {
+          allocatedNum = parseFloat(amtMatch[1].replace(/,/g, '')) || rentVal;
+        } else if (monthsArr.length > 1) {
+          if (isAdv) {
+            allocatedNum = Math.max(0, amtNum - rentVal) || rentVal;
+          } else {
+            allocatedNum = Math.min(rentVal, amtNum);
+          }
+        } else {
+          allocatedNum = amtNum || rentVal;
+        }
+
+        // Clean month label
+        let cleanLabel = mStr.replace(/\s*\([^)]*\)/g, '').trim();
+        if (!cleanLabel) cleanLabel = mStr;
+
+        let tagClass = 'cleared';
+        let tagText = 'Cleared';
+        let iconSymbol = '✓';
+
+        if (isAdv) {
+          tagClass = 'advance';
+          tagText = 'Advance';
+          iconSymbol = '⏩';
+        } else if (isPart) {
+          tagClass = 'partial';
+          tagText = 'Partial';
+          iconSymbol = '⚠️';
+        }
+
         row.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span style="color: ${isAdv ? '#0284C7' : isPart ? '#B45309' : '#16A34A'}; font-weight: 700;">
-              ${isAdv ? '⏩' : isPart ? '⚠️' : '✓'}
-            </span>
-            <span class="receipt-alloc-month">${mStr}</span>
+          <div class="receipt-alloc-row-left">
+            <span class="receipt-alloc-row-icon">${iconSymbol}</span>
+            <span class="receipt-alloc-row-title">${cleanLabel}</span>
+            <span class="receipt-alloc-tag ${tagClass}">${tagText}</span>
           </div>
+          <strong class="receipt-alloc-row-amount">Rs. ${allocatedNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
         `;
         allocationsList.appendChild(row);
       });
     } else {
       const row = document.createElement('div');
-      row.className = 'receipt-alloc-chip';
-      row.innerHTML = `<span class="receipt-alloc-month">General Rent Settlement</span>`;
+      row.className = 'receipt-alloc-row';
+      row.innerHTML = `
+        <div class="receipt-alloc-row-left">
+          <span class="receipt-alloc-row-icon">✓</span>
+          <span class="receipt-alloc-row-title">General Rent Payment</span>
+          <span class="receipt-alloc-tag cleared">Cleared</span>
+        </div>
+        <strong class="receipt-alloc-row-amount">Rs. ${amtNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+      `;
       allocationsList.appendChild(row);
     }
   }
@@ -4028,7 +4084,7 @@ export function openPaymentReceipt(payment, tenancy = null) {
     notesRow.classList.add('hidden');
   }
 
-  // Generate Receipt ID
+  // Generate deterministic Receipt ID
   const cleanId = (payment.id ? String(payment.id).replace(/[^a-zA-Z0-9]/g, '').slice(0, 10) : String(Date.now()).slice(-8)).toUpperCase();
   if (orderId) {
     orderId.textContent = `Receipt ID: RB-PAY-${cleanId}`;
@@ -4046,7 +4102,8 @@ function handleShareReceipt() {
   const d = new Date(rawDate + 'T00:00:00');
   const dateFormatted = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
   const amtFormatted = parseFloat(p.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
-  const mode = (p.payment_mode || 'Cash').toUpperCase();
+  const isCash = (p.payment_mode || 'cash').toLowerCase() === 'cash';
+  const mode = isCash ? 'CASH' : `ONLINE (${(p.channel || 'UPI').toUpperCase()})`;
   const months = Array.isArray(p.settled_months) ? p.settled_months.join(', ') : (p.settled_months || 'Settled');
   const cleanId = (p.id ? String(p.id).replace(/[^a-zA-Z0-9]/g, '').slice(0, 10) : String(Date.now()).slice(-8)).toUpperCase();
 
@@ -4055,7 +4112,7 @@ function handleShareReceipt() {
     `--------------------------------\n` +
     `🏠 Property: *${pName}*\n` +
     `📅 Date: ${dateFormatted}\n` +
-    `💳 Paid via: *${mode}* ${p.reference_no ? '(Ref: ' + p.reference_no + ')' : ''}\n` +
+    `💳 Channel: *${mode}* ${p.reference_no ? '(Ref: ' + p.reference_no + ')' : ''}\n` +
     `📋 Covered Cycles: ${months}\n` +
     `--------------------------------\n` +
     `*TOTAL RECEIVED: Rs. ${amtFormatted}*\n` +
@@ -4075,7 +4132,6 @@ function initReceiptPage() {
   const btnBack = document.getElementById('btn-receipt-back');
   const btnDone = document.getElementById('btn-receipt-done');
   const btnShareWa = document.getElementById('btn-receipt-share-wa');
-  const btnShareTop = document.getElementById('btn-receipt-share-top');
 
   btnBack?.addEventListener('click', () => {
     if (state.previousScreen === 10 && currentActiveTenancy) {
@@ -4094,7 +4150,6 @@ function initReceiptPage() {
   });
 
   btnShareWa?.addEventListener('click', handleShareReceipt);
-  btnShareTop?.addEventListener('click', handleShareReceipt);
 }
 
 // ==========================================================================
