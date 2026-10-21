@@ -3108,6 +3108,33 @@ html, body {
   color: var(--text-body);
 }
 
+select.form-input {
+  cursor: pointer;
+  background-color: var(--bg-surface);
+  color: var(--text-heading);
+}
+
+select.form-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.custom-month-picker-row {
+  background: #F8F9FE;
+  border: 1.5px solid #E2E4F2;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-top: 10px;
+}
+
+.custom-month-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #52586E;
+  margin-bottom: 6px;
+}
+
 /* 360px adjustments for Record Payment Page */
 @media (max-width: 380px) {
   .shortcut-chip {

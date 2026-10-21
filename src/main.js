@@ -2195,27 +2195,41 @@ export function setupRecordPaymentForm(tenancy) {
   const amountInput = document.getElementById('record-page-amount');
   if (amountInput) amountInput.value = baseRent > 0 ? baseRent : '';
 
-  // Update shortcut chips
+  // Shortcut chips removed per user preference
   const chipsContainer = document.querySelector('.amount-shortcut-chips');
   if (chipsContainer) {
     chipsContainer.innerHTML = '';
-    const shortcuts = [
-      { label: `Base Rent (${baseRent.toLocaleString('en-IN')})`, amount: baseRent },
-      ...(advance > 0 ? [{ label: `Advance (${advance.toLocaleString('en-IN')})`, amount: advance }] : []),
-      { label: `Round Rs. ${Math.round(baseRent / 1000) * 1000 || 5000}`, amount: Math.round(baseRent / 1000) * 1000 || 5000 }
+    chipsContainer.style.display = 'none';
+  }
+
+  // Populate Advance / Custom settlement months dropdown
+  const customMonthSelect = document.getElementById('select-custom-settle-month');
+  if (customMonthSelect) {
+    const MONTH_NAMES = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
     ];
-    shortcuts.forEach((chip, index) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = `shortcut-chip ${index === 0 ? 'active' : ''}`;
-      btn.textContent = chip.label;
-      btn.addEventListener('click', () => {
-        chipsContainer.querySelectorAll('.shortcut-chip').forEach((c) => c.classList.remove('active'));
-        btn.classList.add('active');
-        if (amountInput) amountInput.value = chip.amount;
-      });
-      chipsContainer.appendChild(btn);
-    });
+    const now = new Date();
+    const currYear = now.getFullYear();
+    const currMonth = now.getMonth();
+
+    let optionsHtml = '<option value="" disabled selected>-- Select Advance / Custom Month --</option>';
+
+    // Generate upcoming 12 months for advance settlement
+    for (let i = 1; i <= 12; i++) {
+      const d = new Date(currYear, currMonth + i, 1);
+      const mLabel = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+      optionsHtml += `<option value="${mLabel} (Advance)">${mLabel} (Advance)</option>`;
+    }
+
+    // Also add past 3 months in case settling previous cycle
+    for (let i = 1; i <= 3; i++) {
+      const d = new Date(currYear, currMonth - i, 1);
+      const mLabel = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+      optionsHtml += `<option value="${mLabel}">${mLabel} (Past Cycle)</option>`;
+    }
+
+    customMonthSelect.innerHTML = optionsHtml;
   }
 
   // Initialize payment date inputs to current date if blank
@@ -2469,6 +2483,25 @@ function initRecordPaymentPage() {
 
   btnToggleCustomMonth?.addEventListener('click', () => {
     customMonthPickerRow?.classList.toggle('hidden');
+    if (!customMonthPickerRow?.classList.contains('hidden')) {
+      const select = document.getElementById('select-custom-settle-month');
+      if (select && select.selectedIndex <= 0 && select.options.length > 1) {
+        select.selectedIndex = 1; // Default to next upcoming advance month
+        const currentMonthTitle = document.getElementById('current-month-title');
+        if (currentMonthTitle && select.value) {
+          currentMonthTitle.textContent = select.value;
+        }
+      }
+    }
+  });
+
+  const customMonthDropdown = document.getElementById('select-custom-settle-month');
+  customMonthDropdown?.addEventListener('change', (e) => {
+    const val = e.target.value;
+    const currentMonthTitle = document.getElementById('current-month-title');
+    if (val && currentMonthTitle) {
+      currentMonthTitle.textContent = val;
+    }
   });
 
   btnSave?.addEventListener('click', async () => {
@@ -2509,7 +2542,7 @@ function initRecordPaymentPage() {
     } else {
       const customVal = document.getElementById('select-custom-settle-month')?.value;
       if (customMonthPickerRow && !customMonthPickerRow.classList.contains('hidden') && customVal) {
-        settledMonthText = `${customVal} (Advance)`;
+        settledMonthText = customVal;
       } else {
         settledMonthText = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
       }

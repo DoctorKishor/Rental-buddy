@@ -1482,8 +1482,8 @@
                     <div class="input-trailing-icon" style="font-weight: 700; color: #52586E;">Rs.</div>
                   </div>
 
-                  <!-- Quick Amount Chips -->
-                  <div class="amount-shortcut-chips" id="record-amount-chips">
+                  <!-- Quick Amount Chips (Removed per user preference) -->
+                  <div class="amount-shortcut-chips hidden" id="record-amount-chips" style="display: none;">
                   </div>
                 </div>
 
@@ -1620,8 +1620,12 @@
                         <span>+ Settle for another month / Advance</span>
                       </button>
 
-                      <div class="custom-month-picker-row hidden" id="custom-month-picker-row" style="margin-top: 8px;">
-                        <select id="select-custom-settle-month" class="form-input mini">
+                      <div class="custom-month-picker-row hidden" id="custom-month-picker-row">
+                        <label for="select-custom-settle-month" class="custom-month-label">
+                          Select Advance / Custom Month:
+                        </label>
+                        <select id="select-custom-settle-month" class="form-input mini" style="width: 100%; cursor: pointer;">
+                          <option value="" disabled selected>-- Select Advance / Custom Month --</option>
                         </select>
                       </div>
                     </div>

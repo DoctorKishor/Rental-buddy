@@ -981,3 +981,32 @@
     - If Water is disabled or flat-rate, water meter reading inputs are hidden.
   - In Screen 14 (Review Bill) and Screen 15 (Bill Details / Invoice), line items for utilities (Electricity, Water, Internet, Sewage/Garbage) are displayed if and only if they are enabled for that specific tenancy and have non-zero amounts. Non-applicable utilities are completely hidden.
 
+## 34. Payment Recording RLS Permission Resolution, Amount Clutter Removal & Advance Month Picker Architecture (Screen 12)
+
+### 1. Supabase "Permission Denied for Table Users" Resolution
+- **The Defect**:
+  - When saving a payment (either via Screen 12 Dedicated Record Payment or the Dashboard Quick Modal), Supabase returned: `❌ Error saving payment: permission denied for table users`.
+  - **Root Cause**:
+    - In Supabase PostgreSQL, `auth.users` resides in the private `auth` schema. The `authenticated` role lacks `SELECT` privileges on `auth.users`.
+    - The RLS policy `"Family managers can record payments"` on table `public.payments` contained an inline subquery: `((fs.member_email = ((SELECT users.email FROM auth.users WHERE users.id = auth.uid())))::text)`.
+    - PostgreSQL evaluates all permissive `INSERT` `WITH CHECK` clauses whenever ANY user (including property owners) inserts a record into `payments`. Evaluating this subquery under the user's role triggered a permission denied violation.
+  - **The Architectural Fix**:
+    - Replaced the direct table query in both `payments` and `family_shares` policies with Supabase's native token helper `COALESCE(auth.email(), (auth.jwt() ->> 'email'))`.
+    - Executed non-destructive policy alteration. Payments now record and sync instantaneously to Supabase without permission errors.
+
+### 2. Removal of Unnecessary Amount Shortcut Chips (Clutter Elimination)
+- **The Defect**:
+  - The Record Payment screen rendered floating shortcut chips (`Base Rent (5,000)`, `Advance (35,000)`, `Round Rs. 5000`) beneath the amount field.
+  - Users identified this row as redundant and space-consuming since the base rent is already pre-filled directly into the amount input and fully editable.
+- **The Architectural Fix**:
+  - Hidden and removed the shortcut chips row from `index.html` and disabled chip generation in `setupRecordPaymentForm()`, giving the screen a cleaner, more spacious layout.
+
+### 3. Dynamic Advance & Custom Month Settlement Dropdown Restoration
+- **The Defect**:
+  - Toggling `+ Settle for another month / Advance` revealed an empty `<select id="select-custom-settle-month">` container with 0 options, rendering as a flat, clipped white bar with no selectable options ("Not showing").
+- **The Architectural Fix**:
+  - In `src/main.js`, `setupRecordPaymentForm()` now dynamically populates `#select-custom-settle-month` with:
+    - The upcoming 12 calendar cycles for advance rent collection (e.g., `November 2026 (Advance)`, `December 2026 (Advance)`, etc.).
+    - The past 3 months for retrospective cycle settlements.
+  - Added clean container styling (`.custom-month-picker-row`) with distinct label and native select chevron styling.
+  - Automatically selects the next upcoming advance cycle when opened and updates the settlement status pill in real-time.
