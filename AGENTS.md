@@ -1103,3 +1103,34 @@
   - Advance allocations (`type === 'advance'`) MUST always have `balanceLeft: 0`.
   - The `"Remaining Balance Due"` summary row strictly counts unfulfilled arrears from past overdue months (`type === 'past_due'`) and underpaid current rent (`type === 'current'`), and NEVER counts upcoming advance months.
   - In the Rs. 5,600 scenario, October is fully settled (`Paid`), November holds Rs. 600 (`Advance`), and Remaining Balance Due is Rs. 0 (row hidden).
+
+---
+
+## 38. Tenancy Start Date, Ledger Boundary & Partial Advance Month Architecture
+
+### 1. Tenancy Start Date Field & Form Lifecycle
+- **The Problem**: Previously, tenancies only tracked `billing_day` (e.g. 1st or 3rd) and `created_at`. When viewing the 12-month calendar ledger on Screen 10 (Tenancy Details), every month prior to tenancy creation (e.g., January through September) was cluttering the UI as `"Before tenancy started • Rs. 0.00 • Clear"`.
+- **The Solution**:
+  - Added explicit `start_date` (`DATE` column in Supabase `tenancies` table).
+  - **Screen 7 (Create Tenancy - Step 1)**: Interactive date-picker `#input-tenancy-start-date` defaulting to the current date, with calendar icon trigger `#tenancyStartDateTrigger`.
+  - **Screen 9 (Confirm Tenancy)**: Dedicated row in the General Information card displaying formatted `"Tenancy Start Date"` (e.g., `21 Oct 2026`).
+  - **Screen 11 (Edit Tenancy)**: Interactive edit field `#edit-start-date-display` with calendar picker `#editStartDatePickerTrigger` allowing landlords to adjust historical tenancy start dates.
+
+### 2. Month-Wise Ledger Boundary Rule (Zero Pre-Tenancy Clutter)
+- **Strict Ledger Filtering Rule**:
+  - In `renderTenancyDetails`, the 12-month loop (`MONTHS.forEach`) strictly skips all months prior to the tenancy start date:
+    ```javascript
+    const isBeforeTenancyStart = (activeYear < tenancyStart.getFullYear()) ||
+      (activeYear === tenancyStart.getFullYear() && idx < tenancyStart.getMonth());
+    if (isBeforeTenancyStart) return; // Completely hidden from the stack
+    ```
+  - The stack cleanly starts from the month the tenant actually moved in, eliminating all unnecessary placeholder cards.
+
+### 3. Payment Allocation Breakdown & Advance Status Guarantee
+- **The Problem**: When a tenant paid a lump sum covering multiple months (e.g., Rs. 6,000 for Rs. 5,000 rent: Rs. 5,000 October + Rs. 1,000 advance November), both October and November displayed the total payment (`Rs. 6,000.00`) and were marked as `✔ Settled`.
+- **The Solution**:
+  - **Exact Allocated Amount Display**: Each month card displays only its specific allocated portion (`Rs. 5,000.00` for October, `Rs. 1,000.00` for November).
+  - **Status Fidelity**:
+    - Underpaid current/past month (`monthAllocatedAmount < rentNum`): Displays amber `⚠️ Partial` badge.
+    - Advance credit month (`monthAllocatedAmount < rentNum` in upcoming cycle): Displays blue `⏩ Advance` badge with subtext `"(Advance Credit)"`—NEVER falsely marked as `✔ Settled`.
+    - Fully settled month (`monthAllocatedAmount >= rentNum`): Displays green `✔ Settled` badge.

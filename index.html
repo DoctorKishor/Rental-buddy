@@ -651,6 +651,35 @@
                   </div>
                 </div>
 
+                <!-- Tenancy Start Date Picker -->
+                <div class="form-group">
+                  <label class="form-label" for="input-tenancy-start-date">Tenancy Start Date</label>
+                  <div class="input-with-icon date-picker-box" id="tenancyStartDateTrigger">
+                    <input
+                      type="text"
+                      id="input-tenancy-start-date"
+                      class="form-input date-text"
+                      placeholder="Select start date"
+                      readonly
+                    />
+                    <input
+                      type="date"
+                      id="native-tenancy-start-date"
+                      class="native-date-field"
+                      aria-label="Pick tenancy start date"
+                    />
+                    <div class="input-trailing-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                    </div>
+                  </div>
+                  <span class="form-caption">Financial records will be tracked starting from this date</span>
+                </div>
+
                 <!-- Recurring Billing Date Picker -->
                 <div class="form-group">
                   <label class="form-label" for="input-billing-date" id="label-billing-date">Recurring Billing Date (date of the month)</label>
@@ -924,6 +953,10 @@
                   <div class="confirm-row">
                     <span class="confirm-label">Next Billing Date</span>
                     <strong class="confirm-value" id="confirm-next-date">--</strong>
+                  </div>
+                  <div class="confirm-row">
+                    <span class="confirm-label">Tenancy Start Date</span>
+                    <strong class="confirm-value" id="confirm-start-date">--</strong>
                   </div>
                 </div>
               </div>
@@ -1289,6 +1322,37 @@
                       <span class="custom-radio mini"></span>
                     </label>
                   </div>
+                </div>
+
+                <!-- Tenancy Start Date Picker -->
+                <div class="form-group">
+                  <label class="form-label" for="edit-start-date-display">Tenancy Start Date</label>
+                  <div class="input-with-icon date-picker-box" id="editStartDatePickerTrigger">
+                    <input
+                      type="text"
+                      id="edit-start-date-display"
+                      class="form-input date-text"
+                      value=""
+                      placeholder="Pick tenancy start date"
+                      readonly
+                    />
+                    <input
+                      type="date"
+                      id="edit-native-start-date"
+                      class="native-date-field"
+                      value=""
+                      aria-label="Pick tenancy start date"
+                    />
+                    <div class="input-trailing-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                    </div>
+                  </div>
+                  <span class="form-caption">Financial records will be tracked starting from this date</span>
                 </div>
 
                 <!-- Recurring Billing Date Picker -->

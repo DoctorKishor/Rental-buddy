@@ -325,6 +325,42 @@ function initStep1Form() {
     nativeDateInput.value = todayIso;
   }
   updateFromDate(todayIso);
+
+  // Tenancy Start Date Picker Logic
+  const startTrigger = document.getElementById('tenancyStartDateTrigger');
+  const nativeStartInput = document.getElementById('native-tenancy-start-date');
+  const textStartInput = document.getElementById('input-tenancy-start-date');
+
+  function updateStartDateDisplay(dateStr) {
+    if (!dateStr) return;
+    const d = new Date(dateStr + 'T00:00:00');
+    if (textStartInput) {
+      textStartInput.value = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+  }
+
+  if (nativeStartInput && !nativeStartInput.value) {
+    nativeStartInput.value = todayIso;
+  }
+  updateStartDateDisplay(todayIso);
+
+  nativeStartInput?.addEventListener('change', (e) => {
+    updateStartDateDisplay(e.target.value);
+  });
+
+  const openStartDatePicker = () => {
+    if (nativeStartInput && typeof nativeStartInput.showPicker === 'function') {
+      try {
+        nativeStartInput.showPicker();
+      } catch (err) {
+        nativeStartInput.focus();
+      }
+    } else {
+      nativeStartInput?.focus();
+    }
+  };
+  startTrigger?.addEventListener('click', openStartDatePicker);
+  textStartInput?.addEventListener('click', openStartDatePicker);
 }
 
 // Tenancy Step 2 Utility Toggles & Accordions
@@ -437,6 +473,15 @@ function syncConfirmationScreen() {
 
   const nextDateEl = document.getElementById('confirm-next-date');
   if (nextDateEl) nextDateEl.textContent = nextDateText;
+
+  const nativeStartDate = document.getElementById('native-tenancy-start-date')?.value;
+  let startDateText = '--';
+  if (nativeStartDate) {
+    const d = new Date(nativeStartDate + 'T00:00:00');
+    startDateText = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  const confirmStartDateEl = document.getElementById('confirm-start-date');
+  if (confirmStartDateEl) confirmStartDateEl.textContent = startDateText;
 
   // Electricity
   const elecEnabled = document.getElementById('toggle-electricity')?.checked;
@@ -574,6 +619,13 @@ export function resetCreateTenancyForm() {
   if (internetAmt) internetAmt.value = '';
   const notesInput = document.getElementById('input-additional-notes');
   if (notesInput) notesInput.value = '';
+
+  const nativeStartDate = document.getElementById('native-tenancy-start-date');
+  const inputStartDate = document.getElementById('input-tenancy-start-date');
+  const today = new Date();
+  const todayIso = today.toISOString().split('T')[0];
+  if (nativeStartDate) nativeStartDate.value = todayIso;
+  if (inputStartDate) inputStartDate.value = today.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 // Attach All Event Listeners
@@ -724,6 +776,7 @@ function initEventListeners() {
     }
 
     const nativeDate = document.getElementById('native-billing-date')?.value;
+    const nativeStartDate = document.getElementById('native-tenancy-start-date')?.value;
     let billingDay = 1;
     if (nativeDate) {
       billingDay = parseInt(nativeDate.split('-')[2], 10) || 1;
@@ -785,6 +838,7 @@ function initEventListeners() {
         baseRent: rentVal,
         advanceAmount: advanceVal,
         billingDay: billingDay,
+        startDate: nativeStartDate || new Date().toISOString().split('T')[0],
         utilities: utilities,
       });
       if (created) {
@@ -1416,6 +1470,14 @@ export async function bindTenancyToDetails(t, targetYear = null) {
     const dayStr = (t.billing_day || 1).toString().padStart(2, '0');
     editNativeDate.value = `2026-04-${dayStr}`;
   }
+  const editStartDateDisplay = document.getElementById('edit-start-date-display');
+  const editNativeStartDate = document.getElementById('edit-native-start-date');
+  const tenancyStartDateVal = t.start_date || (t.created_at ? t.created_at.split('T')[0] : '');
+  if (editNativeStartDate) editNativeStartDate.value = tenancyStartDateVal;
+  if (editStartDateDisplay && tenancyStartDateVal) {
+    const sd = new Date(tenancyStartDateVal + 'T00:00:00');
+    editStartDateDisplay.value = sd.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
   if (reviseCurrentRent) reviseCurrentRent.value = `Rs. ${rentNum.toLocaleString('en-IN')}`;
 
   const elecUtil = t.tenancy_utilities?.find((u) => u.utility_type === 'electricity');
@@ -1510,25 +1572,67 @@ export async function bindTenancyToDetails(t, targetYear = null) {
     if (monthStack) {
       monthStack.innerHTML = '';
       MONTHS.forEach((monthName, idx) => {
-        // Check if settled in payments for activeYear
-        const matchedPayment = tenancyPayments.find(p => {
+        // 1. Tenancy Start Boundary Check: strictly only show from start of tenancy
+        const tenancyStart = t.start_date
+          ? new Date(t.start_date + 'T00:00:00')
+          : (t.created_at ? new Date(t.created_at) : new Date(activeYear, 0, 1));
+
+        const isBeforeTenancyStart = (activeYear < tenancyStart.getFullYear()) ||
+          (activeYear === tenancyStart.getFullYear() && idx < tenancyStart.getMonth());
+
+        if (isBeforeTenancyStart) {
+          // STRICT USER REQUIREMENT: Only show from the start of tenancy & not before that!
+          return;
+        }
+
+        // 2. Check if this month has a matched payment
+        let matchedPayment = null;
+        let matchedMonthStr = '';
+        let isAdvancePayment = false;
+        let isPartialPayment = false;
+        let monthAllocatedAmount = rentNum;
+
+        for (const p of tenancyPayments) {
           if (Array.isArray(p.settled_months)) {
-            return p.settled_months.some(m => {
+            const foundStr = p.settled_months.find((m) => {
+              if (!m) return false;
               const lower = m.toLowerCase();
               const monthMatch = lower.includes(monthName.toLowerCase()) || monthName.toLowerCase().includes(lower);
               const yearMatch = lower.includes(activeYear.toString()) || (p.payment_date && new Date(p.payment_date).getFullYear() === activeYear);
               return monthMatch && yearMatch;
             });
-          }
-          if (p.payment_date) {
-            const pDate = new Date(p.payment_date);
-            return pDate.getFullYear() === activeYear && pDate.getMonth() === idx;
-          }
-          return false;
-        });
+            if (foundStr) {
+              matchedPayment = p;
+              matchedMonthStr = foundStr;
+              isAdvancePayment = foundStr.toLowerCase().includes('advance');
+              isPartialPayment = foundStr.toLowerCase().includes('partial');
 
-        // Check if unpaid bill exists for activeYear
-        const matchedBill = tenancyBills.find(b => {
+              const matchAmt = foundStr.match(/Rs\.?\s*([\d,]+(?:\.\d+)?)/i);
+              if (matchAmt) {
+                monthAllocatedAmount = parseFloat(matchAmt[1].replace(/,/g, '')) || rentNum;
+              } else if (p.settled_months.length > 1) {
+                if (isAdvancePayment) {
+                  monthAllocatedAmount = Math.max(0, parseFloat(p.amount) - rentNum) || rentNum;
+                } else {
+                  monthAllocatedAmount = Math.min(rentNum, parseFloat(p.amount));
+                }
+              } else {
+                monthAllocatedAmount = parseFloat(p.amount) || rentNum;
+              }
+              break;
+            }
+          } else if (p.payment_date) {
+            const pDate = new Date(p.payment_date);
+            if (pDate.getFullYear() === activeYear && pDate.getMonth() === idx) {
+              matchedPayment = p;
+              monthAllocatedAmount = parseFloat(p.amount) || rentNum;
+              break;
+            }
+          }
+        }
+
+        // 3. Check if unpaid bill exists for activeYear
+        const matchedBill = tenancyBills.find((b) => {
           if (b.status !== 'unpaid') return false;
           const sDate = b.duration_start ? new Date(b.duration_start) : null;
           const eDate = b.duration_end ? new Date(b.duration_end) : null;
@@ -1538,21 +1642,63 @@ export async function bindTenancyToDetails(t, targetYear = null) {
 
         const card = document.createElement('div');
         if (matchedPayment) {
-          paidCount++;
-          card.className = 'month-card month-paid';
-          card.innerHTML = `
-            <div class="month-card-left">
-              <div class="month-badge paid">✔</div>
-              <div class="month-details-col">
-                <strong class="month-name">${monthName} ${activeYear}</strong>
-                <span class="month-subtext">Paid on ${matchedPayment.payment_date} • ${(matchedPayment.payment_mode || 'Cash').toUpperCase()}</span>
+          if (isAdvancePayment && monthAllocatedAmount < rentNum) {
+            // Partial Advance Credit (Not full settled)
+            card.className = 'month-card month-upcoming';
+            card.innerHTML = `
+              <div class="month-card-left">
+                <div class="month-badge" style="background-color: #E0F2FE; color: #0284C7;">⏩</div>
+                <div class="month-details-col">
+                  <strong class="month-name">${monthName} ${activeYear}</strong>
+                  <span class="month-subtext">Paid on ${matchedPayment.payment_date} • ${(matchedPayment.payment_mode || 'Cash').toUpperCase()} (Advance Credit)</span>
+                </div>
               </div>
-            </div>
-            <div class="month-card-right">
-              <span class="month-amount">Rs. ${parseFloat(matchedPayment.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              <span class="month-status-pill paid">✔ Settled</span>
-            </div>
-          `;
+              <div class="month-card-right">
+                <span class="month-amount">Rs. ${monthAllocatedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                <span class="month-status-pill" style="background-color: #E0F2FE; color: #0284C7; border: 1px solid #BAE6FD;">⏩ Advance</span>
+              </div>
+            `;
+          } else if (isPartialPayment && monthAllocatedAmount < rentNum) {
+            // Partial Payment (Underpaid)
+            dueCount++;
+            card.className = 'month-card month-due';
+            card.style.cursor = 'pointer';
+            card.title = 'Click to record remaining rent payment';
+            card.addEventListener('click', () => {
+              currentActiveTenancy = t;
+              openRecordPaymentPage(t);
+            });
+            card.innerHTML = `
+              <div class="month-card-left">
+                <div class="month-badge due">⚠️</div>
+                <div class="month-details-col">
+                  <strong class="month-name">${monthName} ${activeYear}</strong>
+                  <span class="month-subtext">Partially paid on ${matchedPayment.payment_date} • ${(matchedPayment.payment_mode || 'Cash').toUpperCase()}</span>
+                </div>
+              </div>
+              <div class="month-card-right">
+                <span class="month-amount" style="color: #B45309;">Rs. ${monthAllocatedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                <span class="month-status-pill" style="background-color: #FEF3C7; color: #B45309; border: 1px solid #FDE68A;">⚠️ Partial</span>
+              </div>
+            `;
+          } else {
+            // Full Settled Payment
+            paidCount++;
+            card.className = 'month-card month-paid';
+            card.innerHTML = `
+              <div class="month-card-left">
+                <div class="month-badge paid">✔</div>
+                <div class="month-details-col">
+                  <strong class="month-name">${monthName} ${activeYear}</strong>
+                  <span class="month-subtext">Paid on ${matchedPayment.payment_date} • ${(matchedPayment.payment_mode || 'Cash').toUpperCase()}</span>
+                </div>
+              </div>
+              <div class="month-card-right">
+                <span class="month-amount">Rs. ${monthAllocatedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                <span class="month-status-pill paid">✔ Settled</span>
+              </div>
+            `;
+          }
         } else if (matchedBill) {
           dueCount++;
           card.className = 'month-card month-due';
@@ -1635,67 +1781,28 @@ export async function bindTenancyToDetails(t, targetYear = null) {
             </div>
           `;
         } else {
-          // Past month (idx < currentMonthIdx)
-          if (!hasUtils) {
-            const tenancyStart = t.created_at ? new Date(t.created_at) : new Date(activeYear, 0, 1);
-            const monthDate = new Date(activeYear, idx, 1);
-            const isAfterStart = (monthDate.getFullYear() > tenancyStart.getFullYear()) ||
-              (monthDate.getFullYear() === tenancyStart.getFullYear() && idx >= tenancyStart.getMonth());
-
-            if (isAfterStart) {
-              dueCount++;
-              card.className = 'month-card month-due';
-              card.style.cursor = 'pointer';
-              card.title = 'Click to record overdue rent payment';
-              card.addEventListener('click', () => {
-                currentActiveTenancy = t;
-                openRecordPaymentPage(t);
-              });
-              card.innerHTML = `
-                <div class="month-card-left">
-                  <div class="month-badge due">⚠️</div>
-                  <div class="month-details-col">
-                    <strong class="month-name">${monthName} ${activeYear}</strong>
-                    <span class="month-subtext">Rent overdue • Click to pay</span>
-                  </div>
-                </div>
-                <div class="month-card-right">
-                  <span class="month-amount" style="color: #DC2626;">Rs. ${rentNum.toLocaleString('en-IN')}</span>
-                  <span class="month-status-pill due">⚠️ Due</span>
-                </div>
-              `;
-            } else {
-              card.className = 'month-card month-settled';
-              card.innerHTML = `
-                <div class="month-card-left">
-                  <div class="month-badge paid">✔</div>
-                  <div class="month-details-col">
-                    <strong class="month-name">${monthName} ${activeYear}</strong>
-                    <span class="month-subtext">Before tenancy started</span>
-                  </div>
-                </div>
-                <div class="month-card-right">
-                  <span class="month-amount">Rs. 0.00</span>
-                  <span class="month-status-pill paid">Clear</span>
-                </div>
-              `;
-            }
-          } else {
-            card.className = 'month-card month-settled';
-            card.innerHTML = `
-              <div class="month-card-left">
-                <div class="month-badge paid">✔</div>
-                <div class="month-details-col">
-                  <strong class="month-name">${monthName} ${activeYear}</strong>
-                  <span class="month-subtext">No pending dues</span>
-                </div>
+          // Past month after tenancy start that was not paid
+          dueCount++;
+          card.className = 'month-card month-due';
+          card.style.cursor = 'pointer';
+          card.title = 'Click to record overdue rent payment';
+          card.addEventListener('click', () => {
+            currentActiveTenancy = t;
+            openRecordPaymentPage(t);
+          });
+          card.innerHTML = `
+            <div class="month-card-left">
+              <div class="month-badge due">⚠️</div>
+              <div class="month-details-col">
+                <strong class="month-name">${monthName} ${activeYear}</strong>
+                <span class="month-subtext">Rent overdue • Click to pay</span>
               </div>
-              <div class="month-card-right">
-                <span class="month-amount">Rs. 0.00</span>
-                <span class="month-status-pill paid">Clear</span>
-              </div>
-            `;
-          }
+            </div>
+            <div class="month-card-right">
+              <span class="month-amount" style="color: #DC2626;">Rs. ${rentNum.toLocaleString('en-IN')}</span>
+              <span class="month-status-pill due">⚠️ Due</span>
+            </div>
+          `;
         }
         monthStack.appendChild(card);
       });
@@ -1994,6 +2101,8 @@ function initEditTenancy() {
     const updatedAdvance = document.getElementById('edit-advance-amount')?.value?.trim();
     const nativeDate = document.getElementById('edit-native-billing-date');
     const editDateDisplay = document.getElementById('edit-billing-date-display');
+    const editNativeStartDate = document.getElementById('edit-native-start-date');
+    const updatedStartDate = editNativeStartDate?.value || currentActiveTenancy.start_date;
 
     let updatedDay = currentActiveTenancy.billing_day || 1;
     if (nativeDate?.value) {
@@ -2018,6 +2127,7 @@ function initEditTenancy() {
         tenant_phone: updatedPhone || null,
         advance_amount: parseFloat(updatedAdvance) || 0,
         billing_day: updatedDay,
+        start_date: updatedStartDate,
       });
 
       // Synchronize utilities updates (Electricity & Water)
@@ -2058,6 +2168,7 @@ function initEditTenancy() {
       if (updatedPhone) currentActiveTenancy.tenant_phone = updatedPhone;
       if (updatedAdvance) currentActiveTenancy.advance_amount = parseFloat(updatedAdvance);
       currentActiveTenancy.billing_day = updatedDay;
+      currentActiveTenancy.start_date = updatedStartDate;
 
       await syncDashboardFromCloud();
       showToast('✅ Tenancy details updated & saved to Supabase Cloud!', 3000);
@@ -2073,7 +2184,35 @@ function initEditTenancy() {
     }
   });
 
-  // Date picker trigger
+  // Tenancy Start Date picker trigger
+  const startTrigger = document.getElementById('editStartDatePickerTrigger');
+  const nativeStartDateInput = document.getElementById('edit-native-start-date');
+  const startDateDisplay = document.getElementById('edit-start-date-display');
+
+  const openEditStartDatePicker = () => {
+    if (nativeStartDateInput && typeof nativeStartDateInput.showPicker === 'function') {
+      try {
+        nativeStartDateInput.showPicker();
+      } catch (err) {
+        nativeStartDateInput.focus();
+      }
+    } else {
+      nativeStartDateInput?.focus();
+    }
+  };
+  startTrigger?.addEventListener('click', openEditStartDatePicker);
+  startDateDisplay?.addEventListener('click', openEditStartDatePicker);
+
+  nativeStartDateInput?.addEventListener('change', (e) => {
+    const val = e.target.value;
+    if (val && startDateDisplay) {
+      const d = new Date(val + 'T00:00:00');
+      startDateDisplay.value = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+      showToast(`Tenancy start date set to ${startDateDisplay.value}`);
+    }
+  });
+
+  // Recurring Billing Date picker trigger
   const trigger = document.getElementById('editDatePickerTrigger');
   const nativeDate = document.getElementById('edit-native-billing-date');
   const dateDisplay = document.getElementById('edit-billing-date-display');
@@ -2601,11 +2740,11 @@ function initRecordPaymentPage() {
     const allocations = computeWaterfallAllocations(selectedRecordTenancy, amountVal);
     const activeAllocations = allocations.filter((a) => (a.allocated || 0) > 0);
     let settledMonths = activeAllocations.map((a) => {
-      if (a.type === 'advance') return `${a.monthLabel} (Advance)`;
+      if (a.type === 'advance') return `${a.monthLabel} (Advance: Rs. ${a.allocated.toLocaleString('en-IN')})`;
       if (a.status === 'partial') {
         return `${a.monthLabel} (Partial: Rs. ${a.allocated.toLocaleString('en-IN')}/${a.due.toLocaleString('en-IN')})`;
       }
-      return a.monthLabel;
+      return `${a.monthLabel} (Rs. ${a.allocated.toLocaleString('en-IN')})`;
     });
     let settledBillIds = activeAllocations.filter((a) => a.status === 'settled' && a.billId).map((a) => a.billId);
 
