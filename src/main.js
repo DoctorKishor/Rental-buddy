@@ -3222,7 +3222,10 @@ function initBillGenerationFlow() {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(summaryText).catch(() => {});
     }
-    const waUrl = `https://wa.me/?text=${encodeURIComponent(summaryText)}`;
+    const rawPhone = currentActiveTenancy?.tenant_phone || '';
+    const phoneFormatted = formatWhatsAppPhone(rawPhone);
+    const phoneParam = phoneFormatted ? `phone=${phoneFormatted}&` : '';
+    const waUrl = `https://api.whatsapp.com/send?${phoneParam}text=${encodeURIComponent(summaryText)}`;
     window.open(waUrl, '_blank');
     showToast('📱 Invoice copied & opening WhatsApp...', 3500);
   };
@@ -4132,6 +4135,34 @@ function closeShareReceiptModal() {
   }
 }
 
+// Format phone number with country code 91 for WhatsApp API
+function formatWhatsAppPhone(rawPhone) {
+  if (!rawPhone) return '';
+  const digits = String(rawPhone).replace(/[^0-9]/g, '');
+  if (!digits) return '';
+  // If already 12 digits starting with 91 (e.g. 919455866595), return as is
+  if (digits.length === 12 && digits.startsWith('91')) {
+    return digits;
+  }
+  // Standard 10-digit Indian mobile number: prepend 91 (e.g. 9455866595 -> 919455866595)
+  if (digits.length === 10) {
+    return `91${digits}`;
+  }
+  // 11 digits starting with 0 (e.g. 09455866595): strip 0 and prepend 91
+  if (digits.length === 11 && digits.startsWith('0')) {
+    return `91${digits.slice(1)}`;
+  }
+  // If starts with 91 and has 11+ digits
+  if (digits.startsWith('91') && digits.length >= 11) {
+    return digits;
+  }
+  // Any other 10+ digits without 91 prefix, prepend 91
+  if (digits.length >= 10 && !digits.startsWith('91')) {
+    return `91${digits}`;
+  }
+  return digits;
+}
+
 function generateReceiptTextMessage(p, t) {
   const pName = t?.property_name || p?.tenancies?.property_name || 'Rental Unit';
   const rawDate = p?.payment_date || new Date().toISOString().split('T')[0];
@@ -4144,20 +4175,19 @@ function generateReceiptTextMessage(p, t) {
   const months = Array.isArray(p?.settled_months) ? p.settled_months.join(', ') : (p?.settled_months || 'Settled');
   const cleanId = (p?.id ? String(p.id).replace(/[^a-zA-Z0-9]/g, '').slice(0, 10) : String(Date.now()).slice(-8)).toUpperCase();
 
-  // Clean, universally supported text formatting (strictly avoids 4-byte surrogate emojis that get corrupted into )
   return (
-    `*RENTAL BUDDY — PAYMENT RECEIPT*\n` +
+    `🧾 *RENTAL BUDDY — PAYMENT RECEIPT*\n` +
     `Receipt ID: *RB-PAY-${cleanId}*\n` +
     `--------------------------------\n` +
-    `*Property:* ${pName}\n` +
-    `*Date:* ${dateFormatted}\n` +
-    `*Channel:* ${mode}${p?.reference_no ? ' (Ref: ' + p.reference_no + ')' : ''}\n` +
-    `*Covered Cycles:* ${months}\n` +
+    `🏠 *Property:* ${pName}\n` +
+    `📅 *Date:* ${dateFormatted}\n` +
+    `💳 *Channel:* ${mode}${p?.reference_no ? ' (Ref: ' + p.reference_no + ')' : ''}\n` +
+    `📋 *Covered Cycles:* ${months}\n` +
     `--------------------------------\n` +
-    `*TOTAL RECEIVED: Rs. ${amtFormatted}*\n` +
-    `*Status:* Verified & Settled [OK]\n` +
+    `💰 *TOTAL RECEIVED: Rs. ${amtFormatted}*\n` +
+    `✅ *Status:* Verified & Settled\n` +
     `--------------------------------\n` +
-    `Thank you! This digital voucher confirms payment receipt via Rental Buddy.`
+    `✨ Thank you! This digital voucher confirms payment receipt via Rental Buddy.`
   );
 }
 
@@ -4172,12 +4202,12 @@ function handleShareReceiptText() {
     navigator.clipboard.writeText(receiptMsg).catch(() => {});
   }
 
-  const phoneClean = t?.tenant_phone ? String(t.tenant_phone).replace(/[^0-9]/g, '') : '';
-  const phoneParam = phoneClean.length >= 10 ? `phone=${phoneClean}&` : '';
-  // Use direct api.whatsapp.com instead of wa.me to bypass 302 redirect header encoding corruption
+  const rawPhone = t?.tenant_phone || p?.tenancies?.tenant_phone || p?.tenant_phone || currentActiveTenancy?.tenant_phone || '';
+  const phoneFormatted = formatWhatsAppPhone(rawPhone);
+  const phoneParam = phoneFormatted ? `phone=${phoneFormatted}&` : '';
   const waUrl = `https://api.whatsapp.com/send?${phoneParam}text=${encodeURIComponent(receiptMsg)}`;
   window.open(waUrl, '_blank');
-  showToast('Receipt text copied & opening WhatsApp...', 3500);
+  showToast('📱 Receipt text copied & opening WhatsApp...', 3500);
 }
 
 async function handleShareReceiptImage() {
@@ -4241,18 +4271,19 @@ async function handleShareReceiptImage() {
       document.body.removeChild(downloadAnchor);
       setTimeout(() => URL.revokeObjectURL(downloadUrl), 8000);
 
-      const briefCaption = `*RENTAL BUDDY — PAYMENT RECEIPT*\n` +
+      const briefCaption = `🧾 *RENTAL BUDDY — PAYMENT RECEIPT*\n` +
         `Receipt ID: *RB-PAY-${cleanId}*\n` +
-        `Property: *${pName}*\n` +
-        `Amount: *Rs. ${amtFormatted}* (Verified & Settled)\n` +
-        `_Receipt voucher image downloaded to your device — attach PNG in WhatsApp chat._`;
+        `🏠 *Property:* ${pName}\n` +
+        `💰 *Amount:* Rs. ${amtFormatted} (Verified & Settled ✅)\n` +
+        `📎 _Receipt voucher image downloaded to your device — attach PNG in WhatsApp chat._`;
 
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(briefCaption).catch(() => {});
       }
 
-      const phoneClean = t?.tenant_phone ? String(t.tenant_phone).replace(/[^0-9]/g, '') : '';
-      const phoneParam = phoneClean.length >= 10 ? `phone=${phoneClean}&` : '';
+      const rawPhone = t?.tenant_phone || p?.tenancies?.tenant_phone || p?.tenant_phone || currentActiveTenancy?.tenant_phone || '';
+      const phoneFormatted = formatWhatsAppPhone(rawPhone);
+      const phoneParam = phoneFormatted ? `phone=${phoneFormatted}&` : '';
       const waUrl = `https://api.whatsapp.com/send?${phoneParam}text=${encodeURIComponent(briefCaption)}`;
       window.open(waUrl, '_blank');
       showToast('Receipt PNG downloaded & opening WhatsApp...', 4500);

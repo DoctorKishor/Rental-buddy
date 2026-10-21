@@ -1199,15 +1199,13 @@
   - Clicking `"WhatsApp Receipt"` triggers the dedicated bottom sheet modal (`#modal-share-receipt-choice`) presenting two clear choices:
     1. **`Send as Text`** (`#btn-share-as-text`): Present text summary workflow.
     2. **`Send as Image (PNG)`** (`#btn-share-as-image`): Full visual voucher snapshot workflow.
-- **Text Workflow & Corrupted Symbol Fix**:
-  - **The Root Cause of ``**: `wa.me/?text=` URLs issue a server-side 302 HTTP redirect where emoji surrogate pairs (🧾, 🏠, 📅, 💳, 📋, ✔) get mangled into unicode replacement diamonds (`\uFFFD`).
-  - **Resolution**:
-    - Replaced vulnerable 4-byte emojis with clean, native WhatsApp bold formatting (`*Property:*`, `*Date:*`, `*Channel:*`, `*Status:* Verified & Settled [OK]`).
-    - Direct WhatsApp Endpoint: Routes via `https://api.whatsapp.com/send?${phoneParam}text=${encodeURIComponent(msg)}` to bypass the 302 redirect header encoding bug.
-    - Automatic clipboard synchronization: Copies clean text to clipboard simultaneously.
+- **Text Workflow & Phone Country Code (91) Normalization**:
+  - **Country Code 91 Formatting**: Automatically normalizes 10-digit Indian phone numbers (e.g. `9455866595` -> `919455866595`) or 11-digit numbers starting with 0 (`09455866595` -> `919455866595`) so WhatsApp opens the direct chat immediately via `https://api.whatsapp.com/send?phone=91XXXXXXXXXX&text=...`.
+  - **Vibrant Emojis Restored**: Includes standard emojis (🧾 `Payment Receipt`, 🏠 `Property`, 📅 `Date`, 💳 `Channel`, 📋 `Covered Cycles`, 💰 `Total Received`, ✅ `Verified & Settled`, ✨ `Thank you`), which render reliably without redirect corruption via `api.whatsapp.com/send`.
+  - **Automatic Clipboard Synchronization**: Copies the complete emoji-rich receipt to the clipboard simultaneously.
 - **Image Workflow (Exact Visible PNG Voucher)**:
   - Captures the exact `.receipt-ticket-card` element using client-side `html2canvas` at 3x retina scale.
   - Semicircular Cutout Fidelity: Background set to `backgroundColor: '#EFF0FA'` so the perforation bites render seamlessly.
   - Native Mobile Web Share: When supported (`navigator.canShare({ files: [file] })`), directly invokes the mobile OS share sheet with the PNG file attached for one-tap WhatsApp photo sharing.
-  - Desktop Fallback: Automatically triggers download of `RentalBuddy-Receipt-${cleanId}.png` and opens WhatsApp with a concise caption and attachment guidance.
+  - Desktop Fallback: Automatically triggers download of `RentalBuddy-Receipt-${cleanId}.png` and opens WhatsApp (with tenant `phone=91XXXXXXXXXX`) with a concise caption and attachment guidance.
 
