@@ -2408,7 +2408,7 @@ export function computeWaterfallAllocations(tenancy, amountVal) {
         monthLabel: advLabel,
         allocated: remaining,
         due: baseRent,
-        balanceLeft: baseRent - remaining,
+        balanceLeft: 0,
         status: 'advance',
         type: 'advance',
         billId: null,
@@ -2442,7 +2442,7 @@ export function renderWaterfallBreakdown(tenancy) {
   let totalBalanceLeft = 0;
 
   allocations.forEach((item) => {
-    if (item.balanceLeft > 0 && item.status !== 'unpaid') {
+    if (item.balanceLeft > 0 && item.type !== 'advance' && item.status !== 'unpaid') {
       totalBalanceLeft += item.balanceLeft;
     }
 

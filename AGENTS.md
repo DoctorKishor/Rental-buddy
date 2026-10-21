@@ -1094,3 +1094,12 @@
   - An optional manual override accordion allowed force-assigning 7,500 into a 5,000 rent cycle, leading to confusing states where a single month displayed 7.5k allocation.
 - **The Resolution**:
   - Removed the confusing manual override accordion. The pure, automatic waterfall engine rigorously enforces financial rent limits: capping October at Rs. 5,000 (`Paid`) and immediately allocating the remaining Rs. 2,500 surplus to November (`Advance`), maintaining mathematical and accounting integrity.
+
+### 4. Advance Month Zero-Debt & Balance-Due Isolation Rule
+- **The Financial Logic Flaw**:
+  - When a tenant paid a surplus (e.g. Rs. 5,600 on Rs. 5,000 rent), Rs. 600 was allocated as advance credit toward November 2026. However, because November's `base_rent` is Rs. 5,000, the system naively computed `balanceLeft = 5,000 - 600 = 4,400` and flagged a spurious red warning: `"Remaining Balance Due: Rs. 4,400"`.
+- **The Resolution**:
+  - **Advance is Credit, Not Debt**: Future cycles have not arrived or been billed yet. Any advance payment is purely an asset/credit.
+  - Advance allocations (`type === 'advance'`) MUST always have `balanceLeft: 0`.
+  - The `"Remaining Balance Due"` summary row strictly counts unfulfilled arrears from past overdue months (`type === 'past_due'`) and underpaid current rent (`type === 'current'`), and NEVER counts upcoming advance months.
+  - In the Rs. 5,600 scenario, October is fully settled (`Paid`), November holds Rs. 600 (`Advance`), and Remaining Balance Due is Rs. 0 (row hidden).
