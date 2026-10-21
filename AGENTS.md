@@ -1209,3 +1209,18 @@
   - Native Mobile Web Share: When supported (`navigator.canShare({ files: [file] })`), directly invokes the mobile OS share sheet with the PNG file attached for one-tap WhatsApp photo sharing.
   - Desktop Fallback: Automatically triggers download of `RentalBuddy-Receipt-${cleanId}.png` and opens WhatsApp (with tenant `phone=91XXXXXXXXXX`) with a concise caption and attachment guidance.
 
+---
+
+## 40. Universal Rupee Symbol Standard (`₹` Across All Surfaces)
+- **Strict Rule**:
+  - The standard Indian Rupee symbol **`₹`** MUST be used exclusively in place of legacy text representations like `Rs.` or `Rs` across all user-facing surfaces.
+- **Affected Surfaces & Guidelines**:
+  1. **Dashboard & Metric Cards**: e.g., `₹12,000 • Monthly`, `₹68,148.16`.
+  2. **Month-Wise & Cycle Ledgers**: e.g., `₹5,000`, `₹1,000 due`.
+  3. **Form Controls & Labels**: Input labels (`New Rent (₹)`, `Price Per Unit (₹)`), input trailing icons (`₹`), and placeholder helpers.
+  4. **Bill Breakdown & Invoices**: `• Base Rent: ₹12,000`, `*Total Net Payable: ₹14,250*`.
+  5. **Payment Vouchers (Screen 21)**: Total amount hero (`₹6,000`), tenant rent pill (`₹5,000 / mo`), breakdown rows (`₹5,000`, `₹1,000`).
+  6. **WhatsApp Messages & Sharing Templates**: `💰 *TOTAL RECEIVED: ₹6,000*`, `💰 *Amount:* ₹6,000 (Verified & Settled ✅)`.
+- **Backward Compatibility Guarantee**:
+  - Allocation and settlement regex parsers MUST support extracting amounts matching both `₹` and historical `Rs.` data (e.g. `/(?:₹|Rs\.?)\s*([\d,]+(?:\.\d+)?)/i`).
+
