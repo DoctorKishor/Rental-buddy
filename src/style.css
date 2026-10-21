@@ -3860,26 +3860,9 @@ select.form-input:disabled {
   background-color: #FEE2E2;
 }
 
-/* Live Supabase Cloud Indicator */
+/* Live Supabase Cloud Indicator (Hidden per User Request) */
 .cloud-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: #E8F5E9;
-  border: 1px solid #C8E6C9;
-  padding: 6px 12px;
-  border-radius: 9999px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #1B5E20;
-  margin-bottom: 12px;
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.cloud-status-badge:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(27, 94, 32, 0.1);
+  display: none !important;
 }
 
 .cloud-pulse-dot {

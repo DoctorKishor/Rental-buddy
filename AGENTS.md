@@ -1224,3 +1224,14 @@
 - **Backward Compatibility Guarantee**:
   - Allocation and settlement regex parsers MUST support extracting amounts matching both `₹` and historical `Rs.` data (e.g. `/(?:₹|Rs\.?)\s*([\d,]+(?:\.\d+)?)/i`).
 
+---
+
+## 41. Clean Whole-Rupee Currency Display & Minimalist Dashboard Header
+- **Zero Decimals on Whole Numbers (STRICT RULE)**:
+  - All currency displays across cards, ledgers, breakdown tables, and recent activity MUST omit `.00` on whole numbers (e.g., `₹6,000`, `₹5,000`, `₹32,000`).
+  - Decimals are strictly reserved for non-zero fractional paise (e.g., `₹306.12`).
+  - Implemented universally via `formatCurrencyAmount(val)` ensuring consistent, uncluttered typography throughout the entire app.
+- **Dashboard Cloud Status Banner Removal**:
+  - The live cloud status banner (`#cloud-status-banner`) above `"Your Tenancy"` has been completely removed to provide a clean, distraction-free aesthetic.
+  - The dashboard header transitions directly from the gear and add action icons to the primary `"Your Tenancy"` screen heading without visual clutter.
+

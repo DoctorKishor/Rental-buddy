@@ -370,13 +370,6 @@
                 </button>
               </div>
 
-              <!-- Live Supabase Cloud Indicator -->
-              <div class="cloud-status-badge" id="cloud-status-banner" role="button" tabindex="0" title="Click to view Supabase Cloud Session">
-                <span class="cloud-pulse-dot"></span>
-                <span id="cloud-status-banner-text">Supabase Cloud • Live</span>
-                <span class="cloud-user-email" id="cloud-banner-user-email">Not Signed In</span>
-              </div>
-
               <!-- Page Title (Plural / Singular Dynamic) -->
               <h1 class="dashboard-title" id="dashboard-main-title">Your Tenancy</h1>
 
@@ -525,12 +518,12 @@
                     <span class="badge-pill" id="bill-target-cycle">Monthly - April 2026</span>
                   </div>
                   <div class="bill-preview-rows">
-                    <div class="bill-row"><span>Base Rent</span><strong>₹32,000.00</strong></div>
-                    <div class="bill-row"><span>Electricity (112 units @ ₹12)</span><strong>₹1,344.00</strong></div>
-                    <div class="bill-row"><span>Water & Sanitation (Flat)</span><strong>₹500.00</strong></div>
-                    <div class="bill-row"><span>Garbage Collection</span><strong>₹306.12</strong></div>
+                    <div class="bill-row"><span>Base Rent</span><strong>₹32,000</strong></div>
+                    <div class="bill-row"><span>Electricity (112 units @ ₹12)</span><strong>₹1,344</strong></div>
+                    <div class="bill-row"><span>Water & Sanitation (Flat)</span><strong>₹500</strong></div>
+                    <div class="bill-row"><span>Garbage Collection</span><strong>₹306</strong></div>
                     <div class="bill-divider"></div>
-                    <div class="bill-row total"><span>Total Payable</span><strong id="bill-calculated-total">₹34,150.12</strong></div>
+                    <div class="bill-row total"><span>Total Payable</span><strong id="bill-calculated-total">₹34,150</strong></div>
                   </div>
                 </div>
                 <div class="bill-actions-stack">
@@ -981,7 +974,7 @@
                       </div>
                       <div class="confirm-row" style="margin-top: 10px;">
                         <span class="confirm-label">Current Meter Reading</span>
-                        <strong class="confirm-value" id="confirm-elec-reading">0.00</strong>
+                        <strong class="confirm-value" id="confirm-elec-reading">0</strong>
                       </div>
                     </div>
                     <!-- Flat row -->
@@ -1017,7 +1010,7 @@
                       </div>
                       <div class="confirm-row" style="margin-top: 10px;">
                         <span class="confirm-label">Current Meter Reading</span>
-                        <strong class="confirm-value" id="confirm-water-reading">0.00</strong>
+                        <strong class="confirm-value" id="confirm-water-reading">0</strong>
                       </div>
                     </div>
                   </div>
@@ -1114,7 +1107,7 @@
                   <span class="bills-count-badge" id="details-bills-count">0 bill</span>
                 </div>
                 <div class="summary-card-big-amount" id="details-total-amount">
-                  ₹0.00
+                  ₹0
                 </div>
                 <div class="summary-card-meta-line" id="details-rent-rate">
                   --
@@ -1125,7 +1118,7 @@
                 <!-- 2-Column Metrics (Last Generated Bill + Next Billing) -->
                 <div class="tenancy-metrics-grid" id="details-stats-grid">
                   <div class="metric-col hidden" id="details-last-bill-col">
-                    <span class="metric-title" id="details-last-bill-amount">₹0.00</span>
+                    <span class="metric-title" id="details-last-bill-amount">₹0</span>
                     <span class="metric-label">Last Generated Bill</span>
                   </div>
                   <div class="metric-col right-align" id="details-next-bill-col">
@@ -1541,7 +1534,7 @@
                       id="record-page-amount"
                       class="form-input"
                       value=""
-                      placeholder="0.00"
+                      placeholder="0"
                     />
                     <div class="input-trailing-icon" style="font-weight: 700; color: #52586E;">₹</div>
                   </div>
@@ -1754,7 +1747,7 @@
                 <!-- Last Month Electricity Reading (Read-only) -->
                 <div class="form-group" id="group-prev-elec">
                   <label class="form-label mini" for="input-prev-elec">Last Month's Electricity Reading</label>
-                  <input type="text" id="input-prev-elec" class="form-input mini" value="0.00" readonly style="background: #F4F5FC; color: #52586E;" />
+                  <input type="text" id="input-prev-elec" class="form-input mini" value="0" readonly style="background: #F4F5FC; color: #52586E;" />
                 </div>
 
                 <!-- Current Electricity Reading -->
@@ -1766,7 +1759,7 @@
                 <!-- Last Month Water Reading (Read-only) -->
                 <div class="form-group" id="group-prev-water">
                   <label class="form-label mini" for="input-prev-water">Last Month's Water Reading</label>
-                  <input type="text" id="input-prev-water" class="form-input mini" value="0.00" readonly style="background: #F4F5FC; color: #52586E;" />
+                  <input type="text" id="input-prev-water" class="form-input mini" value="0" readonly style="background: #F4F5FC; color: #52586E;" />
                 </div>
 
                 <!-- Current Water Reading -->
@@ -1854,44 +1847,44 @@
                 <div class="breakdown-card">
                   <div class="breakdown-row">
                     <span class="breakdown-label">Rent Amount</span>
-                    <strong class="breakdown-value" id="review-rent-val">₹0.00</strong>
+                    <strong class="breakdown-value" id="review-rent-val">₹0</strong>
                   </div>
                   <div class="breakdown-row complex" id="review-row-elec">
                     <div class="breakdown-label-col">
                       <span class="breakdown-label">Electricity</span>
                       <span class="breakdown-subcalc" id="review-elec-sub">0 units</span>
                     </div>
-                    <strong class="breakdown-value" id="review-elec-val">₹0.00</strong>
+                    <strong class="breakdown-value" id="review-elec-val">₹0</strong>
                   </div>
                   <div class="breakdown-row" id="review-row-internet">
                     <span class="breakdown-label">Internet</span>
-                    <strong class="breakdown-value" id="review-internet-val">₹0.00</strong>
+                    <strong class="breakdown-value" id="review-internet-val">₹0</strong>
                   </div>
                   <div class="breakdown-row" id="review-row-water">
                     <span class="breakdown-label">Water</span>
-                    <strong class="breakdown-value" id="review-water-val">₹0.00</strong>
+                    <strong class="breakdown-value" id="review-water-val">₹0</strong>
                   </div>
                   <div class="breakdown-row" id="review-row-sewage">
                     <span class="breakdown-label">Sewage</span>
-                    <strong class="breakdown-value" id="review-sewage-val">₹0.00</strong>
+                    <strong class="breakdown-value" id="review-sewage-val">₹0</strong>
                   </div>
 
                   <div class="tenancy-card-divider" style="margin: 10px 0;"></div>
 
                   <div class="breakdown-row subtotal">
                     <strong class="breakdown-label" style="font-size: 15px; font-weight: 800; color: #0E1326;">Total</strong>
-                    <strong class="breakdown-value" id="review-subtotal-val" style="font-size: 15px; font-weight: 800; color: #0E1326;">₹0.00</strong>
+                    <strong class="breakdown-value" id="review-subtotal-val" style="font-size: 15px; font-weight: 800; color: #0E1326;">₹0</strong>
                   </div>
                   <div class="breakdown-row deduction">
                     <span class="breakdown-label" style="color: #DC2626;">Advance Payment</span>
-                    <strong class="breakdown-value" id="review-advance-val" style="color: #DC2626; font-weight: 700;">– ₹0.00</strong>
+                    <strong class="breakdown-value" id="review-advance-val" style="color: #DC2626; font-weight: 700;">– ₹0</strong>
                   </div>
 
                   <div class="tenancy-card-divider" style="margin: 10px 0;"></div>
 
                   <div class="breakdown-row net-payable">
                     <strong class="breakdown-label" style="font-size: 16px; font-weight: 800; color: #0E1326;">Net Payable</strong>
-                    <strong class="breakdown-value" id="review-net-val" style="font-size: 17px; font-weight: 800; color: #0E1326;">₹0.00</strong>
+                    <strong class="breakdown-value" id="review-net-val" style="font-size: 17px; font-weight: 800; color: #0E1326;">₹0</strong>
                   </div>
 
                   <!-- Notes in Breakdown -->
@@ -1962,44 +1955,44 @@
                 <div class="breakdown-card">
                   <div class="breakdown-row">
                     <span class="breakdown-label">Rent Amount</span>
-                    <strong class="breakdown-value" id="details-bill-rent-val">₹0.00</strong>
+                    <strong class="breakdown-value" id="details-bill-rent-val">₹0</strong>
                   </div>
                   <div class="breakdown-row complex" id="details-row-elec">
                     <div class="breakdown-label-col">
                       <span class="breakdown-label">Electricity</span>
                       <span class="breakdown-subcalc" id="details-bill-elec-sub">0 units</span>
                     </div>
-                    <strong class="breakdown-value" id="details-bill-elec-val">₹0.00</strong>
+                    <strong class="breakdown-value" id="details-bill-elec-val">₹0</strong>
                   </div>
                   <div class="breakdown-row" id="details-row-internet">
                     <span class="breakdown-label">Internet</span>
-                    <strong class="breakdown-value" id="details-bill-internet-val">₹0.00</strong>
+                    <strong class="breakdown-value" id="details-bill-internet-val">₹0</strong>
                   </div>
                   <div class="breakdown-row" id="details-row-water">
                     <span class="breakdown-label">Water</span>
-                    <strong class="breakdown-value" id="details-bill-water-val">₹0.00</strong>
+                    <strong class="breakdown-value" id="details-bill-water-val">₹0</strong>
                   </div>
                   <div class="breakdown-row" id="details-row-sewage">
                     <span class="breakdown-label">Sewage</span>
-                    <strong class="breakdown-value" id="details-bill-sewage-val">₹0.00</strong>
+                    <strong class="breakdown-value" id="details-bill-sewage-val">₹0</strong>
                   </div>
 
                   <div class="tenancy-card-divider" style="margin: 10px 0;"></div>
 
                   <div class="breakdown-row subtotal">
                     <strong class="breakdown-label" style="font-size: 15px; font-weight: 800; color: #0E1326;">Total</strong>
-                    <strong class="breakdown-value" id="details-bill-subtotal-val" style="font-size: 15px; font-weight: 800; color: #0E1326;">₹0.00</strong>
+                    <strong class="breakdown-value" id="details-bill-subtotal-val" style="font-size: 15px; font-weight: 800; color: #0E1326;">₹0</strong>
                   </div>
                   <div class="breakdown-row deduction">
                     <span class="breakdown-label" style="color: #DC2626;">Advance Payment</span>
-                    <strong class="breakdown-value" id="details-bill-advance-val" style="color: #DC2626; font-weight: 700;">– ₹0.00</strong>
+                    <strong class="breakdown-value" id="details-bill-advance-val" style="color: #DC2626; font-weight: 700;">– ₹0</strong>
                   </div>
 
                   <div class="tenancy-card-divider" style="margin: 10px 0;"></div>
 
                   <div class="breakdown-row net-payable">
                     <strong class="breakdown-label" style="font-size: 16px; font-weight: 800; color: #0E1326;">Net Payable</strong>
-                    <strong class="breakdown-value" id="details-bill-net-val" style="font-size: 17px; font-weight: 800; color: #0E1326;">₹0.00</strong>
+                    <strong class="breakdown-value" id="details-bill-net-val" style="font-size: 17px; font-weight: 800; color: #0E1326;">₹0</strong>
                   </div>
 
                   <!-- Notes in Breakdown -->
@@ -2423,7 +2416,7 @@
                   <span class="summary-card-sublabel">Total Bill Paid</span>
                 </div>
                 <div class="summary-card-big-amount" id="archdetails-total-amount">
-                  ₹0.00
+                  ₹0
                 </div>
                 <div class="summary-card-meta-line" id="archdetails-rent-rate">
                   --
@@ -2431,7 +2424,7 @@
                 <div class="tenancy-card-divider"></div>
                 <div class="tenancy-metrics-grid">
                   <div class="metric-col">
-                    <span class="metric-title" id="archdetails-last-bill">₹0.00</span>
+                    <span class="metric-title" id="archdetails-last-bill">₹0</span>
                     <span class="metric-label">Last Generated Bill</span>
                   </div>
                   <div class="metric-col right-align">

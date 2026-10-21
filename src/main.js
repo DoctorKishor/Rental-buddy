@@ -1,5 +1,15 @@
 // ==========================================================================
 // RENTAL BUDDY — CONTROLLER & APP STATE (SUPABASE CLOUD FIRST)
+
+export function formatCurrencyAmount(val) {
+  const n = parseFloat(val || 0);
+  if (isNaN(n)) return '0';
+  if (n % 1 === 0) {
+    return n.toLocaleString('en-IN');
+  }
+  return n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
 // ==========================================================================
 
 import {
@@ -503,7 +513,7 @@ function syncConfirmationScreen() {
       meterRows?.classList.remove('hidden');
       flatRow?.classList.add('hidden');
       const elecPrice = document.getElementById('input-elec-price')?.value || '0';
-      const elecReading = document.getElementById('input-elec-reading')?.value || '0.00';
+      const elecReading = document.getElementById('input-elec-reading')?.value || '0';
       const priceEl = document.getElementById('confirm-elec-price');
       if (priceEl) priceEl.textContent = `${sym}${elecPrice}`;
       const readingEl = document.getElementById('confirm-elec-reading');
@@ -542,7 +552,7 @@ function syncConfirmationScreen() {
       flatRow?.classList.add('hidden');
       meterRows?.classList.remove('hidden');
       const waterPrice = document.getElementById('input-water-price')?.value || '0';
-      const waterReading = document.getElementById('input-water-reading')?.value || '0.00';
+      const waterReading = document.getElementById('input-water-reading')?.value || '0';
       const priceEl = document.getElementById('confirm-water-price');
       if (priceEl) priceEl.textContent = `${sym}${waterPrice}`;
       const readingEl = document.getElementById('confirm-water-reading');
@@ -1082,7 +1092,7 @@ function initDashboard() {
   const billTargetCycle = document.getElementById('bill-target-cycle');
   const billCalculatedTotal = document.getElementById('bill-calculated-total');
 
-  function openBillModal(tenancy = 'Property', cycle = 'Monthly', total = '12,000.00') {
+  function openBillModal(tenancy = 'Property', cycle = 'Monthly', total = '12,000') {
     if (billTargetTenancy) billTargetTenancy.textContent = tenancy;
     if (billTargetCycle) billTargetCycle.textContent = cycle;
     if (billCalculatedTotal) billCalculatedTotal.textContent = `₹${total}`;
@@ -1282,7 +1292,7 @@ export async function syncDashboardFromCloud() {
               <span class="recent-item-timestamp">Generated on ${b.generated_date} • ${b.status}</span>
             </div>
             <div class="recent-item-right">
-              <strong class="recent-item-amount">₹${parseFloat(b.net_payable).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+              <strong class="recent-item-amount">₹${formatCurrencyAmount(b.net_payable)}</strong>
               <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="9 18 15 12 9 6"></polyline>
               </svg>
@@ -1321,7 +1331,7 @@ export async function syncDashboardFromCloud() {
               <span class="recent-item-timestamp">Paid on ${p.payment_date} ${p.reference_no ? '• Ref: ' + p.reference_no : ''}</span>
             </div>
             <div class="recent-item-right">
-              <strong class="recent-item-amount">₹${parseFloat(p.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+              <strong class="recent-item-amount">₹${formatCurrencyAmount(p.amount)}</strong>
               <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="9 18 15 12 9 6"></polyline>
               </svg>
@@ -1519,7 +1529,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
 
     const totalPaid = tenancyPayments.reduce((acc, p) => acc + parseFloat(p.amount || 0), 0);
     if (billsCount) billsCount.textContent = hasUtils ? `${tenancyPayments.length} paid` : `${tenancyPayments.length} payments`;
-    if (totalAmount) totalAmount.textContent = `₹${totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+    if (totalAmount) totalAmount.textContent = `₹${formatCurrencyAmount(totalPaid)}`;
 
     if (hasUtils && tenancyBills.length > 0 && lastBillCol && lastBillAmount) {
       lastBillCol.classList.remove('hidden');
@@ -1654,7 +1664,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
                 </div>
               </div>
               <div class="month-card-right">
-                <span class="month-amount">₹${monthAllocatedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                <span class="month-amount">₹${formatCurrencyAmount(monthAllocatedAmount)}</span>
                 <span class="month-status-pill" style="background-color: #E0F2FE; color: #0284C7; border: 1px solid #BAE6FD;">⏩ Advance</span>
               </div>
             `;
@@ -1677,7 +1687,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
                 </div>
               </div>
               <div class="month-card-right">
-                <span class="month-amount" style="color: #B45309;">₹${monthAllocatedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                <span class="month-amount" style="color: #B45309;">₹${formatCurrencyAmount(monthAllocatedAmount)}</span>
                 <span class="month-status-pill" style="background-color: #FEF3C7; color: #B45309; border: 1px solid #FDE68A;">⚠️ Partial</span>
               </div>
             `;
@@ -1699,7 +1709,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
                 </div>
               </div>
               <div class="month-card-right">
-                <span class="month-amount">₹${monthAllocatedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                <span class="month-amount">₹${formatCurrencyAmount(monthAllocatedAmount)}</span>
                 <span class="month-status-pill paid">✔ Settled</span>
               </div>
             `;
@@ -1722,7 +1732,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
               </div>
             </div>
             <div class="month-card-right">
-              <span class="month-amount" style="color: #DC2626;">₹${parseFloat(matchedBill.net_payable).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              <span class="month-amount" style="color: #DC2626;">₹${formatCurrencyAmount(matchedBill.net_payable)}</span>
               <span class="month-status-pill due">⚠️ Due</span>
             </div>
           `;
@@ -1832,7 +1842,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
             <span class="recent-item-timestamp">Paid on ${p.payment_date} ${p.reference_no ? '• Ref: ' + p.reference_no : ''}</span>
           </div>
           <div class="recent-item-right">
-            <strong class="recent-item-amount">₹${parseFloat(p.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+            <strong class="recent-item-amount">₹${formatCurrencyAmount(p.amount)}</strong>
             <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
@@ -2905,38 +2915,38 @@ export function renderBillDetails(b) {
   if (genDateEl) genDateEl.textContent = b.generatedDate || b.generated_date || new Date().toISOString().split('T')[0];
 
   const rentVal = document.getElementById('details-bill-rent-val');
-  if (rentVal) rentVal.textContent = `₹${parseFloat(b.baseRent || b.base_rent || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  if (rentVal) rentVal.textContent = `₹${formatCurrencyAmount(b.baseRent || b.base_rent || 0)}`;
 
   const elecUnits = b.electricityUnits ?? b.electricity_units ?? 0;
   const elecCost = b.electricityCost ?? b.electricity_cost ?? 0;
   const elecSub = document.getElementById('details-bill-elec-sub');
   if (elecSub) elecSub.textContent = `${elecUnits} units`;
   const elecVal = document.getElementById('details-bill-elec-val');
-  if (elecVal) elecVal.textContent = `₹${parseFloat(elecCost).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  if (elecVal) elecVal.textContent = `₹${formatCurrencyAmount(elecCost)}`;
 
   const waterCost = b.waterCost ?? b.water_cost ?? 0;
   const waterVal = document.getElementById('details-bill-water-val');
-  if (waterVal) waterVal.textContent = `₹${parseFloat(waterCost).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  if (waterVal) waterVal.textContent = `₹${formatCurrencyAmount(waterCost)}`;
 
   const internetCost = b.internetCost ?? b.internet_cost ?? 0;
   const internetVal = document.getElementById('details-bill-internet-val');
-  if (internetVal) internetVal.textContent = `₹${parseFloat(internetCost).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  if (internetVal) internetVal.textContent = `₹${formatCurrencyAmount(internetCost)}`;
 
   const sewageCost = b.sewageCost ?? b.otherUtilitiesCost ?? b.other_utilities_cost ?? 0;
   const sewageVal = document.getElementById('details-bill-sewage-val');
-  if (sewageVal) sewageVal.textContent = `₹${parseFloat(sewageCost).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  if (sewageVal) sewageVal.textContent = `₹${formatCurrencyAmount(sewageCost)}`;
 
   const subtotal = b.subtotal ?? (parseFloat(b.baseRent || b.base_rent || 0) + parseFloat(elecCost) + parseFloat(waterCost) + parseFloat(internetCost) + parseFloat(sewageCost));
   const subtotalVal = document.getElementById('details-bill-subtotal-val');
-  if (subtotalVal) subtotalVal.textContent = `₹${parseFloat(subtotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  if (subtotalVal) subtotalVal.textContent = `₹${formatCurrencyAmount(subtotal)}`;
 
   const advance = b.advanceDeducted ?? b.advance_deducted ?? 0;
   const advVal = document.getElementById('details-bill-advance-val');
-  if (advVal) advVal.textContent = `– ₹${parseFloat(advance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  if (advVal) advVal.textContent = `– ₹${formatCurrencyAmount(advance)}`;
 
   const netPayable = b.netPayable ?? b.net_payable ?? subtotal;
   const netVal = document.getElementById('details-bill-net-val');
-  if (netVal) netVal.textContent = `₹${parseFloat(netPayable).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  if (netVal) netVal.textContent = `₹${formatCurrencyAmount(netPayable)}`;
 
   const notesText = document.getElementById('details-bill-notes-text');
   if (notesText) notesText.textContent = b.notes || 'None';
@@ -3403,11 +3413,11 @@ async function openArchivedDetails(tenancy) {
     const bills = await fetchCloudBills(tenancy.id);
     if (bills && bills.length > 0) {
       const total = bills.reduce((acc, b) => acc + parseFloat(b.net_payable || 0), 0);
-      if (totalAmount) totalAmount.textContent = `₹${total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+      if (totalAmount) totalAmount.textContent = `₹${formatCurrencyAmount(total)}`;
       if (lastBill) lastBill.textContent = `₹${parseFloat(bills[0].net_payable).toLocaleString('en-IN')}`;
     } else {
-      if (totalAmount) totalAmount.textContent = '₹0.00';
-      if (lastBill) lastBill.textContent = '₹0.00';
+      if (totalAmount) totalAmount.textContent = '₹0';
+      if (lastBill) lastBill.textContent = '₹0';
     }
     if (nextBill) nextBill.textContent = 'Archived';
 
