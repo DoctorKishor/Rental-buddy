@@ -1235,3 +1235,36 @@
   - The live cloud status banner (`#cloud-status-banner`) above `"Your Tenancy"` has been completely removed to provide a clean, distraction-free aesthetic.
   - The dashboard header transitions directly from the gear and add action icons to the primary `"Your Tenancy"` screen heading without visual clutter.
 
+---
+
+## 42. Multi-Payment Month Settlement & Advance-Aware Waterfall Engine
+
+### 1. The Duplicate Payment Problem & Root Cause
+- **Issue**: When a landlord recorded a payment settling the current month (e.g. October 2026) and opened the "Record Payment" screen again, the auto-split waterfall still proposed paying October 2026 as "Current cycle ₹5,000".
+- **Root Cause**:
+  1. The overdue queue assembly only inspected months *prior* to the current month (`iterDate < currentDateFirst`).
+  2. Step 2 in `computeWaterfallAllocations` verified whether the current month was already in `overdueQueue`, but completely omitted checking the cloud payments ledger (`cloudPaymentsList`) to see if the current month was already settled.
+  3. Consequently, the waterfall engine falsely assumed the current cycle was unpaid and allocated incoming funds to October a second time.
+  4. Furthermore, prior advance allocations towards upcoming cycles (e.g. ₹1,000 advance credit towards November 2026) were not factored into the remaining cycle balance.
+
+### 2. Multi-Payment Aggregation Architecture (`getTenancyPaidSummaryByMonth`)
+- Scans all payments recorded for the property in `cloudPaymentsList`.
+- Inspects `settled_months` arrays and regex-extracts allocated amounts (supporting `₹`, legacy `Rs.`, and comma-separated numeric entries).
+- Aggregates cumulative paid amounts per cycle (`paidMap[cycleKey] = { totalPaid, hasAdvanceCredit }`), properly tracking partial payments, multiple installments, and advance balances.
+
+### 3. Skip-Already-Settled & Advance-Aware Waterfall Rules
+- **Cycle Net Due Formula**: `netDue = Math.max(0, cycleDue - alreadyPaid)`.
+- **Zero-Balance Cycles**: If `netDue === 0`, the cycle is 100% cleared and takes **₹0** from the new payment. It is completely bypassed in the waterfall.
+- **Advance-Credited Cycles**: If an upcoming cycle already has advance credit (e.g. November with ₹1,000 advance), its net requirement is reduced to `₹5,000 - ₹1,000 = ₹4,000`. A ₹4,000 payment clears the cycle balance with badge `Adv. Cleared` and note `₹1,000 adv. adjusted • Fully cleared`. Any surplus rolls into subsequent cycles (e.g. December 2026 as Advance credit).
+
+### 4. Smart Default Amount & Due Hint (`getEarliestUnsettledCycle`)
+- When opening the Record Payment screen (Screen 12), the form automatically identifies the earliest unsettled cycle.
+- The `Amount Paid` input field defaults to the exact remaining net due for that cycle (e.g. `4000` instead of full `5000` when ₹1,000 advance was already credited).
+- The `record-due-hint` dynamic label provides instant financial transparency (e.g. `Nov Due: ₹4,000 (₹1,000 Adv. applied)` or `Past Due: ₹5,000 (August 2026)`).
+
+### 5. Prominent Reassurance Notice (`.waterfall-settled-notice`)
+- When the current calendar cycle is already fully paid, a green checkmark pill is rendered above the breakdown:
+  `✓ October 2026 is already fully settled (₹5,000 paid). Payment applies to upcoming cycle.`
+- Eliminates any landlord ambiguity about why the current month is not being billed twice.
+
+

@@ -3296,6 +3296,40 @@ select.form-input:disabled {
   white-space: nowrap;
 }
 
+.waterfall-settled-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #F0FDF4;
+  border: 1.5px solid #BBF7D0;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #15803D;
+  margin-bottom: 8px;
+  line-height: 1.35;
+}
+
+.waterfall-settled-notice strong {
+  font-weight: 700;
+  color: #166534;
+}
+
+.waterfall-settled-notice .notice-check {
+  font-size: 12px;
+  font-weight: 700;
+  background-color: #DCFCE7;
+  color: #16A34A;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .waterfall-footer {
   margin-top: 10px;
   padding-top: 8px;
