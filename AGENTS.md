@@ -1142,24 +1142,27 @@
 ### 1. Aesthetic Inspiration & Rental Domain Adaptation
 - **Design Origin**: Adapted faithfully from cinema/movie ticket voucher patterns (clean high-contrast white ticket card, 2-column key info block, side perforation punch cutouts, horizontal dashed perforation line, and prominent barcode stub).
 - **Rental Domain Translation**:
-  - **Clean Header**: Property title, tenant name or phone (never robotic `"Tenant: Tenant"`), monthly rent rate with house icon (no runtime clock icon!), and verification status badge (`✔ Verified & Settled`).
-  - **2-Column Highlights Block**:
-    - Column 1: Payment date (`21 Oct 2026`) and billing recurrence (`Billing Day: 3rd`).
-    - Column 2: Context-aware icon (cash notes icon for Cash, card icon for Online) with clean channel label (`Cash Payment` / `Online (UPI)`) and reference note (no fake `Ref: Direct Cash`).
-  - **Financial Hero Banner**: High-contrast, large amount display (`Rs. 6,000.00`) with verification stamp pill (`PAID IN FULL` or `PAID (ADVANCE INCLUDED)`), free of box-in-a-box clutter and foreign currency symbols (`$`).
-  - **Cycle Settlement Breakdown**: Every covered month displays its explicit rupee allocation (e.g. `October 2026` — `Rs. 5,000.00` + `November 2026` — `Rs. 1,000.00`) with clean status tags (`Cleared`, `Advance`, `Partial`).
+  - **Clean, Uncluttered Header**: Full-width header with brand micro-tag (`RENTAL BUDDY • DIGITAL VOUCHER`), bold property title (`Annachi`), tenant pill with user icon, and monthly rent rate pill with house icon. The top-right corner is kept completely clean and devoid of redundant badges (avoiding visual crowding).
+  - **Streamlined 2-Column Highlights Block (Pure Cinema Style)**:
+    - Eliminates redundant uppercase labels like `"PAYMENT DATE"` and `"PAYMENT CHANNEL"`.
+    - Column 1: Calendar icon + Payment date (`Oct 21, 2026`) + Billing recurrence (`Billing Day: 3rd`).
+    - Column 2: Context-aware icon (cash notes icon for Cash, card icon for Online) with clean channel label (`Cash Payment` / `Online (UPI)`) without truncating and without filler subtext like `"Direct Handover"`.
+  - **Strict No-Wrap Financial Hero**: High-contrast, large amount display (`Rs. 6,000.00`) with `white-space: nowrap !important;` and verification stamp pill (`PAID IN FULL` or `PAID (ADVANCE INCLUDED)`), free of box-in-a-box clutter and foreign currency symbols (`$`).
+  - **Full Un-Truncated Cycle Settlement Breakdown**: Every covered month displays its full un-truncated name (e.g. `October 2026`, `November 2026`) paired with status tag (`Cleared`, `Advance`, `Partial`) and explicit rupee allocation (`Rs. 5,000.00`, `Rs. 1,000.00`).
 
-### 2. Physical Ticket Punch Cutouts & Perforation Geometry
+### 2. Physical Ticket Punch Cutouts & Perforation Geometry (High-Visibility Guarantee)
 - **The Signature Ticket Effect**:
-  - Left & Right Notches: Semicircular punch cutouts (`width: 28px; height: 28px; border-radius: 50%; background: var(--bg-canvas);`) cleanly punching into the periwinkle background without white ring borders.
-  - Connecting Cutline: `border-top: 2px dashed #CBD5E1; width: 100%; margin: 0 16px;`.
-  - Sits squarely between the financial details and the barcode stub.
+  - Left & Right Notches: Prominent 36px semicircular punch cutouts (`width: 36px; height: 36px; top: 0; left: -18px; right: -18px; border-radius: 50%; background: var(--bg-canvas);`).
+  - Delineation & Contrast: Styled with `box-shadow: 0 0 0 1.5px #D6D9EE, inset 0 2px 5px rgba(28, 33, 66, 0.08);` ensuring the punch-out bite cleanly contours against the white card into the soft lavender canvas.
+  - Connecting Cutline: `border-top: 2px dashed #94A3B8; width: 100%; margin: 0 24px;` providing crisp, authentic tactile perforation contrast.
+  - Sits squarely between the cycle settlement details and the barcode stub.
 
 ### 3. Barcode Stub & Verification Architecture
 - **Ticket Stub**:
   - Vector SVG barcode with realistic bar weights (`width: 85%; height: 48px; max-width: 280px;`).
   - Monospace receipt ID: `RB-PAY-XXXXXXXXXX` generated deterministically from the transaction ID.
   - Caption: `"Show this digital receipt or share with tenant for verified proof of payment."`
+  - Scroll Comfort: `.screen-content` possesses `padding-bottom: 96px;` to guarantee the entire stub is 100% visible and never clipped or obscured by the fixed bottom bar.
 
 ### 4. Canonical Bottom Action Bar Architecture
 - **Strict Anti-Collapse Compliance**:

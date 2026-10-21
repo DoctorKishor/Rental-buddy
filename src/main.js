@@ -3965,7 +3965,13 @@ export function openPaymentReceipt(payment, tenancy = null) {
     iconOnline?.classList.add('hidden');
     if (paymentMode) paymentMode.textContent = 'Cash Payment';
     if (referenceNo) {
-      referenceNo.textContent = payment.reference_no ? `Ref: ${payment.reference_no}` : 'Direct Handover';
+      if (payment.reference_no) {
+        referenceNo.textContent = `Ref: ${payment.reference_no}`;
+        referenceNo.classList.remove('hidden');
+      } else {
+        referenceNo.textContent = '';
+        referenceNo.classList.add('hidden');
+      }
     }
   } else {
     iconCash?.classList.add('hidden');
@@ -3973,7 +3979,13 @@ export function openPaymentReceipt(payment, tenancy = null) {
     const ch = (payment.channel || 'Online').toUpperCase();
     if (paymentMode) paymentMode.textContent = `Online (${ch})`;
     if (referenceNo) {
-      referenceNo.textContent = payment.reference_no ? `Ref: ${payment.reference_no}` : 'Instant Settlement';
+      if (payment.reference_no) {
+        referenceNo.textContent = `Ref: ${payment.reference_no}`;
+        referenceNo.classList.remove('hidden');
+      } else {
+        referenceNo.textContent = '';
+        referenceNo.classList.add('hidden');
+      }
     }
   }
 
@@ -4055,9 +4067,11 @@ export function openPaymentReceipt(payment, tenancy = null) {
           <div class="receipt-alloc-row-left">
             <span class="receipt-alloc-row-icon">${iconSymbol}</span>
             <span class="receipt-alloc-row-title">${cleanLabel}</span>
-            <span class="receipt-alloc-tag ${tagClass}">${tagText}</span>
           </div>
-          <strong class="receipt-alloc-row-amount">Rs. ${allocatedNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+          <div class="receipt-alloc-row-right">
+            <span class="receipt-alloc-tag ${tagClass}">${tagText}</span>
+            <strong class="receipt-alloc-row-amount">Rs. ${allocatedNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+          </div>
         `;
         allocationsList.appendChild(row);
       });
@@ -4068,9 +4082,11 @@ export function openPaymentReceipt(payment, tenancy = null) {
         <div class="receipt-alloc-row-left">
           <span class="receipt-alloc-row-icon">✓</span>
           <span class="receipt-alloc-row-title">General Rent Payment</span>
-          <span class="receipt-alloc-tag cleared">Cleared</span>
         </div>
-        <strong class="receipt-alloc-row-amount">Rs. ${amtNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+        <div class="receipt-alloc-row-right">
+          <span class="receipt-alloc-tag cleared">Cleared</span>
+          <strong class="receipt-alloc-row-amount">Rs. ${amtNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+        </div>
       `;
       allocationsList.appendChild(row);
     }

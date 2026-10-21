@@ -2654,7 +2654,7 @@
 
           <!-- SCREEN 21: Payment Receipt (Movie-Ticket Inspired Payment Voucher) -->
           <section class="screen" id="screen-21" data-screen="21">
-            <div class="screen-content" style="padding-bottom: 24px;">
+            <div class="screen-content" style="padding-bottom: 96px;">
               <!-- Top Navigation Header -->
               <nav class="stepper-header">
                 <button class="nav-back-btn" id="btn-receipt-back" aria-label="Go back">
@@ -2688,12 +2688,9 @@
                       </span>
                     </div>
                   </div>
-                  <div class="receipt-header-right">
-                    <span class="receipt-verified-badge" id="receipt-status-pill">✔ Settled</span>
-                  </div>
                 </div>
 
-                <!-- 2. Two-Column Highlight Grid (Date & Mode) -->
+                <!-- 2. Two-Column Highlight Grid (Date & Mode - Clean Movie-Ticket Style) -->
                 <div class="receipt-key-grid">
                   <div class="receipt-grid-col">
                     <div class="receipt-col-icon">
@@ -2705,7 +2702,6 @@
                       </svg>
                     </div>
                     <div class="receipt-col-text">
-                      <span class="receipt-col-label">Payment Date</span>
                       <strong class="receipt-col-val" id="receipt-payment-date">--</strong>
                       <span class="receipt-col-sub" id="receipt-billing-cycle">Billing Day: 1st</span>
                     </div>
@@ -2723,9 +2719,8 @@
                       </svg>
                     </div>
                     <div class="receipt-col-text">
-                      <span class="receipt-col-label">Payment Channel</span>
                       <strong class="receipt-col-val" id="receipt-payment-mode">Cash Payment</strong>
-                      <span class="receipt-col-sub" id="receipt-reference-no">Direct Cash</span>
+                      <span class="receipt-col-sub hidden" id="receipt-reference-no"></span>
                     </div>
                   </div>
                 </div>
