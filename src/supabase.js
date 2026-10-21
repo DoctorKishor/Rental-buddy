@@ -280,25 +280,34 @@ export async function createCloudTenancy(tenancyData) {
 
     if (error) throw error;
 
-    // Also insert utilities if present
-    if (tenancyData.utilities && Array.isArray(tenancyData.utilities)) {
-      const utilsToInsert = tenancyData.utilities.map((u) => ({
-        tenancy_id: data.id,
-        utility_type: u.utility_type,
-        is_enabled: u.is_enabled !== false,
-        bill_type: u.bill_type || 'flat',
-        price_per_unit: parseFloat(u.price_per_unit) || 0,
-        flat_amount: parseFloat(u.flat_amount) || 0,
-        last_meter_reading: parseFloat(u.last_meter_reading) || 0,
-      }));
+    // Also insert utilities if present with valid check constraints
+    if (tenancyData.utilities && Array.isArray(tenancyData.utilities) && tenancyData.utilities.length > 0) {
+      const utilsToInsert = tenancyData.utilities.map((u) => {
+        let cleanBillType = (u.bill_type || 'flat').toLowerCase().trim();
+        if (cleanBillType === 'meter' || cleanBillType.includes('meter')) {
+          cleanBillType = 'meter_reading';
+        } else {
+          cleanBillType = 'flat';
+        }
+        return {
+          tenancy_id: data.id,
+          utility_type: u.utility_type,
+          is_enabled: u.is_enabled !== false,
+          bill_type: cleanBillType,
+          price_per_unit: parseFloat(u.price_per_unit) || 0,
+          flat_amount: parseFloat(u.flat_amount) || 0,
+          last_meter_reading: parseFloat(u.last_meter_reading) || 0,
+        };
+      });
 
-      await supabase.from('tenancy_utilities').insert(utilsToInsert);
+      const { error: utilError } = await supabase.from('tenancy_utilities').insert(utilsToInsert);
+      if (utilError) console.warn('Utilities insert warning:', utilError);
     }
 
     return data;
   } catch (err) {
     console.error('Create Tenancy Error:', err);
-    return null;
+    throw err;
   }
 }
 
@@ -315,7 +324,42 @@ export async function updateCloudTenancy(tenancyId, updates) {
     return data;
   } catch (err) {
     console.error('Update Tenancy Error:', err);
-    return null;
+    throw err;
+  }
+}
+
+export async function updateCloudTenancyUtilities(tenancyId, utilities) {
+  await ensureAuthenticated();
+  if (!tenancyId || !Array.isArray(utilities)) return [];
+  try {
+    const upsertData = utilities.map((u) => {
+      let cleanBillType = (u.bill_type || 'flat').toLowerCase().trim();
+      if (cleanBillType === 'meter' || cleanBillType.includes('meter')) {
+        cleanBillType = 'meter_reading';
+      } else {
+        cleanBillType = 'flat';
+      }
+      return {
+        tenancy_id: tenancyId,
+        utility_type: u.utility_type,
+        is_enabled: u.is_enabled !== false,
+        bill_type: cleanBillType,
+        price_per_unit: parseFloat(u.price_per_unit) || 0,
+        flat_amount: parseFloat(u.flat_amount) || 0,
+        last_meter_reading: parseFloat(u.last_meter_reading) || 0,
+      };
+    });
+
+    const { data, error } = await supabase
+      .from('tenancy_utilities')
+      .upsert(upsertData, { onConflict: 'tenancy_id,utility_type' })
+      .select();
+
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error('Update Utilities Error:', err);
+    throw err;
   }
 }
 
@@ -344,7 +388,7 @@ export async function deleteCloudTenancy(tenancyId) {
     return true;
   } catch (err) {
     console.error('Delete Tenancy Error:', err);
-    return false;
+    throw err;
   }
 }
 
@@ -372,7 +416,7 @@ export async function scheduleCloudRentRevision(revisionData) {
     return data;
   } catch (err) {
     console.error('Schedule Rent Revision Error:', err);
-    return null;
+    throw err;
   }
 }
 
@@ -389,7 +433,7 @@ export async function cancelCloudRentRevision(idOrTenancyId) {
     return data;
   } catch (err) {
     console.error('Cancel Rent Revision Error:', err);
-    return null;
+    throw err;
   }
 }
 
@@ -400,7 +444,7 @@ export async function cancelCloudRentRevision(idOrTenancyId) {
 export async function fetchCloudBills(tenancyId) {
   await ensureAuthenticated();
   try {
-    let query = supabase.from('bills').select('*').order('created_at', { ascending: false });
+    let query = supabase.from('bills').select('*, tenancies (property_name)').order('created_at', { ascending: false });
     if (tenancyId) {
       query = query.eq('tenancy_id', tenancyId);
     }
@@ -448,7 +492,7 @@ export async function createCloudBill(billData) {
     return data;
   } catch (err) {
     console.error('Create Bill Error:', err);
-    return null;
+    throw err;
   }
 }
 
@@ -475,14 +519,30 @@ export async function fetchCloudPayments(tenancyId) {
 export async function recordCloudPayment(paymentData) {
   await ensureAuthenticated();
   try {
+    // Sanitize Channel & Payment Mode to strictly satisfy Postgres check constraints:
+    // CHECK ((channel = ANY (ARRAY['upi'::text, 'bank'::text, 'neft'::text, 'other'::text, 'cash'::text])))
+    // CHECK ((payment_mode = ANY (ARRAY['cash'::text, 'online'::text])))
+    const validChannels = ['upi', 'bank', 'neft', 'other', 'cash'];
+    let cleanChannel = (paymentData.channel || 'cash').toLowerCase().trim();
+    if (cleanChannel.includes('gpay') || cleanChannel.includes('upi')) cleanChannel = 'upi';
+    else if (cleanChannel.includes('neft')) cleanChannel = 'neft';
+    else if (cleanChannel.includes('bank')) cleanChannel = 'bank';
+    else if (cleanChannel.includes('other')) cleanChannel = 'other';
+    else if (!validChannels.includes(cleanChannel)) cleanChannel = 'cash';
+
+    let cleanMode = (paymentData.paymentMode || 'cash').toLowerCase().trim();
+    if (cleanMode !== 'cash' && cleanMode !== 'online') {
+      cleanMode = cleanChannel === 'cash' ? 'cash' : 'online';
+    }
+
     const { data, error } = await supabase
       .from('payments')
       .insert({
         tenancy_id: paymentData.tenancyId,
         bill_id: paymentData.billId || null,
         amount: parseFloat(paymentData.amount) || 0,
-        payment_mode: paymentData.paymentMode || 'cash',
-        channel: paymentData.channel || 'cash',
+        payment_mode: cleanMode,
+        channel: cleanChannel,
         reference_no: paymentData.referenceNo || null,
         settled_months: paymentData.settledMonths || [],
         payment_date: paymentData.paymentDate || new Date().toISOString().split('T')[0],
@@ -491,10 +551,44 @@ export async function recordCloudPayment(paymentData) {
       .single();
 
     if (error) throw error;
+
+    // Settle corresponding unpaid bills: update status = 'paid'
+    try {
+      if (paymentData.billId) {
+        await supabase
+          .from('bills')
+          .update({ status: 'paid' })
+          .eq('id', paymentData.billId);
+      } else if (paymentData.settledBillIds && Array.isArray(paymentData.settledBillIds) && paymentData.settledBillIds.length > 0) {
+        await supabase
+          .from('bills')
+          .update({ status: 'paid' })
+          .in('id', paymentData.settledBillIds);
+      } else if (paymentData.tenancyId) {
+        // If payment matches an unpaid bill for this tenancy, mark it paid
+        const { data: unpaidBills } = await supabase
+          .from('bills')
+          .select('id, net_payable')
+          .eq('tenancy_id', paymentData.tenancyId)
+          .eq('status', 'unpaid')
+          .order('created_at', { ascending: true })
+          .limit(1);
+
+        if (unpaidBills && unpaidBills.length > 0 && Math.abs(parseFloat(unpaidBills[0].net_payable) - parseFloat(paymentData.amount)) < 1) {
+          await supabase
+            .from('bills')
+            .update({ status: 'paid' })
+            .eq('id', unpaidBills[0].id);
+        }
+      }
+    } catch (settleErr) {
+      console.warn('Bill settlement status notice:', settleErr);
+    }
+
     return data;
   } catch (err) {
     console.error('Record Payment Error:', err);
-    return null;
+    throw err;
   }
 }
 
@@ -526,12 +620,15 @@ export async function inviteCloudFamilyMember(email, role = 'viewer') {
   try {
     const { data, error } = await supabase
       .from('family_shares')
-      .upsert({
-        admin_id: cloudSession.user.id,
-        member_email: email.trim().toLowerCase(),
-        role: role,
-        status: 'accepted',
-      })
+      .upsert(
+        {
+          admin_id: cloudSession.user.id,
+          member_email: email.trim().toLowerCase(),
+          role: role,
+          status: 'accepted',
+        },
+        { onConflict: 'admin_id,member_email' }
+      )
       .select()
       .single();
 
@@ -539,7 +636,7 @@ export async function inviteCloudFamilyMember(email, role = 'viewer') {
     return data;
   } catch (err) {
     console.error('Invite Family Member Error:', err);
-    return null;
+    throw err;
   }
 }
 
@@ -554,6 +651,6 @@ export async function revokeCloudFamilyMember(shareId) {
     return true;
   } catch (err) {
     console.error('Revoke Family Member Error:', err);
-    return false;
+    throw err;
   }
 }

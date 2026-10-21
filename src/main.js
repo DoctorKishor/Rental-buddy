@@ -13,6 +13,7 @@ import {
   fetchCloudTenancies,
   createCloudTenancy,
   updateCloudTenancy,
+  updateCloudTenancyUtilities,
   archiveCloudTenancy,
   unarchiveCloudTenancy,
   deleteCloudTenancy,
@@ -314,6 +315,8 @@ function initUtilityToggles() {
   labelElecFlat?.addEventListener('click', () => {
     labelElecFlat.classList.add('selected');
     labelElecMeter?.classList.remove('selected');
+    const radio = labelElecFlat.querySelector('input[type="radio"]');
+    if (radio) radio.checked = true;
     subfieldsElecFlat?.classList.remove('hidden');
     subfieldsElecMeter?.classList.add('hidden');
     state.tenancy.utilities.electricity.billType = 'Flat';
@@ -322,6 +325,8 @@ function initUtilityToggles() {
   labelElecMeter?.addEventListener('click', () => {
     labelElecMeter.classList.add('selected');
     labelElecFlat?.classList.remove('selected');
+    const radio = labelElecMeter.querySelector('input[type="radio"]');
+    if (radio) radio.checked = true;
     subfieldsElecMeter?.classList.remove('hidden');
     subfieldsElecFlat?.classList.add('hidden');
     state.tenancy.utilities.electricity.billType = 'Meter Reading';
@@ -336,6 +341,8 @@ function initUtilityToggles() {
   labelWaterFlat?.addEventListener('click', () => {
     labelWaterFlat.classList.add('selected');
     labelWaterMeter?.classList.remove('selected');
+    const radio = labelWaterFlat.querySelector('input[type="radio"]');
+    if (radio) radio.checked = true;
     subfieldsWaterFlat?.classList.remove('hidden');
     subfieldsWaterMeter?.classList.add('hidden');
     state.tenancy.utilities.water.billType = 'Flat';
@@ -344,6 +351,8 @@ function initUtilityToggles() {
   labelWaterMeter?.addEventListener('click', () => {
     labelWaterMeter.classList.add('selected');
     labelWaterFlat?.classList.remove('selected');
+    const radio = labelWaterMeter.querySelector('input[type="radio"]');
+    if (radio) radio.checked = true;
     subfieldsWaterMeter?.classList.remove('hidden');
     subfieldsWaterFlat?.classList.add('hidden');
     state.tenancy.utilities.water.billType = 'Meter Reading';
@@ -631,7 +640,7 @@ function initEventListeners() {
       utilities.push({
         utility_type: 'electricity',
         is_enabled: true,
-        bill_type: elecType === 'Meter Reading' ? 'meter' : 'flat',
+        bill_type: elecType === 'Meter Reading' ? 'meter_reading' : 'flat',
         price_per_unit: parseFloat(document.getElementById('input-elec-price')?.value) || 0,
         flat_amount: parseFloat(document.getElementById('input-elec-flat-amount')?.value) || 0,
         last_meter_reading: parseFloat(document.getElementById('input-elec-reading')?.value) || 0,
@@ -644,7 +653,7 @@ function initEventListeners() {
       utilities.push({
         utility_type: 'water',
         is_enabled: true,
-        bill_type: waterType === 'Meter Reading' ? 'meter' : 'flat',
+        bill_type: waterType === 'Meter Reading' ? 'meter_reading' : 'flat',
         price_per_unit: parseFloat(document.getElementById('input-water-price')?.value) || 0,
         flat_amount: parseFloat(document.getElementById('input-water-amount')?.value) || 0,
         last_meter_reading: parseFloat(document.getElementById('input-water-reading')?.value) || 0,
@@ -681,6 +690,9 @@ function initEventListeners() {
         billingDay: billingDay,
         utilities: utilities,
       });
+      if (created) {
+        created.tenancy_utilities = utilities;
+      }
       currentActiveTenancy = created;
       await syncDashboardFromCloud();
       showToast(`🎉 Tenancy "${nameVal}" created & synced to Supabase Cloud!`, 3500);
@@ -835,6 +847,10 @@ function initDashboard() {
   function openRecordModal(tenancyName = '2nd Floor, Lalitpur', defaultAmount = '12000') {
     if (recordSelect) recordSelect.value = tenancyName;
     if (recordAmountInput) recordAmountInput.value = defaultAmount;
+    const dateInput = document.getElementById('record-date');
+    if (dateInput && !dateInput.value) {
+      dateInput.value = new Date().toISOString().split('T')[0];
+    }
     modalRecord?.classList.remove('hidden');
   }
 
@@ -861,6 +877,7 @@ function initDashboard() {
     const tenancyId = recordSelect ? recordSelect.value : currentActiveTenancy?.id;
     const amount = recordAmountInput ? recordAmountInput.value : '12000';
     const selectedMethod = document.querySelector('input[name="pay-method"]:checked')?.value || 'Cash';
+    const chosenDate = document.getElementById('record-date')?.value || new Date().toISOString().split('T')[0];
 
     if (!amount || parseFloat(amount) <= 0) {
       showToast('⚠️ Please enter a valid payment amount');
@@ -869,13 +886,26 @@ function initDashboard() {
 
     try {
       if (tenancyId) {
+        let channel = 'cash';
+        let mode = 'cash';
+        const methodLower = selectedMethod.toLowerCase();
+        if (methodLower.includes('gpay') || methodLower.includes('upi')) {
+          channel = 'upi';
+          mode = 'online';
+        } else if (methodLower.includes('neft') || methodLower.includes('bank')) {
+          channel = 'neft';
+          mode = 'online';
+        }
+
+        const formattedMonth = new Date(chosenDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
         await recordCloudPayment({
           tenancyId: tenancyId,
           amount: parseFloat(amount),
-          paymentMode: selectedMethod.toLowerCase(),
-          channel: selectedMethod.toLowerCase(),
-          settledMonths: [new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })],
-          paymentDate: new Date().toISOString().split('T')[0],
+          paymentMode: mode,
+          channel: channel,
+          settledMonths: [formattedMonth],
+          paymentDate: chosenDate,
         });
       }
       modalRecord?.classList.add('hidden');
@@ -1227,9 +1257,20 @@ export async function bindTenancyToDetails(t) {
   const editToggleWater = document.getElementById('edit-toggle-water');
   if (editToggleWater) editToggleWater.checked = waterUtil ? waterUtil.is_enabled !== false : true;
 
+  // Restore active scheduled revision banner if present
+  const bannerRevision = document.getElementById('scheduled-revision-banner');
+  const bannerRevisionText = document.getElementById('banner-revision-text');
+  const activeRevision = t.rent_revisions?.find((r) => r.status === 'scheduled');
+  if (activeRevision && bannerRevision && bannerRevisionText) {
+    bannerRevisionText.textContent = `Rs. ${parseFloat(activeRevision.new_rent).toLocaleString('en-IN')} scheduled (${activeRevision.note || 'Next Cycle'})`;
+    bannerRevision.classList.remove('hidden');
+  } else if (bannerRevision) {
+    bannerRevision.classList.add('hidden');
+  }
+
   // Fetch tenancy payments & bills dynamically from Supabase
   try {
-    const [allBills, allPayments] = await Promise.all([fetchCloudBills(), fetchCloudPayments()]);
+    const [allBills, allPayments] = await Promise.all([fetchCloudBills(t.id), fetchCloudPayments(t.id)]);
     const tenancyBills = (allBills || []).filter(b => b.tenancy_id === t.id);
     const tenancyPayments = (allPayments || []).filter(p => p.tenancy_id === t.id);
 
@@ -1580,14 +1621,28 @@ function initEditTenancy() {
     }
 
     try {
-      await scheduleCloudRentRevision({
+      const scheduled = await scheduleCloudRentRevision({
         tenancyId: currentActiveTenancy.id,
         oldRent: parseFloat(currentActiveTenancy.base_rent || 0),
         newRent: parseFloat(newRent),
         effectiveDate: new Date().toISOString().split('T')[0],
-        note: document.getElementById('input-revise-reason')?.value || 'Scheduled rent revision',
+        note: document.getElementById('input-revise-reason')?.value || cycle,
         notifyTenant,
       });
+
+      if (!currentActiveTenancy.rent_revisions) currentActiveTenancy.rent_revisions = [];
+      if (scheduled) {
+        currentActiveTenancy.rent_revisions.push(scheduled);
+      } else {
+        currentActiveTenancy.rent_revisions.push({
+          tenancy_id: currentActiveTenancy.id,
+          old_rent: parseFloat(currentActiveTenancy.base_rent || 0),
+          new_rent: parseFloat(newRent),
+          effective_date: new Date().toISOString().split('T')[0],
+          note: cycle,
+          status: 'scheduled',
+        });
+      }
 
       if (bannerRevisionText) {
         bannerRevisionText.textContent = `Rs. ${parseFloat(newRent).toLocaleString('en-IN')} scheduled from ${cycle}`;
@@ -1609,6 +1664,11 @@ function initEditTenancy() {
     if (!currentActiveTenancy) return;
     try {
       await cancelCloudRentRevision(currentActiveTenancy.id);
+      if (currentActiveTenancy.rent_revisions) {
+        currentActiveTenancy.rent_revisions.forEach(r => {
+          if (r.status === 'scheduled') r.status = 'cancelled';
+        });
+      }
       bannerRevision?.classList.add('hidden');
       showToast('Scheduled rent revision cancelled in Supabase Cloud');
     } catch (e) {
@@ -1650,6 +1710,39 @@ function initEditTenancy() {
         advance_amount: parseFloat(updatedAdvance) || 0,
         billing_day: updatedDay,
       });
+
+      // Synchronize utilities updates (Electricity & Water)
+      const elecEnabled = document.getElementById('edit-toggle-elec')?.checked ?? true;
+      const elecPrice = parseFloat(document.getElementById('edit-elec-price')?.value) || 0;
+      const waterEnabled = document.getElementById('edit-toggle-water')?.checked ?? true;
+      const waterAmount = parseFloat(document.getElementById('edit-water-amount')?.value) || 0;
+
+      const existingElec = currentActiveTenancy.tenancy_utilities?.find(u => u.utility_type === 'electricity');
+      const updatedUtils = [
+        {
+          utility_type: 'electricity',
+          is_enabled: elecEnabled,
+          bill_type: 'meter_reading',
+          price_per_unit: elecPrice,
+          flat_amount: 0,
+          last_meter_reading: existingElec?.last_meter_reading || 0,
+        },
+        {
+          utility_type: 'water',
+          is_enabled: waterEnabled,
+          bill_type: 'flat',
+          price_per_unit: 0,
+          flat_amount: waterAmount,
+          last_meter_reading: 0,
+        },
+      ];
+
+      try {
+        await updateCloudTenancyUtilities(currentActiveTenancy.id, updatedUtils);
+        currentActiveTenancy.tenancy_utilities = updatedUtils;
+      } catch (utilErr) {
+        console.warn('Update utilities notice:', utilErr);
+      }
 
       currentActiveTenancy.property_name = updatedName;
       if (updatedRent) currentActiveTenancy.base_rent = parseFloat(updatedRent);
@@ -1833,7 +1926,7 @@ export function setupRecordPaymentForm(tenancy) {
           ? new Date(bill.duration_start + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
           : 'Pending Billing Cycle';
         label.innerHTML = `
-          <input type="checkbox" name="settle-month" value="${monthLabel}" ${idx === 0 ? 'checked' : ''} />
+          <input type="checkbox" name="settle-month" value="${monthLabel}" data-bill-id="${bill.id}" ${idx === 0 ? 'checked' : ''} />
           <div class="month-opt-details">
             <strong class="month-opt-title">${monthLabel}</strong>
             <span class="month-opt-sub status-overdue">Unpaid Invoice • Rs. ${parseFloat(bill.net_payable).toLocaleString('en-IN')}</span>
@@ -1964,15 +2057,21 @@ function initRecordPaymentPage() {
     let ref = null;
 
     if (payMode === 'Online') {
-      channel = document.querySelector('input[name="online-channel"]:checked')?.value?.toLowerCase() || 'upi';
+      const selectedChannelVal = document.querySelector('input[name="online-channel"]:checked')?.value || 'GPay / UPI';
+      if (selectedChannelVal.includes('GPay') || selectedChannelVal.includes('UPI')) channel = 'upi';
+      else if (selectedChannelVal.includes('NEFT') || selectedChannelVal.includes('Bank')) channel = 'neft';
+      else channel = 'other';
       modeLabel = channel.toUpperCase();
       ref = document.getElementById('input-online-ref')?.value?.trim() || null;
       if (ref) modeLabel += ` (Ref: ${ref})`;
     }
 
-    // Determine settled month string
+    // Determine settled month string and collect linked bill IDs
     let settledMonthText = '';
-    const checkedMonths = Array.from(document.querySelectorAll('input[name="settle-month"]:checked')).map(cb => cb.value);
+    const checkedCheckboxes = Array.from(document.querySelectorAll('input[name="settle-month"]:checked'));
+    const checkedMonths = checkedCheckboxes.map(cb => cb.value);
+    const settledBillIds = checkedCheckboxes.map(cb => cb.dataset.billId).filter(Boolean);
+
     if (checkedMonths.length > 0) {
       settledMonthText = checkedMonths.join(', ');
     } else {
@@ -1995,10 +2094,12 @@ function initRecordPaymentPage() {
       await recordCloudPayment({
         tenancyId: selectedRecordTenancy.id,
         amount: parseFloat(amountVal),
-        paymentMode: payMode.toLowerCase(),
+        paymentMode: payMode.toLowerCase() === 'online' ? 'online' : 'cash',
         channel: channel,
         referenceNo: ref,
         settledMonths: [settledMonthText],
+        settledBillIds: settledBillIds,
+        billId: settledBillIds[0] || null,
         paymentDate: paymentDate,
       });
 
@@ -2107,13 +2208,15 @@ export function renderBillDetails(b) {
   const waterVal = document.getElementById('details-bill-water-val');
   if (waterVal) waterVal.textContent = `Rs. ${parseFloat(waterCost).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
+  const internetCost = b.internetCost ?? b.internet_cost ?? 0;
   const internetVal = document.getElementById('details-bill-internet-val');
-  if (internetVal) internetVal.textContent = `Rs. 0.00`;
+  if (internetVal) internetVal.textContent = `Rs. ${parseFloat(internetCost).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
+  const sewageCost = b.sewageCost ?? b.otherUtilitiesCost ?? b.other_utilities_cost ?? 0;
   const sewageVal = document.getElementById('details-bill-sewage-val');
-  if (sewageVal) sewageVal.textContent = `Rs. 0.00`;
+  if (sewageVal) sewageVal.textContent = `Rs. ${parseFloat(sewageCost).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
-  const subtotal = b.subtotal ?? (parseFloat(b.baseRent || b.base_rent || 0) + parseFloat(elecCost) + parseFloat(waterCost));
+  const subtotal = b.subtotal ?? (parseFloat(b.baseRent || b.base_rent || 0) + parseFloat(elecCost) + parseFloat(waterCost) + parseFloat(internetCost) + parseFloat(sewageCost));
   const subtotalVal = document.getElementById('details-bill-subtotal-val');
   if (subtotalVal) subtotalVal.textContent = `Rs. ${parseFloat(subtotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
@@ -2205,7 +2308,18 @@ function initBillGenerationFlow() {
     const waterTotal = waterUnits > 0 ? waterUnits * waterPricePerUnit : (waterUtil?.flat_amount || 0);
 
     const rent = parseFloat(target.base_rent || 0);
-    const otherUtilities = 0;
+
+    // Calculate Internet & Garbage / Waste utilities
+    const internetUtil = target.tenancy_utilities?.find((u) => u.utility_type === 'internet');
+    const internetTotal = (internetUtil && internetUtil.is_enabled !== false) ? (parseFloat(internetUtil.flat_amount) || 0) : 0;
+
+    const garbageUtil = target.tenancy_utilities?.find((u) => u.utility_type === 'garbage');
+    const sewageUtil = target.tenancy_utilities?.find((u) => u.utility_type === 'sewage');
+    const garbageTotal = (garbageUtil && garbageUtil.is_enabled !== false) ? (parseFloat(garbageUtil.flat_amount) || 0) : (
+      (sewageUtil && sewageUtil.is_enabled !== false) ? (parseFloat(sewageUtil.flat_amount) || 0) : 0
+    );
+
+    const otherUtilities = internetTotal + garbageTotal;
     const subtotal = rent + elecTotal + waterTotal + otherUtilities;
 
     const advanceInput = parseFloat(document.getElementById('input-bill-advance')?.value) || 0;
@@ -2227,12 +2341,16 @@ function initBillGenerationFlow() {
       electricityCost: elecTotal,
       waterUnits: waterUnits,
       waterCost: waterTotal,
+      internetCost: internetTotal,
+      sewageCost: garbageTotal,
       otherUtilitiesCost: otherUtilities,
       subtotal: subtotal,
       advanceDeducted: advance,
       dueCarried: due,
       netPayable: netPayable,
       notes: notesVal,
+      currElectricityReading: currElec,
+      currWaterReading: currWater,
     };
 
     // Populate Screen 14 Review Bill (Corrected element IDs)
@@ -2255,6 +2373,12 @@ function initBillGenerationFlow() {
 
     const waterVal = document.getElementById('review-water-val');
     if (waterVal) waterVal.textContent = `Rs. ${waterTotal.toLocaleString('en-IN')}`;
+
+    const internetEl = document.getElementById('review-internet-val');
+    if (internetEl) internetEl.textContent = `Rs. ${internetTotal.toLocaleString('en-IN')}`;
+
+    const sewageEl = document.getElementById('review-sewage-val');
+    if (sewageEl) sewageEl.textContent = `Rs. ${garbageTotal.toLocaleString('en-IN')}`;
 
     const subtotalVal = document.getElementById('review-subtotal-val');
     if (subtotalVal) subtotalVal.textContent = `Rs. ${subtotal.toLocaleString('en-IN')}`;
@@ -2307,6 +2431,32 @@ function initBillGenerationFlow() {
         notes: activeBillDraft.notes,
       });
 
+      // Advance meter readings for the tenancy in Supabase & memory
+      try {
+        if (activeBillDraft.currElectricityReading > 0) {
+          await supabase
+            .from('tenancy_utilities')
+            .update({ last_meter_reading: activeBillDraft.currElectricityReading })
+            .eq('tenancy_id', activeBillDraft.tenancyId)
+            .eq('utility_type', 'electricity');
+
+          const el = currentActiveTenancy?.tenancy_utilities?.find(u => u.utility_type === 'electricity');
+          if (el) el.last_meter_reading = activeBillDraft.currElectricityReading;
+        }
+        if (activeBillDraft.currWaterReading > 0) {
+          await supabase
+            .from('tenancy_utilities')
+            .update({ last_meter_reading: activeBillDraft.currWaterReading })
+            .eq('tenancy_id', activeBillDraft.tenancyId)
+            .eq('utility_type', 'water');
+
+          const wa = currentActiveTenancy?.tenancy_utilities?.find(u => u.utility_type === 'water');
+          if (wa) wa.last_meter_reading = activeBillDraft.currWaterReading;
+        }
+      } catch (meterErr) {
+        console.warn('Advance meter reading notice:', meterErr);
+      }
+
       // Populate Screen 15 Bill Details
       renderBillDetails({
         ...activeBillDraft,
@@ -2338,8 +2488,14 @@ function initBillGenerationFlow() {
     const rent = activeBillDraft?.baseRent ?? activeBillDraft?.base_rent ?? 0;
     const elec = activeBillDraft?.electricityCost ?? activeBillDraft?.electricity_cost ?? 0;
     const water = activeBillDraft?.waterCost ?? activeBillDraft?.water_cost ?? 0;
+    const internet = activeBillDraft?.internetCost ?? 0;
+    const waste = activeBillDraft?.sewageCost ?? activeBillDraft?.otherUtilitiesCost ?? 0;
 
-    const summaryText = `🏠 *RENTAL BUDDY INVOICE*\nProperty: *${pName}*\nPeriod: ${sDate} to ${eDate}\n--------------------------\n• Base Rent: Rs. ${parseFloat(rent).toLocaleString('en-IN')}\n• Electricity: Rs. ${parseFloat(elec).toLocaleString('en-IN')}\n• Water: Rs. ${parseFloat(water).toLocaleString('en-IN')}\n--------------------------\n*Total Net Payable: Rs. ${parseFloat(net).toLocaleString('en-IN')}*\nStatus: Unpaid\n\nGenerated via Rental Buddy`;
+    let extraLines = '';
+    if (internet > 0) extraLines += `\n• Internet: Rs. ${parseFloat(internet).toLocaleString('en-IN')}`;
+    if (waste > 0) extraLines += `\n• Waste/Other: Rs. ${parseFloat(waste).toLocaleString('en-IN')}`;
+
+    const summaryText = `🏠 *RENTAL BUDDY INVOICE*\nProperty: *${pName}*\nPeriod: ${sDate} to ${eDate}\n--------------------------\n• Base Rent: Rs. ${parseFloat(rent).toLocaleString('en-IN')}\n• Electricity: Rs. ${parseFloat(elec).toLocaleString('en-IN')}\n• Water: Rs. ${parseFloat(water).toLocaleString('en-IN')}${extraLines}\n--------------------------\n*Total Net Payable: Rs. ${parseFloat(net).toLocaleString('en-IN')}*\nStatus: Unpaid\n\nGenerated via Rental Buddy`;
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(summaryText).catch(() => {});
