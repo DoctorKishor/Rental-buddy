@@ -1140,14 +1140,16 @@
 ## 39. Movie-Ticket Inspired Payment Receipt Voucher Architecture (Screen 21)
 
 ### 1. Aesthetic Inspiration & Rental Domain Adaptation
-- **Design Origin**: Adapted faithfully from cinema/movie ticket voucher patterns (clean high-contrast white ticket card, direct 2-column key info block, crisp horizontal dashed perforation line, and prominent barcode stub).
+- **Design Origin**: Adapted faithfully from cinema/movie ticket voucher patterns (clean high-contrast white ticket card, direct 2-column key info block, crisp horizontal dashed perforation line, inward side ticket cutouts, and prominent barcode stub).
 - **Rental Domain Translation**:
   - **Clean, Uncluttered Header**: Full-width header with brand micro-tag (`RENTAL BUDDY • DIGITAL VOUCHER`), bold property title (`Annachi`), tenant pill with user icon, and monthly rent rate pill with house icon. The top-right corner is kept completely clean without redundant badges.
-  - **Direct Surface 2-Column Block (No Box-in-a-Box Clutter)**:
-    - Sits directly on the clean white ticket card (`background: transparent; border: none; padding: 6px 20px 10px;`).
+  - **Direct Surface 2-Column Block (Strict Anti-Truncation Guarantee)**:
+    - Sits directly on the clean white ticket card (`background: transparent; border: none; padding: 6px 16px 10px;`).
     - Eliminates redundant uppercase labels like `"PAYMENT DATE"` and `"PAYMENT CHANNEL"`.
+    - Compact 34px icon container with 8px gap gives the text columns ample horizontal space.
+    - **No Ellipsis / No `...` Truncation**: `.receipt-col-val` has `white-space: nowrap;` without `text-overflow: ellipsis;`.
     - Column 1: Calendar icon + Payment date (`Oct 21, 2026`) + Billing recurrence (`Billing Day: 3rd`).
-    - Column 2: Cash banknote/card icon + Clean channel title (`Cash Payment` / `Online (UPI)`) with plenty of space so text never truncates.
+    - Column 2: Cash banknote/card icon + Clean channel title (`Cash Payment` / `Online (UPI)`), completely visible without any `...` clipping.
   - **Direct Financial Hero (No Stamp Clutter)**:
     - Pure high-contrast amount display: `"TOTAL AMOUNT RECEIVED"` + large bold `"Rs. 6,000"` (or actual amount).
     - **No Trailing `.00` on Whole Numbers**: Whole rupee figures omit `.00` (e.g. `Rs. 6,000`, `Rs. 5,000`, `Rs. 1,000`). Only fractional payments display paise.
@@ -1156,10 +1158,13 @@
     - Every covered cycle renders with standard 3-letter short month format (`Oct 2026`, `Nov 2026`) preventing any horizontal overflow or text clipping.
     - Right side pairs a clean status tag (`Cleared`, `Advance`, `Partial`) with the clean currency amount (`Rs. 5,000`, `Rs. 1,000`).
 
-### 2. Perforation Geometry (Clean Ticket Cutline)
-- **Authentic Dashed Perforation**:
-  - Rendered as `.receipt-perforation-zone` with a crisp, high-contrast dashed line (`border-top: 2px dashed #CBD5E1; margin: 0 20px;`).
-  - No floating semi-transparent circle overlays or awkward notch bubbles sticking out of the card edges.
+### 2. Authentic Inward Ticket Cutouts & Perforation Geometry
+- **True Physical Hole-Punch Cutouts**:
+  - The ticket card `.receipt-ticket-card` has `overflow: hidden;`.
+  - Left & Right Notches: Rendered via `.receipt-notch` as `28px × 28px` circular elements positioned at `left: -14px` and `right: -14px` with `background: var(--bg-canvas);`.
+  - `overflow: hidden;` clips the outer half outside the card perimeter, so ONLY the inward semicircular punch-bite `(` on the left and `)` on the right is drawn inside the card.
+  - Border Delineation: `box-shadow: inset -1.5px 0 0 rgba(226, 228, 242, 0.95);` (left) and `box-shadow: inset 1.5px 0 0 rgba(226, 228, 242, 0.95);` (right) provides a crisp outline along the curved bite matching the ticket card boundary.
+  - Connecting Cutline: `border-top: 2px dashed #CBD5E1; margin: 0 18px;` runs seamlessly between the two punch bites.
 
 ### 3. Barcode Stub & Verification Architecture
 - **Ticket Stub**:
