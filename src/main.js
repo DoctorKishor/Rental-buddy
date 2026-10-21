@@ -3989,9 +3989,16 @@ export function openPaymentReceipt(payment, tenancy = null) {
     }
   }
 
+  const formatReceiptCurrency = (val) => {
+    const n = parseFloat(val || 0);
+    return n % 1 === 0
+      ? n.toLocaleString('en-IN')
+      : n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   const amtNum = parseFloat(payment.amount || 0);
   if (totalAmount) {
-    totalAmount.textContent = `Rs. ${amtNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+    totalAmount.textContent = `Rs. ${formatReceiptCurrency(amtNum)}`;
   }
 
   if (propAddress) {
@@ -4011,15 +4018,13 @@ export function openPaymentReceipt(payment, tenancy = null) {
     }
   }
 
-  const hasAdvance = monthsArr.some((m) => m && m.toLowerCase().includes('advance'));
-  if (statusPill) {
-    statusPill.textContent = '✔ Verified & Settled';
-  }
-  if (stampPill) {
-    stampPill.textContent = hasAdvance ? 'PAID (ADVANCE INCLUDED)' : 'PAID IN FULL';
-  }
+  const shortMonthMap = {
+    January: 'Jan', February: 'Feb', March: 'Mar', April: 'Apr',
+    May: 'May', June: 'Jun', July: 'Jul', August: 'Aug',
+    September: 'Sep', October: 'Oct', November: 'Nov', December: 'Dec'
+  };
 
-  // Render allocation breakdown table with EXACT Rs. amounts
+  // Render allocation breakdown table with EXACT Rs. amounts (No .00 for whole numbers, short month names)
   if (allocationsList) {
     allocationsList.innerHTML = '';
     if (monthsArr.length > 0) {
@@ -4045,9 +4050,12 @@ export function openPaymentReceipt(payment, tenancy = null) {
           allocatedNum = amtNum || rentVal;
         }
 
-        // Clean month label
+        // Clean month label & convert to short month names (e.g. October 2026 -> Oct 2026)
         let cleanLabel = mStr.replace(/\s*\([^)]*\)/g, '').trim();
         if (!cleanLabel) cleanLabel = mStr;
+        for (const [fullM, shortM] of Object.entries(shortMonthMap)) {
+          cleanLabel = cleanLabel.replace(new RegExp(`\\b${fullM}\\b`, 'gi'), shortM);
+        }
 
         let tagClass = 'cleared';
         let tagText = 'Cleared';
@@ -4070,7 +4078,7 @@ export function openPaymentReceipt(payment, tenancy = null) {
           </div>
           <div class="receipt-alloc-row-right">
             <span class="receipt-alloc-tag ${tagClass}">${tagText}</span>
-            <strong class="receipt-alloc-row-amount">Rs. ${allocatedNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+            <strong class="receipt-alloc-row-amount">Rs. ${formatReceiptCurrency(allocatedNum)}</strong>
           </div>
         `;
         allocationsList.appendChild(row);
@@ -4085,7 +4093,7 @@ export function openPaymentReceipt(payment, tenancy = null) {
         </div>
         <div class="receipt-alloc-row-right">
           <span class="receipt-alloc-tag cleared">Cleared</span>
-          <strong class="receipt-alloc-row-amount">Rs. ${amtNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+          <strong class="receipt-alloc-row-amount">Rs. ${formatReceiptCurrency(amtNum)}</strong>
         </div>
       `;
       allocationsList.appendChild(row);
@@ -4117,7 +4125,8 @@ function handleShareReceipt() {
   const rawDate = p.payment_date || new Date().toISOString().split('T')[0];
   const d = new Date(rawDate + 'T00:00:00');
   const dateFormatted = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
-  const amtFormatted = parseFloat(p.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+  const amtPNum = parseFloat(p.amount || 0);
+  const amtFormatted = amtPNum % 1 === 0 ? amtPNum.toLocaleString('en-IN') : amtPNum.toLocaleString('en-IN', { minimumFractionDigits: 2 });
   const isCash = (p.payment_mode || 'cash').toLowerCase() === 'cash';
   const mode = isCash ? 'CASH' : `ONLINE (${(p.channel || 'UPI').toUpperCase()})`;
   const months = Array.isArray(p.settled_months) ? p.settled_months.join(', ') : (p.settled_months || 'Settled');
