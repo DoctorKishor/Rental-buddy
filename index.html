@@ -2466,6 +2466,17 @@
           <!-- SCREEN 20: Supabase Cloud Authentication & Role Switcher -->
           <section class="screen" id="screen-20" data-screen="20">
             <div class="screen-content" style="justify-content: center; padding-top: 24px;">
+              <!-- Top Nav with Back Button (Visible when authenticated) -->
+              <nav class="stepper-header hidden" id="auth-nav-header" style="width: 100%; margin-bottom: 4px;">
+                <button class="nav-back-btn" id="btn-auth-back" aria-label="Back to Dashboard">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+                <div class="stepper-titles"></div>
+                <div class="stepper-spacer"></div>
+              </nav>
               <!-- Brand Logo Header -->
               <div class="auth-brand-block">
                 <div class="brand-icon-wrapper auth-icon">

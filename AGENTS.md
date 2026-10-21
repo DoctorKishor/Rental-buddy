@@ -682,6 +682,54 @@
   - The app routes to Screen 20 in **Create Account** mode (`setAuthMode(true)`).
   - Attempting to sign in with the deleted credentials will fail as "Invalid login credentials"; the user must register a brand new account.
 
+---
+
+## 27. Autonomous Full-App Audit & Multi-Screen Architectural Defect Resolution
+
+### 1. Screen 14 & 15 Element ID Synchronization & Bill Inspection Controller
+- **The Defect**:
+  - In `Screen 14 (Review Bill)`, JavaScript referenced `#review-prop-name` and `#review-billing-period`, while the DOM IDs were `#review-prop-title` and `#review-duration-text`. This resulted in the tenancy title and billing duration displaying placeholder values `--`.
+  - In `Screen 15 (Bill Details)`, JavaScript attempted to populate nonexistent IDs (`#billdetails-prop-title`, `#billdetails-invoice-no`, `#billdetails-net-amount`), leaving all 11 breakdown fields unpopulated.
+  - Tapping on generated invoices in Dashboard Recent Activity opened Screen 15 without binding invoice records.
+- **The Architectural Fix**:
+  - Synchronized all element IDs on Screen 14 (`#review-prop-title`, `#review-duration-text`, `#review-generated-date`, `#review-water-val`).
+  - Created centralized `renderBillDetails(billData)` controller binding all 11 metrics (`#details-bill-prop-title`, `#details-bill-duration`, `#details-bill-gendate`, `#details-bill-rent-val`, `#details-bill-elec-sub`, `#details-bill-elec-val`, `#details-bill-water-val`, `#details-bill-subtotal-val`, `#details-bill-advance-val`, `#details-bill-net-val`, `#details-bill-notes-text`).
+  - Recent bills list rows invoke `renderBillDetails(bill)` on click to preview any invoice.
+  - Added formatted WhatsApp invoice link generator and clipboard copier to `#btn-share-whatsapp-invoice`.
+
+### 2. Universal Form Submit Hijacking & State Protection
+- **The Defect**:
+  - 6 form stacks (`#form-record-payment`, `#form-step1`, `#form-edit-tenancy`, `#form-revise-rent`, `#form-record-page`, `#form-generate-bill`) lacked submit handlers. Pressing 'Enter' or mobile virtual keyboard 'Done' caused browser form submissions that reloaded the page, wiping in-progress inputs.
+- **The Architectural Fix**:
+  - Implemented universal `form` submit interception in `initEventListeners()` with `e.preventDefault()`.
+
+### 3. Step 1 & Step 2 to Step 3 Confirmation & Utility Cloud Persistence
+- **The Defect**:
+  - Navigating from Step 2 to Step 3 did not invoke `syncConfirmationScreen()`, causing Step 3 to show stale placeholder data.
+  - Submitting Step 3 omitted the `utilities` payload from `createCloudTenancy()`, failing to save user-configured utility pricing to Supabase.
+- **The Architectural Fix**:
+  - Dynamically invokes `syncConfirmationScreen()` upon clicking `#btn-step2-next`.
+  - Step 3 confirmation collects user-configured utilities (Electricity, Water, Garbage, Internet) into a structured array and persists them to `tenancy_utilities` via `createCloudTenancy()`.
+
+### 4. Interactive 12-Month Calendar Cards & Action Routing
+- **The Enhancement**:
+  - Overdue month cards (`month-due`) now feature pointer actions opening `#screen-12` (`openRecordPaymentPage(t)`) directly for that tenancy.
+  - Current/Next cycle cards (`month-upcoming`) feature pointer actions opening `#screen-13` (`setupGenerateBillScreen(t)`) to generate a bill for the tenancy.
+  - Tenancy details "Generate New Bill" button invokes `setupGenerateBillScreen(currentActiveTenancy)`.
+
+### 5. Recurring Billing Day Persistence on Edit Tenancy
+- **The Defect**:
+  - Editing a tenancy on Screen 11 updated name, rent, phone, and advance, but omitted `billing_day`, causing changes to the recurring billing day to be lost.
+- **The Architectural Fix**:
+  - `#btn-save-tenancy-changes` extracts `updatedDay` from the date picker and includes `billing_day` in `updateCloudTenancy()`.
+
+### 6. Pre-Populated Date Pickers & Archived Metrics
+- **The Fix**:
+  - `#screen-12` (Record Payment) and `#screen-13` (Generate Bill) initialize with human-readable current cycle dates rather than empty text boxes.
+  - `openArchivedDetails()` calculates and displays `#archdetails-total-amount`, `#archdetails-last-bill`, and `#archdetails-next-bill`.
+  - Added `#btn-auth-back` on Screen 20 allowing authenticated users to return to Dashboard.
+
+
 
 
 

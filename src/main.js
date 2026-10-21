@@ -349,25 +349,43 @@ function initUtilityToggles() {
 function syncConfirmationScreen() {
   const sym = state.currencySymbol || 'Rs. ';
 
-  const nameVal = document.getElementById('input-tenancy-name')?.value || state.tenancy.name;
-  const rentVal = document.getElementById('input-rent-amount')?.value || '12000';
-  const cycleVal = state.tenancy.billingCycle || 'Monthly';
+  const nameVal = document.getElementById('input-tenancy-name')?.value?.trim() || '2nd Floor, Lalitpur';
+  const rentVal = document.getElementById('input-rent-amount')?.value?.trim() || '12000';
+  const cycleInput = document.querySelector('input[name="billingCycle"]:checked');
+  const cycleVal = cycleInput ? cycleInput.parentElement.querySelector('span:not(.custom-radio)')?.textContent?.trim() || 'Monthly' : 'Monthly';
 
-  document.getElementById('confirm-tenancy-name').textContent = nameVal;
-  document.getElementById('confirm-rent-amount').textContent = `${sym}${parseInt(rentVal.replace(/[^0-9]/g, '') || 12000).toLocaleString()}`;
-  document.getElementById('confirm-billing-cycle').textContent = cycleVal;
-  document.getElementById('confirm-next-date').textContent = state.tenancy.nextBillingDateFormatted || 'Wed 12 Apr, 2026';
+  const nativeDate = document.getElementById('native-billing-date')?.value;
+  let nextDateText = 'Wed 12 Apr, 2026';
+  if (nativeDate) {
+    const d = new Date(nativeDate + 'T00:00:00');
+    nextDateText = d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  } else {
+    nextDateText = '1st of next month';
+  }
+
+  const nameEl = document.getElementById('confirm-tenancy-name');
+  if (nameEl) nameEl.textContent = nameVal;
+
+  const rentEl = document.getElementById('confirm-rent-amount');
+  if (rentEl) rentEl.textContent = `${sym}${parseFloat(rentVal.replace(/[^0-9.]/g, '') || 12000).toLocaleString('en-IN')}`;
+
+  const cycleEl = document.getElementById('confirm-billing-cycle');
+  if (cycleEl) cycleEl.textContent = cycleVal;
+
+  const nextDateEl = document.getElementById('confirm-next-date');
+  if (nextDateEl) nextDateEl.textContent = nextDateText;
 
   // Electricity
   const elecEnabled = document.getElementById('toggle-electricity')?.checked;
   const elecBlock = document.getElementById('confirm-block-electricity');
   const elecDivider = document.getElementById('divider-elec-water');
-  if (elecBlock) elecBlock.style.display = elecEnabled ? 'flex' : 'none';
+  if (elecBlock) elecBlock.style.display = elecEnabled ? 'block' : 'none';
   if (elecDivider) elecDivider.style.display = elecEnabled ? 'block' : 'none';
 
   if (elecEnabled) {
-    const elecBillType = state.tenancy.utilities.electricity.billType || 'Meter Reading';
-    document.getElementById('confirm-elec-billtype').textContent = elecBillType;
+    const elecBillType = document.querySelector('input[name="billType-electricity"]:checked')?.value || 'Meter Reading';
+    const billTypeEl = document.getElementById('confirm-elec-billtype');
+    if (billTypeEl) billTypeEl.textContent = elecBillType;
 
     const meterRows = document.getElementById('confirm-elec-meter-rows');
     const flatRow = document.getElementById('confirm-elec-flat-row');
@@ -377,13 +395,16 @@ function syncConfirmationScreen() {
       flatRow?.classList.add('hidden');
       const elecPrice = document.getElementById('input-elec-price')?.value || '12';
       const elecReading = document.getElementById('input-elec-reading')?.value || '12341.12';
-      document.getElementById('confirm-elec-price').textContent = `${sym}${elecPrice}`;
-      document.getElementById('confirm-elec-reading').textContent = elecReading;
+      const priceEl = document.getElementById('confirm-elec-price');
+      if (priceEl) priceEl.textContent = `${sym}${elecPrice}`;
+      const readingEl = document.getElementById('confirm-elec-reading');
+      if (readingEl) readingEl.textContent = elecReading;
     } else {
       meterRows?.classList.add('hidden');
       flatRow?.classList.remove('hidden');
       const flatAmount = document.getElementById('input-elec-flat-amount')?.value || '500';
-      document.getElementById('confirm-elec-flat-amount').textContent = `${sym}${flatAmount}`;
+      const flatEl = document.getElementById('confirm-elec-flat-amount');
+      if (flatEl) flatEl.textContent = `${sym}${flatAmount}`;
     }
   }
 
@@ -391,12 +412,13 @@ function syncConfirmationScreen() {
   const waterEnabled = document.getElementById('toggle-water')?.checked;
   const waterBlock = document.getElementById('confirm-block-water');
   const waterDivider = document.getElementById('divider-water-garbage');
-  if (waterBlock) waterBlock.style.display = waterEnabled ? 'flex' : 'none';
+  if (waterBlock) waterBlock.style.display = waterEnabled ? 'block' : 'none';
   if (waterDivider) waterDivider.style.display = waterEnabled ? 'block' : 'none';
 
   if (waterEnabled) {
-    const waterBillType = state.tenancy.utilities.water.billType || 'Flat';
-    document.getElementById('confirm-water-billtype').textContent = waterBillType;
+    const waterBillType = document.querySelector('input[name="billType-water"]:checked')?.value || 'Flat';
+    const waterTypeEl = document.getElementById('confirm-water-billtype');
+    if (waterTypeEl) waterTypeEl.textContent = waterBillType;
 
     const flatRow = document.getElementById('confirm-water-flat-row');
     const meterRows = document.getElementById('confirm-water-meter-rows');
@@ -405,29 +427,40 @@ function syncConfirmationScreen() {
       flatRow?.classList.remove('hidden');
       meterRows?.classList.add('hidden');
       const waterAmount = document.getElementById('input-water-amount')?.value || '300';
-      document.getElementById('confirm-water-amount').textContent = `${sym}${waterAmount}`;
+      const waterEl = document.getElementById('confirm-water-amount');
+      if (waterEl) waterEl.textContent = `${sym}${waterAmount}`;
     } else {
       flatRow?.classList.add('hidden');
       meterRows?.classList.remove('hidden');
       const waterPrice = document.getElementById('input-water-price')?.value || '25';
       const waterReading = document.getElementById('input-water-reading')?.value || '450.5';
-      document.getElementById('confirm-water-price').textContent = `${sym}${waterPrice}`;
-      document.getElementById('confirm-water-reading').textContent = waterReading;
+      const priceEl = document.getElementById('confirm-water-price');
+      if (priceEl) priceEl.textContent = `${sym}${waterPrice}`;
+      const readingEl = document.getElementById('confirm-water-reading');
+      if (readingEl) readingEl.textContent = waterReading;
     }
   }
 
   // Garbage
   const garbageEnabled = document.getElementById('toggle-garbage')?.checked;
   const garbageBlock = document.getElementById('confirm-block-garbage');
-  if (garbageBlock) garbageBlock.style.display = garbageEnabled ? 'flex' : 'none';
+  if (garbageBlock) garbageBlock.style.display = garbageEnabled ? 'block' : 'none';
   if (garbageEnabled) {
     const garbageAmount = document.getElementById('input-garbage-amount')?.value || '200';
-    document.getElementById('confirm-garbage-amount').textContent = `${sym}${garbageAmount}`;
+    const garbageEl = document.getElementById('confirm-garbage-amount');
+    if (garbageEl) garbageEl.textContent = `${sym}${garbageAmount}`;
   }
 }
 
 // Attach All Event Listeners
 function initEventListeners() {
+  // Universal Form Submit Protection: Prevent accidental full-page refreshes when pressing Enter
+  document.querySelectorAll('form').forEach((f) => {
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+    });
+  });
+
   // Screen 1: Continue
   document.getElementById('btn-screen1-continue')?.addEventListener('click', () => {
     navigateToScreen(2);
@@ -543,6 +576,7 @@ function initEventListeners() {
   });
 
   document.getElementById('btn-step2-next')?.addEventListener('click', () => {
+    syncConfirmationScreen();
     navigateToScreen(9);
   });
 
@@ -570,6 +604,54 @@ function initEventListeners() {
       billingDay = parseInt(nativeDate.split('-')[2], 10) || 1;
     }
 
+    // Build utilities array for cloud persistence
+    const utilities = [];
+    const elecEnabled = document.getElementById('toggle-electricity')?.checked;
+    if (elecEnabled) {
+      const elecType = document.querySelector('input[name="billType-electricity"]:checked')?.value || 'Meter Reading';
+      utilities.push({
+        utility_type: 'electricity',
+        is_enabled: true,
+        bill_type: elecType === 'Meter Reading' ? 'meter' : 'flat',
+        price_per_unit: parseFloat(document.getElementById('input-elec-price')?.value) || 0,
+        flat_amount: parseFloat(document.getElementById('input-elec-flat-amount')?.value) || 0,
+        last_meter_reading: parseFloat(document.getElementById('input-elec-reading')?.value) || 0,
+      });
+    }
+
+    const waterEnabled = document.getElementById('toggle-water')?.checked;
+    if (waterEnabled) {
+      const waterType = document.querySelector('input[name="billType-water"]:checked')?.value || 'Flat';
+      utilities.push({
+        utility_type: 'water',
+        is_enabled: true,
+        bill_type: waterType === 'Meter Reading' ? 'meter' : 'flat',
+        price_per_unit: parseFloat(document.getElementById('input-water-price')?.value) || 0,
+        flat_amount: parseFloat(document.getElementById('input-water-amount')?.value) || 0,
+        last_meter_reading: parseFloat(document.getElementById('input-water-reading')?.value) || 0,
+      });
+    }
+
+    const garbageEnabled = document.getElementById('toggle-garbage')?.checked;
+    if (garbageEnabled) {
+      utilities.push({
+        utility_type: 'garbage',
+        is_enabled: true,
+        bill_type: 'flat',
+        flat_amount: parseFloat(document.getElementById('input-garbage-amount')?.value) || 0,
+      });
+    }
+
+    const internetEnabled = document.getElementById('toggle-internet')?.checked;
+    if (internetEnabled) {
+      utilities.push({
+        utility_type: 'internet',
+        is_enabled: true,
+        bill_type: 'flat',
+        flat_amount: parseFloat(document.getElementById('input-internet-amount')?.value) || 0,
+      });
+    }
+
     try {
       const created = await createCloudTenancy({
         propertyName: nameVal,
@@ -578,6 +660,7 @@ function initEventListeners() {
         baseRent: rentVal,
         advanceAmount: advanceVal,
         billingDay: billingDay,
+        utilities: utilities,
       });
       currentActiveTenancy = created;
       await syncDashboardFromCloud();
@@ -935,6 +1018,7 @@ export async function syncDashboardFromCloud() {
 
           card.querySelector('.btn-gen-bill-card')?.addEventListener('click', () => {
             currentActiveTenancy = t;
+            setupGenerateBillScreen(t);
             navigateToScreen(13);
           });
 
@@ -979,7 +1063,14 @@ export async function syncDashboardFromCloud() {
               </svg>
             </div>
           `;
-          item.addEventListener('click', () => navigateToScreen(15));
+          item.addEventListener('click', () => {
+            const prop = cloudTenanciesList.find((ten) => ten.id === b.tenancy_id);
+            renderBillDetails({
+              ...b,
+              propertyName: prop ? prop.property_name : (b.tenancies?.property_name || 'Property'),
+            });
+            navigateToScreen(15);
+          });
           listBills.appendChild(item);
         });
       }
@@ -1096,6 +1187,19 @@ export async function bindTenancyToDetails(t) {
   if (editDateDisplay) editDateDisplay.value = `${t.billing_day || 1}${getOrdinal(t.billing_day || 1)} of every month`;
   if (reviseCurrentRent) reviseCurrentRent.value = `Rs. ${rentNum.toLocaleString('en-IN')}`;
 
+  const elecUtil = t.tenancy_utilities?.find((u) => u.utility_type === 'electricity');
+  const waterUtil = t.tenancy_utilities?.find((u) => u.utility_type === 'water');
+
+  const editElecPrice = document.getElementById('edit-elec-price');
+  if (editElecPrice) editElecPrice.value = elecUtil ? (elecUtil.price_per_unit || '') : '';
+  const editToggleElec = document.getElementById('edit-toggle-elec');
+  if (editToggleElec) editToggleElec.checked = elecUtil ? elecUtil.is_enabled !== false : true;
+
+  const editWaterAmount = document.getElementById('edit-water-amount');
+  if (editWaterAmount) editWaterAmount.value = waterUtil ? (waterUtil.flat_amount || '') : '';
+  const editToggleWater = document.getElementById('edit-toggle-water');
+  if (editToggleWater) editToggleWater.checked = waterUtil ? waterUtil.is_enabled !== false : true;
+
   // Fetch tenancy payments & bills dynamically from Supabase
   try {
     const [allBills, allPayments] = await Promise.all([fetchCloudBills(), fetchCloudPayments()]);
@@ -1160,12 +1264,18 @@ export async function bindTenancyToDetails(t) {
         } else if (matchedBill) {
           dueCount++;
           card.className = 'month-card month-due';
+          card.style.cursor = 'pointer';
+          card.title = 'Click to record payment for this due bill';
+          card.addEventListener('click', () => {
+            currentActiveTenancy = t;
+            openRecordPaymentPage(t);
+          });
           card.innerHTML = `
             <div class="month-card-left">
               <div class="month-badge due">⚠️</div>
               <div class="month-details-col">
                 <strong class="month-name">${monthName} 2026</strong>
-                <span class="month-subtext">Billing overdue • Unpaid</span>
+                <span class="month-subtext">Billing overdue • Click to pay</span>
               </div>
             </div>
             <div class="month-card-right">
@@ -1176,12 +1286,19 @@ export async function bindTenancyToDetails(t) {
         } else if (idx === currentMonthIdx) {
           upcomingCount++;
           card.className = 'month-card month-upcoming';
+          card.style.cursor = 'pointer';
+          card.title = 'Click to generate bill for this cycle';
+          card.addEventListener('click', () => {
+            currentActiveTenancy = t;
+            setupGenerateBillScreen(t);
+            navigateToScreen(13);
+          });
           card.innerHTML = `
             <div class="month-card-left">
               <div class="month-badge upcoming">⏳</div>
               <div class="month-details-col">
                 <strong class="month-name">${monthName} 2026</strong>
-                <span class="month-subtext">Next billing on ${t.billing_day || 1}${getOrdinal(t.billing_day || 1)}</span>
+                <span class="month-subtext">Next billing • Click to generate</span>
               </div>
             </div>
             <div class="month-card-right">
@@ -1384,6 +1501,9 @@ function initTenancyDetails() {
 
   // Generate New Bill Button -> Screen 13
   generateBillBtn?.addEventListener('click', () => {
+    if (currentActiveTenancy) {
+      setupGenerateBillScreen(currentActiveTenancy);
+    }
     navigateToScreen(13);
   });
 }
@@ -1476,6 +1596,16 @@ function initEditTenancy() {
     const updatedRent = document.getElementById('edit-rent-amount')?.value?.trim();
     const updatedPhone = document.getElementById('edit-tenant-phone')?.value?.trim();
     const updatedAdvance = document.getElementById('edit-advance-amount')?.value?.trim();
+    const nativeDate = document.getElementById('edit-native-billing-date');
+    const editDateDisplay = document.getElementById('edit-billing-date-display');
+
+    let updatedDay = currentActiveTenancy.billing_day || 1;
+    if (nativeDate?.value) {
+      updatedDay = parseInt(nativeDate.value.split('-')[2], 10) || updatedDay;
+    } else if (editDateDisplay?.value) {
+      const match = editDateDisplay.value.match(/^(\d+)/);
+      if (match) updatedDay = parseInt(match[1], 10) || updatedDay;
+    }
 
     if (!updatedName) {
       showToast('⚠️ Property name cannot be empty');
@@ -1491,12 +1621,14 @@ function initEditTenancy() {
         base_rent: parseFloat(updatedRent) || currentActiveTenancy.base_rent,
         tenant_phone: updatedPhone || null,
         advance_amount: parseFloat(updatedAdvance) || 0,
+        billing_day: updatedDay,
       });
 
       currentActiveTenancy.property_name = updatedName;
       if (updatedRent) currentActiveTenancy.base_rent = parseFloat(updatedRent);
       if (updatedPhone) currentActiveTenancy.tenant_phone = updatedPhone;
       if (updatedAdvance) currentActiveTenancy.advance_amount = parseFloat(updatedAdvance);
+      currentActiveTenancy.billing_day = updatedDay;
 
       await syncDashboardFromCloud();
       showToast('✅ Tenancy details updated & saved to Supabase Cloud!', 3000);
@@ -1638,6 +1770,16 @@ export function setupRecordPaymentForm(tenancy) {
       });
       chipsContainer.appendChild(btn);
     });
+  }
+
+  // Initialize payment date inputs to current date if blank
+  const nativeDate = document.getElementById('record-native-payment-date');
+  const dateDisplay = document.getElementById('record-payment-date-display');
+  const now = new Date();
+  const todayIso = now.toISOString().split('T')[0];
+  if (nativeDate && !nativeDate.value) nativeDate.value = todayIso;
+  if (dateDisplay && (!dateDisplay.value || dateDisplay.value === '')) {
+    dateDisplay.value = now.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
   // Check unpaid bills for this tenancy
@@ -1855,6 +1997,107 @@ function initRecordPaymentPage() {
 
 export let activeBillDraft = null;
 
+export function setupGenerateBillScreen(target) {
+  if (!target) return;
+  currentActiveTenancy = target;
+
+  const subtitle = document.getElementById('genbill-subtitle');
+  if (subtitle) subtitle.textContent = `for ${target.property_name}`;
+
+  const elecUtil = target.tenancy_utilities?.find((u) => u.utility_type === 'electricity');
+  const prevElecInput = document.getElementById('input-prev-elec');
+  if (prevElecInput) prevElecInput.value = (elecUtil?.last_meter_reading ?? 0).toFixed(2);
+
+  const waterUtil = target.tenancy_utilities?.find((u) => u.utility_type === 'water');
+  const prevWaterInput = document.getElementById('input-prev-water');
+  if (prevWaterInput) prevWaterInput.value = (waterUtil?.last_meter_reading ?? 0).toFixed(2);
+
+  const currElecInput = document.getElementById('input-curr-elec');
+  if (currElecInput) currElecInput.value = '';
+
+  const currWaterInput = document.getElementById('input-curr-water');
+  if (currWaterInput) currWaterInput.value = '';
+
+  const advanceInput = document.getElementById('input-bill-advance');
+  if (advanceInput) advanceInput.value = '';
+
+  const dueInput = document.getElementById('input-bill-due');
+  if (dueInput) dueInput.value = '';
+
+  const notesInput = document.getElementById('input-bill-notes');
+  if (notesInput) notesInput.value = '';
+
+  // Dates setup
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const firstDay = new Date(y, m, 1);
+  const lastDay = new Date(y, m + 1, 0);
+
+  const startNative = document.getElementById('bill-native-start-date');
+  const startDisplay = document.getElementById('bill-start-date-display');
+  if (startNative) startNative.value = firstDay.toISOString().split('T')[0];
+  if (startDisplay) startDisplay.value = firstDay.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+
+  const endNative = document.getElementById('bill-native-end-date');
+  const endDisplay = document.getElementById('bill-end-date-display');
+  if (endNative) endNative.value = lastDay.toISOString().split('T')[0];
+  if (endDisplay) endDisplay.value = lastDay.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+export function renderBillDetails(b) {
+  if (!b) return;
+  activeBillDraft = b;
+
+  const propTitle = document.getElementById('details-bill-prop-title');
+  if (propTitle) propTitle.textContent = b.propertyName || b.property_name || b.tenancies?.property_name || 'Property';
+
+  const durationEl = document.getElementById('details-bill-duration');
+  if (durationEl) {
+    const s = b.durationStart || b.duration_start || '';
+    const e = b.durationEnd || b.duration_end || '';
+    durationEl.textContent = `${s} – ${e}`;
+  }
+
+  const genDateEl = document.getElementById('details-bill-gendate');
+  if (genDateEl) genDateEl.textContent = b.generatedDate || b.generated_date || new Date().toISOString().split('T')[0];
+
+  const rentVal = document.getElementById('details-bill-rent-val');
+  if (rentVal) rentVal.textContent = `Rs. ${parseFloat(b.baseRent || b.base_rent || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
+  const elecUnits = b.electricityUnits ?? b.electricity_units ?? 0;
+  const elecCost = b.electricityCost ?? b.electricity_cost ?? 0;
+  const elecSub = document.getElementById('details-bill-elec-sub');
+  if (elecSub) elecSub.textContent = `${elecUnits} units`;
+  const elecVal = document.getElementById('details-bill-elec-val');
+  if (elecVal) elecVal.textContent = `Rs. ${parseFloat(elecCost).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
+  const waterCost = b.waterCost ?? b.water_cost ?? 0;
+  const waterVal = document.getElementById('details-bill-water-val');
+  if (waterVal) waterVal.textContent = `Rs. ${parseFloat(waterCost).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
+  const internetVal = document.getElementById('details-bill-internet-val');
+  if (internetVal) internetVal.textContent = `Rs. 0.00`;
+
+  const sewageVal = document.getElementById('details-bill-sewage-val');
+  if (sewageVal) sewageVal.textContent = `Rs. 0.00`;
+
+  const subtotal = b.subtotal ?? (parseFloat(b.baseRent || b.base_rent || 0) + parseFloat(elecCost) + parseFloat(waterCost));
+  const subtotalVal = document.getElementById('details-bill-subtotal-val');
+  if (subtotalVal) subtotalVal.textContent = `Rs. ${parseFloat(subtotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
+  const advance = b.advanceDeducted ?? b.advance_deducted ?? 0;
+  const advVal = document.getElementById('details-bill-advance-val');
+  if (advVal) advVal.textContent = `– Rs. ${parseFloat(advance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
+  const netPayable = b.netPayable ?? b.net_payable ?? subtotal;
+  const netVal = document.getElementById('details-bill-net-val');
+  if (netVal) netVal.textContent = `Rs. ${parseFloat(netPayable).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
+  const notesText = document.getElementById('details-bill-notes-text');
+  if (notesText) notesText.textContent = b.notes || 'None';
+}
+
 function initBillGenerationFlow() {
   const btnGenBillBack = document.getElementById('btn-genbill-back');
   const btnToPreview = document.getElementById('btn-to-preview-bill');
@@ -1915,13 +2158,16 @@ function initBillGenerationFlow() {
     }
 
     const units = Math.max(0, currElec - prevElec);
-    const elecPricePerUnit = 12;
+    const elecUtil = target.tenancy_utilities?.find((u) => u.utility_type === 'electricity');
+    const elecPricePerUnit = (elecUtil && elecUtil.price_per_unit > 0) ? elecUtil.price_per_unit : 12;
     const elecTotal = units * elecPricePerUnit;
 
     const prevWater = parseFloat(document.getElementById('input-prev-water')?.value) || 0;
     const currWater = parseFloat(document.getElementById('input-curr-water')?.value) || 0;
     const waterUnits = Math.max(0, currWater - prevWater);
-    const waterTotal = waterUnits > 0 ? waterUnits * 10 : 0;
+    const waterUtil = target.tenancy_utilities?.find((u) => u.utility_type === 'water');
+    const waterPricePerUnit = (waterUtil && waterUtil.price_per_unit > 0) ? waterUtil.price_per_unit : 10;
+    const waterTotal = waterUnits > 0 ? waterUnits * waterPricePerUnit : (waterUtil?.flat_amount || 0);
 
     const rent = parseFloat(target.base_rent || 0);
     const otherUtilities = 0;
@@ -1954,12 +2200,15 @@ function initBillGenerationFlow() {
       notes: notesVal,
     };
 
-    // Populate Screen 14 Review Bill
-    const propNameEl = document.getElementById('review-prop-name');
-    if (propNameEl) propNameEl.textContent = target.property_name;
+    // Populate Screen 14 Review Bill (Corrected element IDs)
+    const propTitleEl = document.getElementById('review-prop-title');
+    if (propTitleEl) propTitleEl.textContent = target.property_name;
 
-    const periodEl = document.getElementById('review-billing-period');
+    const periodEl = document.getElementById('review-duration-text');
     if (periodEl) periodEl.textContent = `${startDate} – ${endDate}`;
+
+    const genDateEl = document.getElementById('review-generated-date');
+    if (genDateEl) genDateEl.textContent = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 
     const rentEl = document.getElementById('review-rent-val');
     if (rentEl) rentEl.textContent = `Rs. ${rent.toLocaleString('en-IN')}`;
@@ -1968,6 +2217,9 @@ function initBillGenerationFlow() {
     if (elecSub) elecSub.textContent = `${currElec} - ${prevElec} = ${units} units @ Rs. ${elecPricePerUnit}/unit`;
     const elecVal = document.getElementById('review-elec-val');
     if (elecVal) elecVal.textContent = `Rs. ${elecTotal.toLocaleString('en-IN')}`;
+
+    const waterVal = document.getElementById('review-water-val');
+    if (waterVal) waterVal.textContent = `Rs. ${waterTotal.toLocaleString('en-IN')}`;
 
     const subtotalVal = document.getElementById('review-subtotal-val');
     if (subtotalVal) subtotalVal.textContent = `Rs. ${subtotal.toLocaleString('en-IN')}`;
@@ -2021,14 +2273,10 @@ function initBillGenerationFlow() {
       });
 
       // Populate Screen 15 Bill Details
-      const titleEl = document.getElementById('billdetails-prop-title');
-      if (titleEl) titleEl.textContent = activeBillDraft.propertyName;
-
-      const invoiceNoEl = document.getElementById('billdetails-invoice-no');
-      if (invoiceNoEl) invoiceNoEl.textContent = invoiceNumber;
-
-      const netEl = document.getElementById('billdetails-net-amount');
-      if (netEl) netEl.textContent = `Rs. ${activeBillDraft.netPayable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+      renderBillDetails({
+        ...activeBillDraft,
+        invoiceNumber: invoiceNumber,
+      });
 
       await syncDashboardFromCloud();
 
@@ -2048,7 +2296,22 @@ function initBillGenerationFlow() {
   });
 
   const handleShareInvoice = () => {
-    showToast('📱 WhatsApp invoice link copied to clipboard!', 3500);
+    const pName = activeBillDraft?.propertyName || activeBillDraft?.property_name || 'Home';
+    const sDate = activeBillDraft?.durationStart || activeBillDraft?.duration_start || '';
+    const eDate = activeBillDraft?.durationEnd || activeBillDraft?.duration_end || '';
+    const net = activeBillDraft?.netPayable ?? activeBillDraft?.net_payable ?? 0;
+    const rent = activeBillDraft?.baseRent ?? activeBillDraft?.base_rent ?? 0;
+    const elec = activeBillDraft?.electricityCost ?? activeBillDraft?.electricity_cost ?? 0;
+    const water = activeBillDraft?.waterCost ?? activeBillDraft?.water_cost ?? 0;
+
+    const summaryText = `🏠 *RENTAL BUDDY INVOICE*\nProperty: *${pName}*\nPeriod: ${sDate} to ${eDate}\n--------------------------\n• Base Rent: Rs. ${parseFloat(rent).toLocaleString('en-IN')}\n• Electricity: Rs. ${parseFloat(elec).toLocaleString('en-IN')}\n• Water: Rs. ${parseFloat(water).toLocaleString('en-IN')}\n--------------------------\n*Total Net Payable: Rs. ${parseFloat(net).toLocaleString('en-IN')}*\nStatus: Unpaid\n\nGenerated via Rental Buddy`;
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(summaryText).catch(() => {});
+    }
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(summaryText)}`;
+    window.open(waUrl, '_blank');
+    showToast('📱 Invoice copied & opening WhatsApp...', 3500);
   };
   btnShareInvoice?.addEventListener('click', handleShareInvoice);
   btnShareWhatsappInvoice?.addEventListener('click', handleShareInvoice);
@@ -2213,12 +2476,25 @@ async function openArchivedDetails(tenancy) {
   activeArchivedTenancy = tenancy;
   const propTitle = document.getElementById('archdetails-prop-title');
   const rentRate = document.getElementById('archdetails-rent-rate');
+  const totalAmount = document.getElementById('archdetails-total-amount');
+  const lastBill = document.getElementById('archdetails-last-bill');
+  const nextBill = document.getElementById('archdetails-next-bill');
 
   if (propTitle) propTitle.textContent = tenancy.property_name;
   if (rentRate) rentRate.textContent = `Rs. ${parseFloat(tenancy.base_rent || 0).toLocaleString('en-IN')} • Monthly`;
 
   try {
     const bills = await fetchCloudBills(tenancy.id);
+    if (bills && bills.length > 0) {
+      const total = bills.reduce((acc, b) => acc + parseFloat(b.net_payable || 0), 0);
+      if (totalAmount) totalAmount.textContent = `Rs. ${total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+      if (lastBill) lastBill.textContent = `Rs. ${parseFloat(bills[0].net_payable).toLocaleString('en-IN')}`;
+    } else {
+      if (totalAmount) totalAmount.textContent = 'Rs. 0.00';
+      if (lastBill) lastBill.textContent = 'Rs. 0.00';
+    }
+    if (nextBill) nextBill.textContent = 'Archived';
+
     const historyList = document.getElementById('archdetails-history-list');
     if (historyList) {
       if (bills && bills.length > 0) {
@@ -2401,6 +2677,9 @@ export function updateAuthUI(user) {
   const roleBadge = document.getElementById('current-user-role-badge');
   const ownerEmail = document.getElementById('display-owner-email');
 
+  const authNav = document.getElementById('auth-nav-header');
+  const btnAuthBack = document.getElementById('btn-auth-back');
+
   if (!user) {
     if (bannerEmail) bannerEmail.textContent = 'Not Signed In';
     if (bannerText) bannerText.textContent = 'Supabase Cloud • Offline';
@@ -2411,6 +2690,8 @@ export function updateAuthUI(user) {
       roleBadge.style.color = '#7D849B';
     }
     if (ownerEmail) ownerEmail.textContent = 'Owner';
+    authNav?.classList.add('hidden');
+    btnAuthBack?.classList.add('hidden');
     currentUserSession = null;
     return;
   }
@@ -2436,6 +2717,8 @@ export function updateAuthUI(user) {
     roleBadge.style.color = isAdmin ? '#16A34A' : '#0284C7';
   }
   if (ownerEmail) ownerEmail.textContent = email;
+  authNav?.classList.remove('hidden');
+  btnAuthBack?.classList.remove('hidden');
 }
 
 export let isAuthSignUpMode = false;
@@ -2463,6 +2746,7 @@ export function setAuthMode(isSignUp) {
 }
 
 function initAuthScreen() {
+  const btnAuthBack = document.getElementById('btn-auth-back');
   const inputEmail = document.getElementById('auth-email-input');
   const inputPassword = document.getElementById('auth-password-input');
   const inputName = document.getElementById('auth-name-input');
@@ -2471,6 +2755,10 @@ function initAuthScreen() {
   const btnForgot = document.getElementById('btn-forgot-password');
   const btnToggleMode = document.getElementById('btn-toggle-auth-mode');
   const btnSubmit = document.getElementById('btn-submit-auth');
+
+  btnAuthBack?.addEventListener('click', () => {
+    navigateToScreen(6);
+  });
 
   btnToggleEye?.addEventListener('click', () => {
     if (inputPassword) {
