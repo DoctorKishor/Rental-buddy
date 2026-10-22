@@ -189,6 +189,53 @@ function navigateToScreen(targetScreenNumber) {
   } else if (targetScreenNumber === 22) {
     refreshFamilySharingPage();
   }
+
+  // Automatically enforce 10-digit phone and numeric keypad across active inputs
+  initNumericAndPhoneInputs();
+}
+
+// Automatically ensure all numerical inputs across the app open the number keypad
+// and strictly restrict phone number fields to 10 digits only
+export function initNumericAndPhoneInputs() {
+  // 1. Phone number inputs: strictly 10 digits only
+  const phoneInputIds = ['input-phone-number', 'edit-tenant-phone'];
+  phoneInputIds.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.setAttribute('type', 'tel');
+      el.setAttribute('inputmode', 'tel');
+      el.setAttribute('pattern', '[0-9]*');
+      el.setAttribute('maxlength', '10');
+
+      if (!el.dataset.phoneBound) {
+        el.dataset.phoneBound = 'true';
+        el.addEventListener('input', (e) => {
+          const cleaned = e.target.value.replace(/\D/g, '').slice(0, 10);
+          if (e.target.value !== cleaned) {
+            e.target.value = cleaned;
+          }
+        });
+        el.addEventListener('paste', (e) => {
+          setTimeout(() => {
+            el.value = el.value.replace(/\D/g, '').slice(0, 10);
+          }, 0);
+        });
+      }
+    }
+  });
+
+  // 2. Numerical inputs: ensure number keypad (numeric or decimal) opens automatically
+  const numInputs = document.querySelectorAll('input[type="number"], input[data-type="numeric"]');
+  numInputs.forEach((input) => {
+    const step = input.getAttribute('step');
+    const isDecimal = step && step !== '1' && (step === 'any' || step.includes('.'));
+    if (!input.hasAttribute('inputmode')) {
+      input.setAttribute('inputmode', isDecimal ? 'decimal' : 'numeric');
+    }
+    if (!input.hasAttribute('min') && !input.id.includes('discount')) {
+      input.setAttribute('min', '0');
+    }
+  });
 }
 
 // Currency Selector Logic
@@ -320,9 +367,12 @@ function initStep1Form() {
   });
 
   document.getElementById('btn-pick-contact')?.addEventListener('click', () => {
-    showToast('📇 Contact picker: "John Doe (+977 9876543210)" selected');
+    showToast('📇 Contact picker: "John Doe (9812345678)" selected');
     const phoneInput = document.getElementById('input-phone-number');
-    if (phoneInput) phoneInput.value = '9876543210';
+    if (phoneInput) {
+      phoneInput.value = '9812345678';
+      phoneInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
   });
 
   // Interactive Date Picker Logic
@@ -771,8 +821,18 @@ function initEventListeners() {
   document.getElementById('btn-step1-next')?.addEventListener('click', () => {
     const name = document.getElementById('input-tenancy-name')?.value?.trim();
     const rent = document.getElementById('input-rent-amount')?.value?.trim();
+    const phoneInput = document.getElementById('input-phone-number');
+    const rawPhone = phoneInput?.value?.trim() || '';
+    const cleanPhone = rawPhone.replace(/\D/g, '').slice(0, 10);
+    if (phoneInput && rawPhone !== cleanPhone) {
+      phoneInput.value = cleanPhone;
+    }
     if (!name || !rent) {
       showToast('Please fill in Tenancy Name and Rent Amount');
+      return;
+    }
+    if (rawPhone && cleanPhone.length !== 10) {
+      showToast('⚠️ Phone number must be exactly 10 digits');
       return;
     }
     navigateToScreen(8);
@@ -798,10 +858,17 @@ function initEventListeners() {
     const nameVal = document.getElementById('input-tenancy-name')?.value?.trim();
     const rentVal = parseFloat(document.getElementById('input-rent-amount')?.value?.replace(/[^0-9.]/g, ''));
     const advanceVal = parseFloat(document.getElementById('input-advance-amount')?.value?.replace(/[^0-9.]/g, '')) || 0;
-    const phoneVal = document.getElementById('input-phone-number')?.value?.trim() || '';
+    const rawPhoneVal = document.getElementById('input-phone-number')?.value?.trim() || '';
+    const phoneVal = rawPhoneVal.replace(/\D/g, '').slice(0, 10);
 
     if (!nameVal || isNaN(rentVal) || rentVal <= 0) {
       showToast('⚠️ Please enter a valid Tenancy Name and Rent Amount');
+      navigateToScreen(7);
+      return;
+    }
+
+    if (rawPhoneVal && phoneVal.length !== 10) {
+      showToast('⚠️ Phone number must be exactly 10 digits');
       navigateToScreen(7);
       return;
     }
@@ -2263,7 +2330,8 @@ function initEditTenancy() {
     if (!currentActiveTenancy) return;
     const updatedName = document.getElementById('edit-tenancy-name')?.value?.trim();
     const updatedRent = document.getElementById('edit-rent-amount')?.value?.trim();
-    const updatedPhone = document.getElementById('edit-tenant-phone')?.value?.trim();
+    const rawPhone = document.getElementById('edit-tenant-phone')?.value?.trim() || '';
+    const updatedPhone = rawPhone.replace(/\D/g, '').slice(0, 10);
     const updatedAdvance = document.getElementById('edit-advance-amount')?.value?.trim();
     const nativeDate = document.getElementById('edit-native-billing-date');
     const editDateDisplay = document.getElementById('edit-billing-date-display');
@@ -2280,6 +2348,11 @@ function initEditTenancy() {
 
     if (!updatedName) {
       showToast('⚠️ Property name cannot be empty');
+      return;
+    }
+
+    if (rawPhone && updatedPhone.length !== 10) {
+      showToast('⚠️ Phone number must be exactly 10 digits');
       return;
     }
 
@@ -5417,6 +5490,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initAuthScreen();
   initFamilySharingPage();
   initReceiptPage();
+  initNumericAndPhoneInputs();
 
   // Check Supabase Cloud Session on Boot
   const session = await getCurrentSession();

@@ -483,7 +483,7 @@
                   </div>
                   <div class="form-group">
                     <label class="form-label mini" for="record-amount">Amount Received</label>
-                    <input type="number" id="record-amount" class="form-input mini" placeholder="e.g. 12000" />
+                    <input type="number" inputmode="numeric" min="0" id="record-amount" class="form-input mini" placeholder="e.g. 12000" />
                   </div>
                   <div class="form-group">
                     <label class="form-label mini">Payment Mode</label>
@@ -596,7 +596,9 @@
                   <div class="form-group">
                     <label class="form-label" for="input-rent-amount">Rent Amount</label>
                     <input
-                      type="text"
+                      type="number"
+                      inputmode="numeric"
+                      min="0"
                       id="input-rent-amount"
                       class="form-input"
                       placeholder="e.g. 15000"
@@ -607,7 +609,9 @@
                   <div class="form-group">
                     <label class="form-label" for="input-advance-amount">Advance Amount</label>
                     <input
-                      type="text"
+                      type="number"
+                      inputmode="numeric"
+                      min="0"
                       id="input-advance-amount"
                       class="form-input"
                       placeholder="e.g. 30000 (optional)"
@@ -621,6 +625,9 @@
                   <div class="input-with-action">
                     <input
                       type="tel"
+                      inputmode="tel"
+                      pattern="[0-9]*"
+                      maxlength="10"
                       id="input-phone-number"
                       class="form-input"
                       placeholder="e.g. 9812345678"
@@ -782,11 +789,11 @@
                     <div class="util-subfields" id="subfields-elec-meter">
                       <div class="form-group">
                         <label class="form-label mini" for="input-elec-price">Electricity Price Per Unit</label>
-                        <input type="number" id="input-elec-price" class="form-input mini" placeholder="e.g. 12" />
+                        <input type="number" inputmode="decimal" step="0.01" min="0" id="input-elec-price" class="form-input mini" placeholder="e.g. 12" />
                       </div>
                       <div class="form-group" style="margin-top: 10px;">
                         <label class="form-label mini" for="input-elec-reading">Current Meter Reading</label>
-                        <input type="number" step="0.01" id="input-elec-reading" class="form-input mini" placeholder="e.g. 12341.12" />
+                        <input type="number" step="0.01" inputmode="decimal" min="0" id="input-elec-reading" class="form-input mini" placeholder="e.g. 12341.12" />
                       </div>
                     </div>
 
@@ -794,7 +801,7 @@
                     <div class="util-subfields hidden" id="subfields-elec-flat">
                       <div class="form-group">
                         <label class="form-label mini" for="input-elec-flat-amount">Electricity Bill Amount</label>
-                        <input type="number" id="input-elec-flat-amount" class="form-input mini" placeholder="e.g. 500" />
+                        <input type="number" inputmode="numeric" min="0" id="input-elec-flat-amount" class="form-input mini" placeholder="e.g. 500" />
                       </div>
                     </div>
                   </div>
@@ -832,7 +839,7 @@
                     <div class="util-subfields" id="subfields-water-flat">
                       <div class="form-group">
                         <label class="form-label mini" for="input-water-amount">Water Bill Amount</label>
-                        <input type="number" id="input-water-amount" class="form-input mini" placeholder="e.g. 300" />
+                        <input type="number" inputmode="numeric" min="0" id="input-water-amount" class="form-input mini" placeholder="e.g. 300" />
                       </div>
                     </div>
 
@@ -840,11 +847,11 @@
                     <div class="util-subfields hidden" id="subfields-water-meter">
                       <div class="form-group">
                         <label class="form-label mini" for="input-water-price">Water Price Per Unit</label>
-                        <input type="number" id="input-water-price" class="form-input mini" placeholder="e.g. 25" />
+                        <input type="number" inputmode="decimal" step="0.01" min="0" id="input-water-price" class="form-input mini" placeholder="e.g. 25" />
                       </div>
                       <div class="form-group" style="margin-top: 10px;">
                         <label class="form-label mini" for="input-water-reading">Current Meter Reading</label>
-                        <input type="number" step="0.01" id="input-water-reading" class="form-input mini" placeholder="e.g. 450.5" />
+                        <input type="number" step="0.01" inputmode="decimal" min="0" id="input-water-reading" class="form-input mini" placeholder="e.g. 450.5" />
                       </div>
                     </div>
                   </div>
@@ -864,7 +871,7 @@
                     <div class="utility-divider"></div>
                     <div class="form-group">
                       <label class="form-label mini" for="input-garbage-amount">Garbage Bill Amount</label>
-                      <input type="number" id="input-garbage-amount" class="form-input mini" placeholder="e.g. 200" />
+                      <input type="number" inputmode="numeric" min="0" id="input-garbage-amount" class="form-input mini" placeholder="e.g. 200" />
                     </div>
                   </div>
                 </div>
@@ -883,7 +890,7 @@
                     <div class="utility-divider"></div>
                     <div class="form-group">
                       <label class="form-label mini" for="input-internet-amount">Internet Bill Amount</label>
-                      <input type="number" id="input-internet-amount" class="form-input mini" placeholder="e.g. 1000" />
+                      <input type="number" inputmode="numeric" min="0" id="input-internet-amount" class="form-input mini" placeholder="e.g. 1000" />
                     </div>
                   </div>
                 </div>
@@ -1262,6 +1269,8 @@
                   </div>
                   <input
                     type="number"
+                    inputmode="numeric"
+                    min="0"
                     id="edit-rent-amount"
                     class="form-input"
                     value=""
@@ -1291,6 +1300,8 @@
                     <label class="form-label" for="edit-advance-amount">Advance Amount</label>
                     <input
                       type="number"
+                      inputmode="numeric"
+                      min="0"
                       id="edit-advance-amount"
                       class="form-input"
                       value=""
@@ -1301,10 +1312,13 @@
                     <label class="form-label" for="edit-tenant-phone">Tenant Phone</label>
                     <input
                       type="tel"
+                      inputmode="tel"
+                      pattern="[0-9]*"
+                      maxlength="10"
                       id="edit-tenant-phone"
                       class="form-input"
                       value=""
-                      placeholder="e.g. 9800000000"
+                      placeholder="e.g. 9812345678"
                     />
                   </div>
                 </div>
@@ -1404,7 +1418,7 @@
                         <div class="utility-divider"></div>
                         <div class="form-group">
                           <label class="form-label mini">Price Per Unit (₹)</label>
-                          <input type="number" id="edit-elec-price" class="form-input mini" value="" placeholder="e.g. 12" />
+                          <input type="number" inputmode="decimal" step="0.01" min="0" id="edit-elec-price" class="form-input mini" value="" placeholder="e.g. 12" />
                         </div>
                       </div>
                     </div>
@@ -1422,7 +1436,7 @@
                         <div class="utility-divider"></div>
                         <div class="form-group">
                           <label class="form-label mini">Water Bill Amount (₹)</label>
-                          <input type="number" id="edit-water-amount" class="form-input mini" value="" placeholder="e.g. 500" />
+                          <input type="number" inputmode="numeric" min="0" id="edit-water-amount" class="form-input mini" value="" placeholder="e.g. 500" />
                         </div>
                       </div>
                     </div>
@@ -1458,7 +1472,7 @@
                     </div>
                     <div class="form-group">
                       <label class="form-label mini" for="input-new-rent">New Rent (₹)</label>
-                      <input type="number" id="input-new-rent" class="form-input mini" value="" placeholder="e.g. 15000" />
+                      <input type="number" inputmode="numeric" min="0" id="input-new-rent" class="form-input mini" value="" placeholder="e.g. 15000" />
                     </div>
                   </div>
 
@@ -1540,6 +1554,8 @@
                     <input
                       type="number"
                       step="0.01"
+                      inputmode="decimal"
+                      min="0"
                       id="record-page-amount"
                       class="form-input"
                       value=""
@@ -1762,7 +1778,7 @@
                 <!-- Current Electricity Reading -->
                 <div class="form-group" id="group-curr-elec">
                   <label class="form-label mini" for="input-curr-elec">Current Electricity Reading</label>
-                  <input type="number" step="0.01" id="input-curr-elec" class="form-input mini" value="" placeholder="Enter current meter reading" required />
+                  <input type="number" step="0.01" inputmode="decimal" min="0" id="input-curr-elec" class="form-input mini" value="" placeholder="Enter current meter reading" required />
                 </div>
 
                 <!-- Last Month Water Reading (Read-only) -->
@@ -1774,7 +1790,7 @@
                 <!-- Current Water Reading -->
                 <div class="form-group" id="group-curr-water">
                   <label class="form-label mini" for="input-curr-water">Current Water Reading</label>
-                  <input type="number" step="0.01" id="input-curr-water" class="form-input mini" value="" placeholder="Enter current water reading" />
+                  <input type="number" step="0.01" inputmode="decimal" min="0" id="input-curr-water" class="form-input mini" value="" placeholder="Enter current water reading" />
                 </div>
 
                 <!-- Advance Payment (Optional) -->
@@ -1783,7 +1799,7 @@
                     <label class="form-label mini" for="input-bill-advance" style="margin-bottom: 0;">Advance Payment(if any)</label>
                     <span class="text-caption" style="color: #7D849B; font-style: italic;">Optional</span>
                   </div>
-                  <input type="number" id="input-bill-advance" class="form-input mini" value="" placeholder="e.g., 500" />
+                  <input type="number" inputmode="numeric" min="0" id="input-bill-advance" class="form-input mini" value="" placeholder="e.g., 500" />
                 </div>
 
                 <!-- Due Amount (Optional) -->
@@ -1792,7 +1808,7 @@
                     <label class="form-label mini" for="input-bill-due" style="margin-bottom: 0;">Due Amount(if any)</label>
                     <span class="text-caption" style="color: #7D849B; font-style: italic;">Optional</span>
                   </div>
-                  <input type="number" id="input-bill-due" class="form-input mini" placeholder="e.g., 500" />
+                  <input type="number" inputmode="numeric" min="0" id="input-bill-due" class="form-input mini" placeholder="e.g., 500" />
                 </div>
 
                 <!-- Notes (Optional) -->

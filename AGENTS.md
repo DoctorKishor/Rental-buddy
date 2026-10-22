@@ -1361,6 +1361,45 @@
     - Right: `22px × 22px` rounded `6px` custom box with animated checkmark `✓` in `#5452EC`.
     - Entire card is an interactive label; tapping anywhere toggles selection and synchronizes the "Select All / Deselect All" trigger.
 
+---
+
+## 38. Input Controls: Strict 10-Digit Phone Restriction & Universal Number Keypad Architecture
+
+### 1. Strict 10-Digit Phone Number Policy
+- **Universal Field Specification**:
+  - All phone number inputs (`#input-phone-number`, `#edit-tenant-phone`) MUST enforce:
+    - `type="tel"`
+    - `inputmode="tel"`
+    - `pattern="[0-9]*"`
+    - `maxlength="10"`
+    - Placeholder: `e.g. 9812345678`
+- **Real-Time Input Sanitization**:
+  - Real-time `input` and `paste` event listeners immediately strip any non-digit characters (`\D`) and slice string to a maximum of 10 characters: `e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);`.
+- **Validation Guard**:
+  - In tenancy creation (Step 1 Next button & Step 3 Confirm button) and tenancy editing (Save button), if phone number is provided, it must be verified to have **exactly 10 digits**. Incomplete phone entries prompt a clear warning toast: `"⚠️ Phone number must be exactly 10 digits"`.
+- **Contact Picker Integration**:
+  - Selecting contacts via the contact picker button automatically injects a verified 10-digit number (`9812345678`) and dispatches the input event for reactive syncing.
+
+### 2. Universal Number Keypad Across the App
+- **Problem Resolved**: Standard mobile browsers on Android and iOS often display the standard alphabetical keyboard for raw text or unconfigured numeric inputs, forcing users to manually switch keyboards when entering amounts, meter readings, or utility rates.
+- **Strict Keypad Mapping**:
+  - **Integer Quantities & Currency** (`inputmode="numeric" min="0"`):
+    - Rent Amount (`#input-rent-amount`, `#edit-rent-amount`)
+    - Advance Amount (`#input-advance-amount`, `#edit-advance-amount`)
+    - Quick Record Amount (`#record-amount`)
+    - Revise Rent (`#input-new-rent`)
+    - Flat Utility Amounts (Electricity, Water, Garbage, Internet)
+    - Bill Advance & Due Adjustments (`#input-bill-advance`, `#input-bill-due`)
+  - **Decimals & Meter Readings** (`inputmode="decimal" step="0.01" min="0"`):
+    - Dedicated Record Payment Amount (`#record-page-amount`)
+    - Electricity Meter Reading (`#input-elec-reading`, `#input-curr-elec`)
+    - Electricity Unit Price (`#input-elec-price`, `#edit-elec-price`)
+    - Water Meter Reading (`#input-water-reading`, `#input-curr-water`)
+    - Water Unit Price (`#input-water-price`)
+- **Automated Lifecycle Enforcement (`initNumericAndPhoneInputs`)**:
+  - Automatically executed on application boot (`DOMContentLoaded`) and re-evaluated dynamically on every screen navigation (`navigateToScreen`), guaranteeing that all present and future numerical inputs automatically open the numeric keypad without exception.
+
+
 
 
 
