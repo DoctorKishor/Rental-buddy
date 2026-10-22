@@ -2,7 +2,7 @@
 // RENTAL BUDDY — PWA SERVICE WORKER
 // ==========================================================================
 
-const CACHE_NAME = 'rental-buddy-v1.0.2';
+const CACHE_NAME = 'rental-buddy-v1.0.3';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
@@ -46,8 +46,12 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Skip non-GET requests and Supabase API / auth requests
-  if (event.request.method !== 'GET' || url.origin.includes('supabase.co')) {
+  // Skip non-http/https (e.g. chrome-extension:), non-GET, and Supabase cloud API requests
+  if (
+    event.request.method !== 'GET' ||
+    !url.protocol.startsWith('http') ||
+    url.origin.includes('supabase.co')
+  ) {
     return;
   }
 
@@ -63,9 +67,11 @@ self.addEventListener('fetch', (event) => {
         return (
           cached ||
           fetch(event.request).then((response) => {
-            if (response.status === 200) {
+            if (response && response.status === 200) {
               const clone = response.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, clone).catch(() => {});
+              }).catch(() => {});
             }
             return response;
           })
@@ -81,7 +87,9 @@ self.addEventListener('fetch', (event) => {
       .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
           const clone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, clone).catch(() => {});
+          }).catch(() => {});
         }
         return networkResponse;
       })

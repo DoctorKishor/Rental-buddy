@@ -1761,3 +1761,21 @@ To eliminate dead placeholders and provide a production-ready user experience, a
    - Added `/*    /index.html   200` to `public/_redirects` and workspace root to guarantee 200 responses on client-side route reloads.
 6. **Service Worker Cache Invalidation**:
    - Bumped cache to `rental-buddy-v1.0.2` in `public/sw.js` and `sw.js` so stale cached bundles are immediately purged upon activation.
+
+---
+
+## 51. Splash DOM Hierarchy Integrity & Service Worker Extension Isolation
+
+### 1. Root Cause of Blank Screen Post-Deployment
+- **DOM Hierarchy Collapse**: In `index.html`, an unclosed `<div id="app-splash-screen">` caused the browser parser to adopt `#screensSlider` and all 22 `<section class="screen">` elements as children of the splash overlay. When `dismissSplashScreen()` added `.hidden` (`display: none; opacity: 0;`), the entire screen collection was wiped from view, presenting a blank `#EFF0FA` lavender frame.
+- **Resolution**:
+  - Restored proper `</div></div>` nesting for `#app-splash-screen` and `.splash-brand-block`.
+  - Added default `active` class on `<section class="screen active" id="screen-1" data-screen="1">` ensuring an initial screen is rendered immediately on HTML parse prior to JS hydration.
+
+### 2. Service Worker Unsupported Scheme Exception (`chrome-extension://`)
+- **Problem**: Browser extensions (e.g. WireframeIt, password managers) inject network requests into the page context. Standard Service Worker fetch handlers attempting `cache.put(event.request, ...)` threw `TypeError: Request scheme 'chrome-extension' is unsupported`.
+- **Resolution**:
+  - In `public/sw.js` and `sw.js`, explicitly filter requests: `if (!url.protocol.startsWith('http')) return;`.
+  - Added safety `.catch(() => {})` handlers around all `cache.put()` operations.
+  - Bumped Service Worker cache version to `rental-buddy-v1.0.3`.
+
