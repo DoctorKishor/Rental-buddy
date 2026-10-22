@@ -39,6 +39,7 @@ import {
   respondToFamilyShare,
   revokeFamilyShare,
   leaveFamilyShare,
+  updateFamilyShareRole,
   fetchCloudFamilyMembers,
   inviteCloudFamilyMember,
   revokeCloudFamilyMember,
@@ -4713,8 +4714,8 @@ export async function refreshFamilySharingPage() {
 
           const isManager = share.role === 'manager';
           const roleBadge = isManager
-            ? '<span class="family-role-badge manager">🛠️ Manager</span>'
-            : '<span class="family-role-badge viewer">👁️ Viewer</span>';
+            ? '<button type="button" class="family-role-badge manager role-badge-clickable" title="Click to toggle between Manager and Viewer" style="cursor: pointer; border: 1px solid #DDD6FE;">🛠️ Manager ▾</button>'
+            : '<button type="button" class="family-role-badge viewer role-badge-clickable" title="Click to toggle between Manager and Viewer" style="cursor: pointer; border: 1px solid #BAE6FD;">👁️ Viewer ▾</button>';
 
           const recipientEmail = share.member_email || 'Recipient';
           const avatarInitial = (recipientEmail.charAt(0) || '✉️').toUpperCase();
@@ -4758,12 +4759,59 @@ export async function refreshFamilySharingPage() {
               </div>
             </div>
 
-            <div class="family-card-actions-row" style="margin-top: 6px;">
+            <!-- Access Permission Switcher: Change between Manager & Viewer without revoking -->
+            <div class="share-role-switch-row">
+              <div class="role-switch-left">
+                <span class="role-switch-title">Access Permission</span>
+                <span class="role-switch-sub">${isManager ? 'Manager (Record payments & bills)' : 'Viewer (Strictly read-only access)'}</span>
+              </div>
+              <div class="role-segmented-switcher" role="radiogroup" aria-label="Switch access permission">
+                <button type="button" class="role-segment-btn manager ${isManager ? 'active' : ''}" data-target-role="manager" title="Switch to Manager">
+                  🛠️ Manager
+                </button>
+                <button type="button" class="role-segment-btn viewer ${!isManager ? 'active' : ''}" data-target-role="viewer" title="Switch to Viewer">
+                  👁️ Viewer
+                </button>
+              </div>
+            </div>
+
+            <div class="family-card-actions-row" style="margin-top: 4px; justify-content: flex-end;">
               <button type="button" class="btn-share-revoke" data-share-id="${share.id}">
                 🗑️ Revoke Access
               </button>
             </div>
           `;
+
+          // Role Switcher Click Handlers (Manager vs Viewer)
+          card.querySelectorAll('.role-segment-btn').forEach((btn) => {
+            btn.addEventListener('click', async (e) => {
+              const targetRole = e.currentTarget.dataset.targetRole;
+              if (targetRole === share.role) return;
+
+              const allBtns = card.querySelectorAll('.role-segment-btn');
+              allBtns.forEach((b) => (b.disabled = true));
+              const prevText = e.currentTarget.textContent;
+              e.currentTarget.textContent = 'Updating...';
+
+              try {
+                await updateFamilyShareRole(share.id, targetRole);
+                share.role = targetRole;
+                showToast(`Access updated to ${targetRole === 'manager' ? '🛠️ Manager' : '👁️ Viewer'}`);
+                await refreshFamilySharingPage();
+              } catch (err) {
+                showToast(`❌ Failed to update role: ${err.message}`);
+                allBtns.forEach((b) => (b.disabled = false));
+                e.currentTarget.textContent = prevText;
+              }
+            });
+          });
+
+          // Top role badge clickable shortcut
+          card.querySelector('.role-badge-clickable')?.addEventListener('click', () => {
+            const nextRole = share.role === 'manager' ? 'viewer' : 'manager';
+            const targetBtn = card.querySelector(`.role-segment-btn[data-target-role="${nextRole}"]`);
+            targetBtn?.click();
+          });
 
           card.querySelector('.btn-share-revoke')?.addEventListener('click', async () => {
             if (!confirm(`Revoke shared property access for ${share.member_email}?`)) return;

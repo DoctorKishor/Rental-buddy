@@ -4894,6 +4894,106 @@ select.form-input:disabled {
   background-color: #FEF2F2;
 }
 
+/* Outgoing Share Card: Role Switcher */
+.share-role-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background-color: #F8F9FE;
+  border-radius: 14px;
+  border: 1px solid #EAEBF6;
+}
+
+.role-switch-left {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.role-switch-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.role-switch-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.role-segmented-switcher {
+  display: inline-flex;
+  align-items: center;
+  background-color: #E8EAF6;
+  border-radius: 9999px;
+  padding: 2.5px;
+  flex-shrink: 0;
+  border: 1px solid #D9DCF0;
+}
+
+.role-segment-btn {
+  height: 28px;
+  padding: 0 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-body);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.role-segment-btn:hover:not(.active) {
+  color: var(--text-heading);
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+.role-segment-btn.active.manager {
+  background-color: #5452EC;
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(84, 82, 236, 0.3);
+  font-weight: 700;
+}
+
+.role-segment-btn.active.viewer {
+  background-color: #0284C7;
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+  font-weight: 700;
+}
+
+.role-segment-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 380px) {
+  .share-role-switch-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .role-segmented-switcher {
+    width: 100%;
+    display: flex;
+  }
+  .role-segment-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
 .active-sync-badge {
   display: inline-flex;
   align-items: center;

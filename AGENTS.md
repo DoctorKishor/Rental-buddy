@@ -1361,6 +1361,16 @@
     - Right: `22px × 22px` rounded `6px` custom box with animated checkmark `✓` in `#5452EC`.
     - Entire card is an interactive label; tapping anywhere toggles selection and synchronizes the "Select All / Deselect All" trigger.
 
+### 6. Live Role Switching Without Revocation (Manager ⇄ Viewer)
+- **Problem Resolved**: Owners previously had to revoke an active or pending family share completely and recreate it from scratch if they wished to promote a Viewer to a Manager or downgrade a Manager to a read-only Viewer.
+- **Card-Level Segmented Control**:
+  - Each outgoing shared card in `Screen 22` includes an embedded `.share-role-switch-row` with a segmented pill toggle: `[ 🛠️ Manager | 👁️ Viewer ]`.
+  - Also makes the top-right role badge interactive (`.role-badge-clickable`) as a quick one-tap toggle.
+- **Non-Destructive Database Mutation**:
+  - Tapping either role calls `updateFamilyShareRole(shareId, newRole)` which updates `public.family_shares.role` directly for that `admin_id`.
+  - Does **NOT** alter the share's accepted/approved status or tenancy scope, preserving uninterrupted ledger access while immediately adjusting permissions.
+  - Automatically updates local state and reactive UI without page reload.
+
 ---
 
 ## 38. Input Controls: Strict 10-Digit Phone Restriction & Universal Number Keypad Architecture

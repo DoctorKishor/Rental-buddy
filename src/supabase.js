@@ -739,6 +739,28 @@ export async function revokeFamilyShare(shareId) {
 
 export const leaveFamilyShare = revokeFamilyShare;
 
+export async function updateFamilyShareRole(shareId, newRole) {
+  await ensureAuthenticated();
+  if (!cloudSession.user) throw new Error('User not authenticated');
+  const cleanRole = newRole === 'manager' ? 'manager' : 'viewer';
+
+  try {
+    const { data, error } = await supabase
+      .from('family_shares')
+      .update({ role: cleanRole })
+      .eq('id', shareId)
+      .eq('admin_id', cloudSession.user.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Update Family Share Role Error:', err);
+    throw err;
+  }
+}
+
 // Backward-compatible aliases
 export const fetchCloudFamilyMembers = fetchOutgoingFamilyShares;
 export const inviteCloudFamilyMember = (email, role) => createSelectiveFamilyShare({ email, role, tenancyIds: [] });
