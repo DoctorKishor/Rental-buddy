@@ -4289,6 +4289,12 @@ function initBillGenerationFlow() {
 
     const prevWater = parseFloat(document.getElementById('input-prev-water')?.value) || 0;
     const currWater = parseFloat(document.getElementById('input-curr-water')?.value) || 0;
+
+    if (currWater > 0 && currWater < prevWater) {
+      showToast(`⚠️ Current water reading (${currWater}) cannot be less than previous reading (${prevWater})`, 4000);
+      return;
+    }
+
     const waterUnits = Math.max(0, currWater - prevWater);
     const waterUtil = target.tenancy_utilities?.find((u) => u.utility_type === 'water');
     const waterPricePerUnit = (waterUtil && waterUtil.price_per_unit > 0) ? waterUtil.price_per_unit : 10;

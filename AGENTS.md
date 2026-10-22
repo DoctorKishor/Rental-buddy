@@ -1577,3 +1577,8 @@ To eliminate dead placeholders and provide a production-ready user experience, a
   - Payment Voucher Screen (`#screen-21`) back and done handlers (`#btn-receipt-back`, `#btn-receipt-done`) now dynamically check `state.previousScreen` to return to Screen 18 (Archived Tenancy Details) or Screen 19 (All Past Payments History) when launched from those flows, preventing accidental routing to the Dashboard.
 - **DOM & Element Lookup Sanitization**:
   - Cleaned up obsolete element lookups (`cloud-status-banner`, `cloud-banner-user-email`, `display-owner-email`, `receipt-status-pill`, `receipt-stamp-pill`), leaving 0 unhandled lookups or runtime warnings.
+
+### 10. Screen 13 Meter Reading Validation Parity
+- **Validation Guard**:
+  - Validates that current water meter reading cannot be less than the previous reading (`currWater < prevWater`), matching the existing electricity meter check (`currElec < prevElec`).
+  - Displays a clear warning toast (`⚠️ Current water reading ({currWater}) cannot be less than previous reading ({prevWater})`) and halts bill calculation, preventing negative utility unit computations and corrupted ledger entries.
