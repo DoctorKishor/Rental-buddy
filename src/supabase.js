@@ -442,6 +442,13 @@ export async function deleteCloudTenancy(tenancyId) {
 
 export async function scheduleCloudRentRevision(revisionData) {
   try {
+    // Supersede any existing scheduled revisions for this tenancy to ensure single active revision integrity
+    await supabase
+      .from('rent_revisions')
+      .update({ status: 'cancelled' })
+      .eq('tenancy_id', revisionData.tenancyId)
+      .eq('status', 'scheduled');
+
     const { data, error } = await supabase
       .from('rent_revisions')
       .insert({

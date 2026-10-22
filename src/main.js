@@ -1805,8 +1805,17 @@ export async function bindTenancyToDetails(t, targetYear = null) {
     if (radioMonthly) radioMonthly.checked = true;
   }
 
+  const tenancyStartDateVal = t.start_date || (t.created_at ? t.created_at.split('T')[0] : '');
   if (editDateDisplay) {
-    editDateDisplay.value = isYearlyCycle ? `${getOrdinal(t.billing_day || 1)} of every year` : `${getOrdinal(t.billing_day || 1)} of every month`;
+    if (isYearlyCycle && tenancyStartDateVal) {
+      const sd = new Date(tenancyStartDateVal + 'T00:00:00');
+      const m = !isNaN(sd.getTime()) ? sd.toLocaleDateString('en-US', { month: 'long' }) : '';
+      editDateDisplay.value = m
+        ? `${getOrdinal(t.billing_day || 1)} ${m} of every year`
+        : `${getOrdinal(t.billing_day || 1)} of every year`;
+    } else {
+      editDateDisplay.value = `${getOrdinal(t.billing_day || 1)} of every month`;
+    }
   }
   if (editNativeDate) {
     const dayStr = (t.billing_day || 1).toString().padStart(2, '0');
@@ -1814,7 +1823,6 @@ export async function bindTenancyToDetails(t, targetYear = null) {
   }
   const editStartDateDisplay = document.getElementById('edit-start-date-display');
   const editNativeStartDate = document.getElementById('edit-native-start-date');
-  const tenancyStartDateVal = t.start_date || (t.created_at ? t.created_at.split('T')[0] : '');
   if (editNativeStartDate) editNativeStartDate.value = tenancyStartDateVal;
   if (editStartDateDisplay && tenancyStartDateVal) {
     const sd = new Date(tenancyStartDateVal + 'T00:00:00');
@@ -1945,12 +1953,21 @@ export async function bindTenancyToDetails(t, targetYear = null) {
       lastBillCol.classList.add('hidden');
     }
 
-    // Enforce role-based controls on Screen 10
+    // Enforce role-based controls on Screen 10 & Screen 11
     const userRole = getTenancyUserRole(t);
     const isViewer = userRole === 'viewer';
     const menuBtn = document.getElementById('btn-details-menu');
     if (menuBtn) {
       menuBtn.style.display = isViewer ? 'none' : '';
+    }
+
+    const btnSaveScreen11 = document.getElementById('btn-save-tenancy-changes');
+    const btnOpenReviseModal = document.getElementById('btn-open-revise-modal');
+    if (btnSaveScreen11) {
+      btnSaveScreen11.style.display = isViewer ? 'none' : '';
+    }
+    if (btnOpenReviseModal) {
+      btnOpenReviseModal.style.display = isViewer ? 'none' : '';
     }
 
     // Update sticky bottom button on Screen 10
@@ -2722,6 +2739,10 @@ function initEditTenancy() {
   // Open & Close Revise Rent Modal
   btnOpenRevise?.addEventListener('click', () => {
     if (!currentActiveTenancy) return;
+    if (getTenancyUserRole(currentActiveTenancy) === 'viewer') {
+      showToast('👁️ Viewers have read-only access. You cannot revise rent.', 3500);
+      return;
+    }
     const curRentDisplay = document.getElementById('revise-current-rent-display');
     if (curRentDisplay) {
       curRentDisplay.value = `₹${parseFloat(currentActiveTenancy.base_rent || 0).toLocaleString('en-IN')}`;
@@ -2761,11 +2782,20 @@ function initEditTenancy() {
   // Confirm Rent Revision
   btnConfirmRevise?.addEventListener('click', async () => {
     if (!currentActiveTenancy) return;
+    if (getTenancyUserRole(currentActiveTenancy) === 'viewer') {
+      showToast('👁️ Viewers have read-only access. You cannot revise rent.', 3500);
+      return;
+    }
     const newRent = document.getElementById('input-new-rent')?.value;
     const notifyTenant = document.getElementById('toggle-notify-tenant-revision')?.checked;
 
     if (!newRent || parseFloat(newRent) <= 0) {
       showToast('⚠️ Please enter a valid new rent amount');
+      return;
+    }
+
+    if (parseFloat(newRent) === parseFloat(currentActiveTenancy.base_rent || 0)) {
+      showToast('⚠️ New rent is the same as current base rent');
       return;
     }
 
@@ -2779,8 +2809,14 @@ function initEditTenancy() {
         showToast('⚠️ Please pick a custom effective date');
         return;
       }
-      effectiveDateStr = customDateVal;
       const parsed = new Date(customDateVal + 'T00:00:00');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (parsed < today) {
+        showToast('⚠️ Effective date cannot be in the past');
+        return;
+      }
+      effectiveDateStr = customDateVal;
       const fmtCustom = !isNaN(parsed.getTime())
         ? `${parsed.getDate()} ${parsed.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
         : customDateVal;
@@ -2798,6 +2834,11 @@ function initEditTenancy() {
       });
 
       if (!currentActiveTenancy.rent_revisions) currentActiveTenancy.rent_revisions = [];
+      // Cancel previous scheduled revisions in memory
+      currentActiveTenancy.rent_revisions.forEach((r) => {
+        if (r.status === 'scheduled') r.status = 'cancelled';
+      });
+
       if (scheduled) {
         currentActiveTenancy.rent_revisions.push(scheduled);
       } else {
@@ -2826,6 +2867,17 @@ function initEditTenancy() {
       modalRevise?.classList.add('hidden');
       loadRentRevisionHistory(currentActiveTenancy);
 
+      if (notifyTenant) {
+        const tenantPhone = currentActiveTenancy.tenant_phone;
+        const propName = currentActiveTenancy.property_name || 'your rental property';
+        const oldRentFmt = `₹${parseFloat(currentActiveTenancy.base_rent || 0).toLocaleString('en-IN')}`;
+        const newRentFmt = `₹${parseFloat(newRent).toLocaleString('en-IN')}`;
+        const revMsg = `📢 *Notice of Rent Revision*\n\nDear Tenant,\nThis is to notify you that the monthly rent for *${propName}* will be revised from ${oldRentFmt} to *${newRentFmt}* effective *${cycleLabel}*.\n\nThank you,\nRental Buddy`;
+        const phoneParam = tenantPhone ? `phone=${encodeURIComponent(formatWhatsAppPhone(tenantPhone))}&` : '';
+        const waUrl = `https://api.whatsapp.com/send?${phoneParam}text=${encodeURIComponent(revMsg)}`;
+        window.open(waUrl, '_blank');
+      }
+
       const msg = notifyTenant 
         ? `📈 Rent revision scheduled to ₹${parseFloat(newRent).toLocaleString('en-IN')} (${cycleLabel}) • Tenant notified via WhatsApp`
         : `📈 Rent revision scheduled to ₹${parseFloat(newRent).toLocaleString('en-IN')} (${cycleLabel}) • Cloud Synced`;
@@ -2838,6 +2890,10 @@ function initEditTenancy() {
   // Cancel Scheduled Revision with Confirmation
   btnCancelRevision?.addEventListener('click', async () => {
     if (!currentActiveTenancy) return;
+    if (getTenancyUserRole(currentActiveTenancy) === 'viewer') {
+      showToast('👁️ Viewers have read-only access. You cannot cancel rent revisions.', 3500);
+      return;
+    }
     if (!confirm('Are you sure you want to cancel the scheduled rent revision?')) return;
     try {
       await cancelCloudRentRevision(currentActiveTenancy.id);
@@ -2859,6 +2915,10 @@ function initEditTenancy() {
   // Save changes
   btnSave?.addEventListener('click', async () => {
     if (!currentActiveTenancy) return;
+    if (getTenancyUserRole(currentActiveTenancy) === 'viewer') {
+      showToast('👁️ Viewers have read-only access. You cannot edit tenancy settings.', 3500);
+      return;
+    }
     const updatedName = document.getElementById('edit-tenancy-name')?.value?.trim();
     const updatedRent = document.getElementById('edit-rent-amount')?.value?.trim();
     const rawPhone = document.getElementById('edit-tenant-phone')?.value?.trim() || '';
@@ -2890,6 +2950,60 @@ function initEditTenancy() {
       return;
     }
 
+    if (updatedRent && parseFloat(updatedRent) < 0) {
+      showToast('⚠️ Rent amount cannot be negative');
+      return;
+    }
+
+    if (updatedAdvance && parseFloat(updatedAdvance) < 0) {
+      showToast('⚠️ Advance amount cannot be negative');
+      return;
+    }
+
+    // Read and validate utilities
+    const elecEnabled = document.getElementById('edit-toggle-elec')?.checked ?? false;
+    const elecTypeRadio = document.querySelector('input[name="edit-billType-electricity"]:checked')?.value || 'Meter Reading';
+    const elecBillType = elecTypeRadio === 'Flat' ? 'flat' : 'meter_reading';
+    const elecPrice = parseFloat(document.getElementById('edit-elec-price')?.value) || 0;
+    const elecFlat = parseFloat(document.getElementById('edit-elec-flat-amount')?.value) || 0;
+
+    const waterEnabled = document.getElementById('edit-toggle-water')?.checked ?? false;
+    const waterTypeRadio = document.querySelector('input[name="edit-billType-water"]:checked')?.value || 'Flat';
+    const waterBillType = waterTypeRadio === 'Meter Reading' ? 'meter_reading' : 'flat';
+    const waterPrice = parseFloat(document.getElementById('edit-water-price')?.value) || 0;
+    const waterFlat = parseFloat(document.getElementById('edit-water-amount')?.value) || 0;
+
+    const garbageEnabled = document.getElementById('edit-toggle-garbage')?.checked ?? false;
+    const garbageAmount = parseFloat(document.getElementById('edit-garbage-amount')?.value) || 0;
+
+    const internetEnabled = document.getElementById('edit-toggle-internet')?.checked ?? false;
+    const internetAmount = parseFloat(document.getElementById('edit-internet-amount')?.value) || 0;
+
+    if (elecBillType === 'meter_reading' && elecPrice < 0) {
+      showToast('⚠️ Electricity price per unit cannot be negative');
+      return;
+    }
+    if (elecBillType === 'flat' && elecFlat < 0) {
+      showToast('⚠️ Electricity flat amount cannot be negative');
+      return;
+    }
+    if (waterBillType === 'meter_reading' && waterPrice < 0) {
+      showToast('⚠️ Water price per unit cannot be negative');
+      return;
+    }
+    if (waterBillType === 'flat' && waterFlat < 0) {
+      showToast('⚠️ Water flat amount cannot be negative');
+      return;
+    }
+    if (garbageAmount < 0) {
+      showToast('⚠️ Garbage amount cannot be negative');
+      return;
+    }
+    if (internetAmount < 0) {
+      showToast('⚠️ Internet amount cannot be negative');
+      return;
+    }
+
     btnSave.disabled = true;
     btnSave.textContent = 'Saving...';
 
@@ -2903,25 +3017,6 @@ function initEditTenancy() {
         billing_cycle: updatedCycle,
         start_date: updatedStartDate,
       });
-
-      // Synchronize utilities updates (Electricity, Water, Garbage, Internet)
-      const elecEnabled = document.getElementById('edit-toggle-elec')?.checked ?? false;
-      const elecTypeRadio = document.querySelector('input[name="edit-billType-electricity"]:checked')?.value || 'Meter Reading';
-      const elecBillType = elecTypeRadio === 'Flat' ? 'flat' : 'meter_reading';
-      const elecPrice = parseFloat(document.getElementById('edit-elec-price')?.value) || 0;
-      const elecFlat = parseFloat(document.getElementById('edit-elec-flat-amount')?.value) || 0;
-
-      const waterEnabled = document.getElementById('edit-toggle-water')?.checked ?? false;
-      const waterTypeRadio = document.querySelector('input[name="edit-billType-water"]:checked')?.value || 'Flat';
-      const waterBillType = waterTypeRadio === 'Meter Reading' ? 'meter_reading' : 'flat';
-      const waterPrice = parseFloat(document.getElementById('edit-water-price')?.value) || 0;
-      const waterFlat = parseFloat(document.getElementById('edit-water-amount')?.value) || 0;
-
-      const garbageEnabled = document.getElementById('edit-toggle-garbage')?.checked ?? false;
-      const garbageAmount = parseFloat(document.getElementById('edit-garbage-amount')?.value) || 0;
-
-      const internetEnabled = document.getElementById('edit-toggle-internet')?.checked ?? false;
-      const internetAmount = parseFloat(document.getElementById('edit-internet-amount')?.value) || 0;
 
       const existingElec = currentActiveTenancy.tenancy_utilities?.find((u) => u.utility_type === 'electricity');
       const existingWater = currentActiveTenancy.tenancy_utilities?.find((u) => u.utility_type === 'water');

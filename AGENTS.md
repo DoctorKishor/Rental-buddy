@@ -1551,3 +1551,18 @@ To eliminate dead placeholders and provide a production-ready user experience, a
 - **Screen 10 Summary Card Scheduled Revision Indicator (`#details-scheduled-chip`)**:
   - Tying the rent revision loop directly into the main Tenancy Details card: when a scheduled revision is active, a prominent blue indicator (`📈 ₹{rent} scheduled ({date})`) is rendered beneath the rent rate line.
   - Dynamically updates upon scheduling a revision or cancelling via Screen 11's revision banner.
+
+### 8. Single-Active Revision Integrity, WhatsApp Notice Dispatch & Role Guards Audit
+- **Single-Active Revision Supersede Guarantee**:
+  - Prior scheduled revisions are now automatically cancelled in Supabase (`status: 'cancelled'`) before scheduling a new revision for the same tenancy.
+  - Prevents competing revision records and guarantees that the correct, intended rate applies when auto-maturity triggers.
+- **Real WhatsApp Revision Dispatch**:
+  - Toggling "Send WhatsApp notification to tenant" now formats a clean markdown notification and dispatches directly via `window.open` using `formatWhatsAppPhone`.
+- **Viewer Role Multi-Layer Enforcement**:
+  - `btnSave` (`#btn-save-tenancy-changes`), `btnOpenRevise` (`#btn-open-revise-modal`), `btnConfirmRevise`, and `btnCancelRevision` explicitly verify viewer access and reject mutations with explanatory toasts.
+  - When viewing details of a read-only tenancy, the save and revise buttons are hidden from the DOM.
+- **Input Sanitization & Anti-Negative Guards**:
+  - Direct rent, advance, and all utility amounts/rates validate against negative entries before dispatching to Supabase Cloud.
+  - Rent revision modal validates that the new rent is strictly positive, different from the current base rent, and that custom dates cannot be in the past.
+- **Yearly Cycle Date Formatting**:
+  - When `billing_cycle === 'yearly'`, the displayed recurring date incorporates the tenancy's start month (e.g. `4th April of every year`) rather than an ambiguous bare day string.
