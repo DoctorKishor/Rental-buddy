@@ -1718,6 +1718,24 @@ To eliminate dead placeholders and provide a production-ready user experience, a
   - Proportional flex ratio (`flex: 1.1; min-width: 115px; padding: 0 14px;`).
   - Narrow 360px viewport: `min-width: 100px; padding: 0 10px; font-size: 13.5px;` ensuring zero wrap next to the `Done` button.
 
+---
+
+## 49. Static Server & Non-Bundler Module Resiliency Architecture
+
+### 1. Bare Module Specifiers & Live Server Compatibility
+- **Problem**: When `index.html` is opened via static development servers (e.g., VS Code Live Server on port 5500, Python `http.server`, or direct local hosting), browser native ESM cannot resolve bare module specifiers (`"html2canvas"`, `"@supabase/supabase-js"`), throwing `Failed to resolve module specifier`.
+- **Resolution**:
+  - Configured native `<script type="importmap">` in `index.html` mapping bare specifiers to verified ESM CDNs.
+  - Added dedicated global `<script src=".../html2canvas.min.js">` in `index.html`.
+  - Converted `html2canvas` in `src/main.js` from an application-blocking top-level static import into a resilient `getHtml2Canvas()` lazy loader (`window.html2canvas` -> dynamic `import('html2canvas')`). This also reduces the initial JS bundle from 617 kB to 416 kB.
+
+### 2. Dual-Root Manifest & PWA Asset Serving
+- **Problem**: Vite serves files from `/public/` at the root path, but static servers like Live Server inspect the working directory root. A missing root `manifest.json` triggers a 404 HTML response, which Chrome DevTools flags as `Manifest: Line: 1, column: 1, Syntax error`.
+- **Resolution**:
+  - Mirrored `manifest.json`, `sw.js`, and PWA icons in the workspace root alongside `/public/`.
+  - Updated `<link rel="manifest" href="manifest.json" />` to relative resolution, ensuring 100% valid JSON responses across all server configurations.
+
+
 
 
 

@@ -54,7 +54,22 @@ import {
   assertOnline,
   initSupabaseRealtime,
 } from './supabase.js';
-import html2canvas from 'html2canvas';
+
+async function getHtml2Canvas() {
+  if (typeof window !== 'undefined' && window.html2canvas) {
+    return window.html2canvas;
+  }
+  try {
+    const mod = await import('html2canvas');
+    return mod.default || mod;
+  } catch (err) {
+    if (typeof window !== 'undefined' && window.html2canvas) {
+      return window.html2canvas;
+    }
+    console.error('Failed to load html2canvas:', err);
+    throw new Error('Image export module could not be loaded');
+  }
+}
 
 const state = {
   currentScreen: 1,
@@ -6539,7 +6554,8 @@ async function handleShareReceiptImage() {
   showToast('Generating high-resolution voucher PNG...', 2200);
 
   try {
-    const canvas = await html2canvas(cardElement, {
+    const html2canvasLib = await getHtml2Canvas();
+    const canvas = await html2canvasLib(cardElement, {
       scale: 3,
       useCORS: true,
       backgroundColor: '#EFF0FA', // Canvas background guarantees clean inward cutouts
