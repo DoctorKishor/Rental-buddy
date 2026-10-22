@@ -1479,3 +1479,43 @@ To eliminate dead placeholders and provide a production-ready user experience, a
 ### 4. Implementation Details
 - **Logic Engine**: `computeTenancyStatusBadge(tenancy, allBills, allPayments)` in `src/main.js`.
 - **Parallel Data Fetching**: `syncDashboardFromCloud` initiates `Promise.all([fetchCloudTenancies('active'), fetchCloudBills(), fetchCloudPayments()])` ensuring badge computations are instantaneous and avoid redundant network roundtrips.
+
+---
+
+## 41. Tenancy Year Filtering, Archived Data Integrity, Viewer Role Protection & Rent Revision History
+
+### 1. Dynamic Financial Year Dropdown Architecture (Screen 10: `#details-year-select`)
+- **Problem Resolved**: The financial year dropdown previously hardcoded `Year 2026` and `Year 2025` statically. New tenancies created in 2026 erroneously presented `Year 2025` even though no earlier records existed, creating user confusion.
+- **Dynamic Date-Bound Range Evaluation**:
+  - The dropdown now evaluates the authoritative start date of the tenancy (`start_date` or `created_at`) alongside recorded historical payments and utility bills.
+  - Generates options spanning strictly from `maxYear = Math.max(currentYear, ...yearsFromRecords)` down to `minYear = Math.min(currentYear, tenancyStartYear, ...yearsFromRecords)`.
+  - If a tenancy started in 2026 with no past records, only `Year 2026` is displayed. If a tenancy started in 2025, `Year 2026` and `Year 2025` are displayed. If payments date back to 2024, `Year 2024` is included seamlessly.
+  - Active selection is preserved or falls back cleanly to the current year.
+
+### 2. Complete Archived Tenancies Data & Receipt History Restoration (Screen 18: `#screen-18`)
+- **Problem Resolved**: Archived properties displayed `Total Bill Paid: ₹0`, `Last Generated Bill: ₹0`, and `No archived bill history` because `openArchivedDetails(tenancy)` only fetched from `bills` table, ignoring payments entirely for rent-only tenancies.
+- **Unified Dual-Source Ledger Fetching**:
+  - `openArchivedDetails(tenancy)` initiates `Promise.all([fetchCloudBills(tenancy.id), fetchCloudPayments(tenancy.id)])`.
+  - Calculates authoritative cumulative collections: `total = totalPaidFromPayments > 0 ? totalPaidFromPayments : totalPaidFromBills`.
+  - Dynamically updates summary labels based on utilities configuration:
+    - With utilities: `"Total Bill Paid"` and `"Last Generated Bill"`.
+    - Rent-only: `"Total Rent Paid"` and `"Last Payment"`.
+  - Unifies payment vouchers and utility invoices into a combined, reverse-chronological history list. Tapping any payment opens the high-fidelity `Payment Voucher / Receipt` modal (`openPaymentReceipt`), and tapping any bill opens full billing breakdown (`renderBillDetails`).
+
+### 3. Viewer Role Access Restriction (Archive, Unarchive & Delete)
+- **Problem Resolved**: Viewers had access to archive, unarchive, or delete tenancies in certain views where action buttons were not strictly guarded.
+- **Multi-Layer Permission Enforcement**:
+  - **Screen 10 (Active Tenancy Details)**: 3-dots action menu (`#btn-details-menu`) is hidden for viewers; archive and delete click handlers explicitly verify `getTenancyUserRole(tenancy) !== 'viewer'`.
+  - **Screen 18 (Archived Tenancy Details)**: 3-dots action menu (`#btn-archdetails-menu`) is hidden for viewers; unarchive (`#menu-action-unarchive`) and delete (`#menu-action-arch-delete`) handlers explicitly verify viewer role and reject mutations with explanatory toasts.
+  - **Supabase Cloud Layer (`src/supabase.js`)**: `archiveCloudTenancy`, `unarchiveCloudTenancy`, and `deleteCloudTenancy` call `verifyWritePermission(tenancyId)`, verifying ownership or manager-level family shares before executing mutations.
+
+### 4. Rent Revision History Drawer & Days-Elapsed Indicator (Screen 11 / `#modal-revise-rent`)
+- **Live Elapsed Duration Indicator (`#revise-days-indicator-card`)**:
+  - Displays a clean periwinkle chip inside the revision modal with real-time revision age:
+    - With past revisions: `⏱️ Last revised: X days ago` with subtitle `₹{old} → ₹{new} on {date}`.
+    - Without revisions: `⏱️ No revisions yet` with subtitle `Base rent unchanged (Active for X days)`.
+- **Interactive Collapsible Revision Drawer (`#revise-history-drawer`)**:
+  - Toggle button (`#btn-toggle-revision-history`) smoothly expands/collapses the revision history list.
+  - Cards display revision date, status chip (`Applied`, `Scheduled`, or `Cancelled`), old vs new rent, increment/decrement delta (`+₹500 (+14%)`), and revision reason.
+  - Re-evaluates and refreshes dynamically whenever a new revision is scheduled or cancelled.
+

@@ -29,6 +29,7 @@ import {
   deleteCloudTenancy,
   scheduleCloudRentRevision,
   cancelCloudRentRevision,
+  fetchCloudRentRevisions,
   fetchCloudBills,
   createCloudBill,
   fetchCloudPayments,
@@ -1899,15 +1900,72 @@ export async function bindTenancyToDetails(t, targetYear = null) {
         : 'You will see payments here once they are recorded.';
     }
 
-    // 1. Populate Month-wise 12-Month Stack for targetYear
-    const yearSelect = document.getElementById('details-year-select');
+    // 1. Compute dynamic relevant years & populate Month-wise 12-Month Stack for targetYear
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonthIdx = now.getMonth(); // 0-indexed
-    const activeYear = targetYear !== null ? parseInt(targetYear, 10) : (parseInt(yearSelect?.value, 10) || currentYear);
-    if (yearSelect && targetYear !== null) {
+
+    let tenancyStartYear = currentYear;
+    if (t.start_date) {
+      const s = new Date(t.start_date + 'T00:00:00');
+      if (!isNaN(s.getTime())) tenancyStartYear = s.getFullYear();
+    } else if (t.created_at) {
+      const c = new Date(t.created_at);
+      if (!isNaN(c.getTime())) tenancyStartYear = c.getFullYear();
+    }
+
+    const relevantYearsSet = new Set([currentYear, tenancyStartYear]);
+
+    // Include years from past payments
+    (tenancyPayments || []).forEach((p) => {
+      if (p.payment_date) {
+        const pd = new Date(p.payment_date);
+        if (!isNaN(pd.getTime())) relevantYearsSet.add(pd.getFullYear());
+      }
+      if (Array.isArray(p.settled_months)) {
+        p.settled_months.forEach((m) => {
+          const ym = m && m.toString().match(/\b(20\d\d)\b/);
+          if (ym) relevantYearsSet.add(parseInt(ym[1], 10));
+        });
+      }
+    });
+
+    // Include years from past bills
+    (tenancyBills || []).forEach((b) => {
+      if (b.duration_start) {
+        const ym = b.duration_start.toString().match(/\b(20\d\d)\b/);
+        if (ym) relevantYearsSet.add(parseInt(ym[1], 10));
+      }
+      if (b.duration_end) {
+        const ym = b.duration_end.toString().match(/\b(20\d\d)\b/);
+        if (ym) relevantYearsSet.add(parseInt(ym[1], 10));
+      }
+      if (b.created_at) {
+        const bd = new Date(b.created_at);
+        if (!isNaN(bd.getTime())) relevantYearsSet.add(bd.getFullYear());
+      }
+    });
+
+    const minYear = Math.min(...relevantYearsSet);
+    const maxYear = Math.max(...relevantYearsSet, currentYear);
+    const relevantYears = [];
+    for (let yr = maxYear; yr >= minYear; yr--) {
+      relevantYears.push(yr);
+    }
+
+    const yearSelect = document.getElementById('details-year-select');
+    let activeYear = targetYear !== null ? parseInt(targetYear, 10) : (parseInt(yearSelect?.value, 10) || currentYear);
+    if (!relevantYears.includes(activeYear)) {
+      activeYear = relevantYears.includes(currentYear) ? currentYear : relevantYears[0];
+    }
+
+    if (yearSelect) {
+      yearSelect.innerHTML = relevantYears.map((yr) => `
+        <option value="${yr}" ${yr === activeYear ? 'selected' : ''}>Year ${yr}</option>
+      `).join('');
       yearSelect.value = activeYear.toString();
     }
+
     const yearIndicator = document.getElementById('details-year-indicator');
     if (yearIndicator) {
       yearIndicator.textContent = `Year ${activeYear} (Jan–Dec)`;
@@ -2382,8 +2440,132 @@ function initEditTenancy() {
     navigateToScreen(10);
   });
 
+  // Revision History & Days-Elapsed Indicator Controller
+  async function loadRentRevisionHistory(tenancy) {
+    const indicatorTitle = document.getElementById('revise-indicator-title');
+    const indicatorSub = document.getElementById('revise-indicator-sub');
+    const historyList = document.getElementById('revise-history-list');
+    const historyCount = document.getElementById('revise-history-count');
+
+    if (indicatorTitle) indicatorTitle.textContent = 'Calculating revisions...';
+    if (indicatorSub) indicatorSub.textContent = 'Checking historical records';
+    if (historyList) historyList.innerHTML = '<p style="text-align: center; color: #7D849B; font-size: 12px; margin: 8px 0;">Loading history...</p>';
+
+    try {
+      const revisions = await fetchCloudRentRevisions(tenancy.id);
+      const now = new Date();
+
+      if (historyCount) {
+        historyCount.textContent = `${revisions.length} revision${revisions.length === 1 ? '' : 's'}`;
+      }
+
+      if (!revisions || revisions.length === 0) {
+        const start = tenancy.start_date
+          ? new Date(tenancy.start_date + 'T00:00:00')
+          : (tenancy.created_at ? new Date(tenancy.created_at) : now);
+        const diffDays = Math.max(0, Math.floor((now - start) / (1000 * 60 * 60 * 24)));
+        const daysText = diffDays === 0 ? 'Today' : `${diffDays} day${diffDays === 1 ? '' : 's'}`;
+
+        if (indicatorTitle) indicatorTitle.textContent = '⏱️ No revisions yet';
+        if (indicatorSub) indicatorSub.textContent = `Base rent unchanged (Active for ${daysText})`;
+
+        if (historyList) {
+          historyList.innerHTML = `
+            <p style="text-align: center; color: #7D849B; font-size: 12px; padding: 12px 0; margin: 0;">
+              No past rent revisions recorded for this tenant.
+            </p>
+          `;
+        }
+        return;
+      }
+
+      // Sort revisions by effective_date or created_at descending
+      const sorted = [...revisions].sort((a, b) => new Date(b.created_at || b.effective_date) - new Date(a.created_at || a.effective_date));
+      const mostRecent = sorted[0];
+
+      const revDate = new Date(mostRecent.effective_date || mostRecent.created_at);
+      const diffDays = Math.max(0, Math.floor((now - revDate) / (1000 * 60 * 60 * 24)));
+      const daysText = diffDays === 0 ? 'Today' : (diffDays === 1 ? '1 day ago' : `${diffDays} days ago`);
+
+      const formattedOld = `₹${parseFloat(mostRecent.old_rent || 0).toLocaleString('en-IN')}`;
+      const formattedNew = `₹${parseFloat(mostRecent.new_rent || 0).toLocaleString('en-IN')}`;
+      const dateLabel = mostRecent.effective_date || (mostRecent.created_at ? mostRecent.created_at.split('T')[0] : '');
+
+      if (indicatorTitle) {
+        indicatorTitle.textContent = `⏱️ Last revised: ${daysText}`;
+      }
+      if (indicatorSub) {
+        indicatorSub.textContent = `${formattedOld} → ${formattedNew} • ${dateLabel}`;
+      }
+
+      if (historyList) {
+        historyList.innerHTML = sorted.map((rev) => {
+          const rDate = rev.effective_date || (rev.created_at ? rev.created_at.split('T')[0] : '');
+          const rOld = parseFloat(rev.old_rent || 0);
+          const rNew = parseFloat(rev.new_rent || 0);
+          const delta = rNew - rOld;
+          const deltaPct = rOld > 0 ? Math.round((delta / rOld) * 100) : 0;
+          const isUp = delta >= 0;
+          const deltaSign = delta >= 0 ? '+' : '';
+          const badgeColor = rev.status === 'scheduled' ? '#0284C7' : (rev.status === 'cancelled' ? '#DC2626' : '#16A34A');
+          const badgeBg = rev.status === 'scheduled' ? '#E0F2FE' : (rev.status === 'cancelled' ? '#FEE2E2' : '#DCFCE7');
+
+          return `
+            <div style="background: #F8F9FD; border: 1px solid #E2E4F2; border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                  <strong style="color: #0E1326; font-size: 13px;">${rDate}</strong>
+                  <span style="font-size: 10.5px; font-weight: 700; background: ${badgeBg}; color: ${badgeColor}; padding: 1px 6px; border-radius: 9999px; text-transform: capitalize;">
+                    ${rev.status || 'applied'}
+                  </span>
+                </div>
+                <span style="color: #7D849B; font-size: 11.5px; display: block;">
+                  ${rev.note || 'Rent revision'}
+                </span>
+              </div>
+              <div style="text-align: right;">
+                <strong style="color: #0E1326; font-size: 13px; display: block;">
+                  ₹${rNew.toLocaleString('en-IN')}
+                </strong>
+                <span style="font-size: 11px; color: ${isUp ? '#16A34A' : '#DC2626'}; font-weight: 600;">
+                  ${deltaSign}₹${Math.abs(delta).toLocaleString('en-IN')} (${deltaSign}${deltaPct}%)
+                </span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    } catch (err) {
+      console.warn('loadRentRevisionHistory error:', err);
+      if (indicatorTitle) indicatorTitle.textContent = '⏱️ Revision History';
+      if (indicatorSub) indicatorSub.textContent = 'Could not load past records';
+      if (historyList) {
+        historyList.innerHTML = '<p style="text-align: center; color: #DC2626; font-size: 12px; margin: 8px 0;">Error loading revision records</p>';
+      }
+    }
+  }
+
+  // Toggle History Drawer
+  const btnToggleRevisionHistory = document.getElementById('btn-toggle-revision-history');
+  const reviseHistoryDrawer = document.getElementById('revise-history-drawer');
+  btnToggleRevisionHistory?.addEventListener('click', () => {
+    if (!reviseHistoryDrawer) return;
+    const isHidden = reviseHistoryDrawer.classList.toggle('hidden');
+    btnToggleRevisionHistory.textContent = isHidden ? 'View History' : 'Hide History';
+  });
+
   // Open & Close Revise Rent Modal
   btnOpenRevise?.addEventListener('click', () => {
+    if (!currentActiveTenancy) return;
+    const curRentDisplay = document.getElementById('revise-current-rent-display');
+    if (curRentDisplay) {
+      curRentDisplay.value = `₹${parseFloat(currentActiveTenancy.base_rent || 0).toLocaleString('en-IN')}`;
+    }
+    // Reset toggle drawer to hidden
+    reviseHistoryDrawer?.classList.add('hidden');
+    if (btnToggleRevisionHistory) btnToggleRevisionHistory.textContent = 'View History';
+
+    loadRentRevisionHistory(currentActiveTenancy);
     modalRevise?.classList.remove('hidden');
   });
 
@@ -2436,6 +2618,7 @@ function initEditTenancy() {
       }
       bannerRevision?.classList.remove('hidden');
       modalRevise?.classList.add('hidden');
+      loadRentRevisionHistory(currentActiveTenancy);
 
       const msg = notifyTenant 
         ? `📈 Rent revision scheduled to ₹${parseFloat(newRent).toLocaleString('en-IN')} from ${cycle} (Tenant notified via WhatsApp & Cloud Synced)`
@@ -2457,6 +2640,7 @@ function initEditTenancy() {
         });
       }
       bannerRevision?.classList.add('hidden');
+      loadRentRevisionHistory(currentActiveTenancy);
       showToast('Scheduled rent revision cancelled in Supabase Cloud');
     } catch (e) {
       showToast(`❌ Cancel error: ${e.message}`);
@@ -4136,51 +4320,123 @@ async function openArchivedDetails(tenancy) {
   if (propTitle) propTitle.textContent = tenancy.property_name;
   if (rentRate) rentRate.textContent = `₹${parseFloat(tenancy.base_rent || 0).toLocaleString('en-IN')} • Monthly`;
 
+  const userRole = getTenancyUserRole(tenancy);
+  const isViewer = userRole === 'viewer';
+  const btnArchMenu = document.getElementById('btn-archdetails-menu');
+  if (btnArchMenu) {
+    btnArchMenu.style.display = isViewer ? 'none' : '';
+  }
+
   try {
-    const bills = await fetchCloudBills(tenancy.id);
-    if (bills && bills.length > 0) {
-      const total = bills.reduce((acc, b) => acc + parseFloat(b.net_payable || 0), 0);
-      if (totalAmount) totalAmount.textContent = `₹${formatCurrencyAmount(total)}`;
+    const [allBills, allPayments] = await Promise.all([
+      fetchCloudBills(tenancy.id),
+      fetchCloudPayments(tenancy.id),
+    ]);
+    const bills = (allBills || []).filter((b) => b.tenancy_id === tenancy.id);
+    const payments = (allPayments || []).filter((p) => p.tenancy_id === tenancy.id);
+
+    const hasUtils = tenancyHasUtilities(tenancy);
+    const sublabel = document.querySelector('#screen-18 .summary-card-sublabel');
+    if (sublabel) sublabel.textContent = hasUtils ? 'Total Bill Paid' : 'Total Rent Paid';
+
+    const totalPaidFromPayments = payments.reduce((acc, p) => acc + parseFloat(p.amount || 0), 0);
+    const totalPaidFromBills = bills.reduce((acc, b) => acc + parseFloat(b.net_payable || 0), 0);
+    const total = totalPaidFromPayments > 0 ? totalPaidFromPayments : totalPaidFromBills;
+
+    if (totalAmount) totalAmount.textContent = `₹${formatCurrencyAmount(total)}`;
+
+    const lastMetricLabel = document.querySelector('#screen-18 .metric-col .metric-label');
+    if (lastMetricLabel) lastMetricLabel.textContent = hasUtils ? 'Last Generated Bill' : 'Last Payment';
+
+    if (hasUtils && bills.length > 0) {
       if (lastBill) lastBill.textContent = `₹${parseFloat(bills[0].net_payable).toLocaleString('en-IN')}`;
+    } else if (payments.length > 0) {
+      if (lastBill) lastBill.textContent = `₹${parseFloat(payments[0].amount).toLocaleString('en-IN')}`;
     } else {
-      if (totalAmount) totalAmount.textContent = '₹0';
       if (lastBill) lastBill.textContent = '₹0';
     }
+
     if (nextBill) nextBill.textContent = 'Archived';
+
+    const sectionTitle = document.querySelector('#screen-18 .details-section-title');
+    if (sectionTitle) sectionTitle.textContent = hasUtils ? 'Rent & Bill History' : 'Payment History';
 
     const historyList = document.getElementById('archdetails-history-list');
     if (historyList) {
-      if (bills && bills.length > 0) {
+      const records = [];
+      payments.forEach((p) => {
+        records.push({
+          type: 'payment',
+          date: new Date(p.payment_date || p.created_at || 0),
+          raw: p,
+        });
+      });
+      bills.forEach((b) => {
+        records.push({
+          type: 'bill',
+          date: new Date(b.created_at || b.generated_date || 0),
+          raw: b,
+        });
+      });
+
+      // Sort descending by date
+      records.sort((a, b) => b.date - a.date);
+
+      if (records.length > 0) {
         historyList.innerHTML = '';
-        bills.forEach((b) => {
+        records.forEach((rec) => {
           const row = document.createElement('div');
           row.className = 'recent-item-card';
           row.setAttribute('role', 'button');
           row.setAttribute('tabindex', '0');
           row.style.cursor = 'pointer';
-          row.innerHTML = `
-            <div class="recent-item-left">
-              <strong class="recent-item-title">${b.duration_start} – ${b.duration_end}</strong>
-              <span class="recent-item-timestamp">Generated on ${b.generated_date} • ${b.status}</span>
-            </div>
-            <div class="recent-item-right">
-              <strong class="recent-item-amount">₹${parseFloat(b.net_payable).toLocaleString('en-IN')}</strong>
-              <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </div>
-          `;
-          row.addEventListener('click', () => {
-            renderBillDetails({
-              ...b,
-              propertyName: tenancy.property_name,
+
+          if (rec.type === 'payment') {
+            const p = rec.raw;
+            const months = Array.isArray(p.settled_months) && p.settled_months.length > 0
+              ? p.settled_months.join(', ')
+              : 'Settled Rent';
+            row.innerHTML = `
+              <div class="recent-item-left">
+                <strong class="recent-item-title">${months} — Paid via ${(p.payment_mode || 'Cash').toUpperCase()}</strong>
+                <span class="recent-item-timestamp">Paid on ${p.payment_date || (p.created_at ? p.created_at.split('T')[0] : '')} ${p.reference_no ? '• Ref: ' + p.reference_no : ''}</span>
+              </div>
+              <div class="recent-item-right">
+                <strong class="recent-item-amount" style="color: #16A34A;">₹${formatCurrencyAmount(p.amount)}</strong>
+                <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </div>
+            `;
+            row.addEventListener('click', () => {
+              openPaymentReceipt(p, tenancy);
             });
-            navigateToScreen(15);
-          });
+          } else {
+            const b = rec.raw;
+            row.innerHTML = `
+              <div class="recent-item-left">
+                <strong class="recent-item-title">${b.duration_start} – ${b.duration_end}</strong>
+                <span class="recent-item-timestamp">Generated on ${b.generated_date} • ${b.status}</span>
+              </div>
+              <div class="recent-item-right">
+                <strong class="recent-item-amount">₹${parseFloat(b.net_payable).toLocaleString('en-IN')}</strong>
+                <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </div>
+            `;
+            row.addEventListener('click', () => {
+              renderBillDetails({
+                ...b,
+                propertyName: tenancy.property_name,
+              });
+              navigateToScreen(15);
+            });
+          }
           historyList.appendChild(row);
         });
       } else {
-        historyList.innerHTML = '<p class="empty-recent-copy" style="text-align: center; padding: 20px 0; color: #7D849B;">No archived bill history.</p>';
+        historyList.innerHTML = '<p class="empty-recent-copy" style="text-align: center; padding: 20px 0; color: #7D849B;">No archived history found.</p>';
       }
     }
   } catch (e) {
@@ -4220,6 +4476,10 @@ function initArchivedTenanciesFlow() {
   menuUnarchive?.addEventListener('click', async () => {
     archMenuDropdown?.classList.add('hidden');
     if (!activeArchivedTenancy) return;
+    if (getTenancyUserRole(activeArchivedTenancy) === 'viewer') {
+      showToast('👁️ Viewers cannot unarchive properties.');
+      return;
+    }
 
     try {
       await unarchiveCloudTenancy(activeArchivedTenancy.id);
@@ -4236,6 +4496,12 @@ function initArchivedTenanciesFlow() {
   menuArchDelete?.addEventListener('click', async () => {
     archMenuDropdown?.classList.add('hidden');
     if (!activeArchivedTenancy) return;
+    if (getTenancyUserRole(activeArchivedTenancy) === 'viewer') {
+      showToast('👁️ Viewers cannot delete properties.');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to permanently delete "${activeArchivedTenancy.property_name}"?`)) return;
 
     try {
       await deleteCloudTenancy(activeArchivedTenancy.id);

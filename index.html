@@ -1461,9 +1461,35 @@
                   <h3 class="modal-title" id="modal-revise-title">Revise Rent from Cycle</h3>
                   <button class="modal-close-btn" id="btn-close-revise-modal" aria-label="Close dialog">✕</button>
                 </div>
-                <p class="hero-subtitle" style="margin-bottom: 16px; font-size: 13.5px;">
+                <p class="hero-subtitle" style="margin-bottom: 12px; font-size: 13.5px;">
                   Schedule a rent increment or discount. Past billing history will remain preserved.
                 </p>
+
+                <!-- Revision Elapsed Indicator & History Toggle -->
+                <div id="revise-days-indicator-card" style="background: #EFF0FA; border: 1px solid #D6D8EC; border-radius: 14px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; font-size: 13px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 16px;">⏱️</span>
+                    <div>
+                      <strong id="revise-indicator-title" style="color: #0E1326; display: block; font-weight: 700; font-size: 13px;">Calculating revisions...</strong>
+                      <span id="revise-indicator-sub" style="color: #52586E; font-size: 12px;">Checking historical records</span>
+                    </div>
+                  </div>
+                  <button type="button" class="btn-text-action" id="btn-toggle-revision-history" style="font-size: 12px; font-weight: 700; color: #5452EC; white-space: nowrap; margin-left: 8px;">
+                    View History
+                  </button>
+                </div>
+
+                <!-- Collapsible Historical Revisions Drawer -->
+                <div id="revise-history-drawer" class="hidden" style="margin-bottom: 14px; background: #FFFFFF; border: 1.5px solid #E2E4F2; border-radius: 14px; padding: 12px; max-height: 200px; overflow-y: auto;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 12px; font-weight: 700; color: #0E1326; text-transform: uppercase; letter-spacing: 0.04em;">Revision History</span>
+                    <span id="revise-history-count" style="font-size: 11px; background: #E8E7FB; color: #5452EC; font-weight: 700; padding: 2px 8px; border-radius: 9999px;">0 revisions</span>
+                  </div>
+                  <div id="revise-history-list" style="display: flex; flex-direction: column; gap: 8px;">
+                    <p style="text-align: center; color: #7D849B; font-size: 12.5px; padding: 8px 0; margin: 0;">Loading history...</p>
+                  </div>
+                </div>
+
                 <form class="form-stack" id="form-revise-rent" onsubmit="return false;">
                   <div class="form-row-split">
                     <div class="form-group">

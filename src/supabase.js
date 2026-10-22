@@ -364,7 +364,42 @@ export async function updateCloudTenancyUtilities(tenancyId, utilities) {
   }
 }
 
+async function verifyWritePermission(tenancyId) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) throw new Error('Authentication required');
+    // Check if owner
+    const { data: tenancy } = await supabase
+      .from('tenancies')
+      .select('owner_id')
+      .eq('id', tenancyId)
+      .maybeSingle();
+    if (tenancy && tenancy.owner_id === user.id) return true;
+
+    // If not owner, check if user is manager in approved family share
+    const { data: shares } = await supabase
+      .from('family_shares')
+      .select('role, tenancy_ids, status')
+      .eq('shared_with_email', user.email)
+      .in('status', ['approved', 'accepted']);
+
+    if (shares && shares.length > 0) {
+      const isManager = shares.some((s) => {
+        const matchTenancy = !s.tenancy_ids || !Array.isArray(s.tenancy_ids) || s.tenancy_ids.length === 0 || s.tenancy_ids.includes(tenancyId);
+        return matchTenancy && s.role === 'manager';
+      });
+      if (isManager) return true;
+    }
+
+    throw new Error('Viewer access: you do not have permission to archive, unarchive, or delete this property');
+  } catch (err) {
+    console.error('Permission check failed:', err);
+    throw err;
+  }
+}
+
 export async function archiveCloudTenancy(tenancyId) {
+  await verifyWritePermission(tenancyId);
   return updateCloudTenancy(tenancyId, {
     status: 'archived',
     archived_at: new Date().toISOString(),
@@ -372,6 +407,7 @@ export async function archiveCloudTenancy(tenancyId) {
 }
 
 export async function unarchiveCloudTenancy(tenancyId) {
+  await verifyWritePermission(tenancyId);
   return updateCloudTenancy(tenancyId, {
     status: 'active',
     archived_at: null,
@@ -379,6 +415,7 @@ export async function unarchiveCloudTenancy(tenancyId) {
 }
 
 export async function deleteCloudTenancy(tenancyId) {
+  await verifyWritePermission(tenancyId);
   try {
     // Delete child records first to satisfy foreign key constraints
     await supabase.from('payments').delete().eq('tenancy_id', tenancyId);
@@ -443,6 +480,27 @@ export async function cancelCloudRentRevision(idOrTenancyId) {
     throw err;
   }
 }
+
+export async function fetchCloudRentRevisions(tenancyId) {
+  await ensureAuthenticated();
+  try {
+    let query = supabase
+      .from('rent_revisions')
+      .select('*')
+      .order('effective_date', { ascending: false });
+
+    if (tenancyId) {
+      query = query.eq('tenancy_id', tenancyId);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error('Fetch Rent Revisions Error:', err);
+    return [];
+  }
+}
+
 
 // ==========================================================================
 // BILLS & INVOICES
