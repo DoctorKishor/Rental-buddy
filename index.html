@@ -41,6 +41,12 @@
           </div>
         </div>
 
+        <!-- Offline Read-Only Sticky Banner -->
+        <div class="offline-indicator-banner hidden" id="offline-indicator-banner">
+          <span>📡</span>
+          <span>Offline Mode • Read-Only (Cloud sync paused)</span>
+        </div>
+
         <!-- Screens Container -->
         <div class="screens-slider" id="screensSlider">
           
@@ -3338,6 +3344,42 @@
             </div>
           </section>
 
+        </div>
+
+        <!-- Offline Warning & Read-Only Notice Modal -->
+        <div class="modal-overlay hidden" id="modal-offline-notice" role="dialog" aria-modal="true" aria-labelledby="offlineNoticeTitle">
+          <div class="modal-sheet">
+            <div class="modal-handle"></div>
+            <div class="modal-header">
+              <h3 class="modal-title" id="offlineNoticeTitle" style="color: #B45309;">📡 Offline Mode Active</h3>
+              <button class="modal-close-btn" id="btnCloseOfflineModal" aria-label="Close dialog">✕</button>
+            </div>
+            <div class="offline-notice-content" style="padding: 10px 0 20px;">
+              <div style="background: #FEF3C7; border: 1.5px solid #FDE68A; border-radius: 16px; padding: 14px 16px; margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-start;">
+                <span style="font-size: 24px; line-height: 1;">⚠️</span>
+                <div>
+                  <h4 style="font-size: 14px; font-weight: 700; color: #92400E; margin: 0 0 4px 0;">Live Cloud Sync Paused</h4>
+                  <p style="font-size: 12.5px; color: #B45309; line-height: 1.45; margin: 0;">
+                    To protect your ledgers and prevent data collisions with other family members or co-hosts, <strong>recording payments, generating bills, and editing tenancies</strong> require an active internet connection.
+                  </p>
+                </div>
+              </div>
+
+              <div style="background: #FFFFFF; border: 1.5px solid var(--border-subtle); border-radius: 16px; padding: 14px 16px; margin-bottom: 20px;">
+                <h5 style="font-size: 13.5px; font-weight: 700; color: var(--text-heading); margin: 0 0 8px 0;">What you can still do offline:</h5>
+                <ul style="margin: 0; padding-left: 20px; font-size: 12.5px; color: var(--text-body); line-height: 1.6;">
+                  <li>Browse all cached tenancies &amp; tenant contacts</li>
+                  <li>Inspect historical month-wise payment ledgers</li>
+                  <li>View generated utility invoices &amp; payment vouchers</li>
+                  <li>Check billing dates and advance balances</li>
+                </ul>
+              </div>
+
+              <button type="button" class="btn btn-primary btn-pill" id="btn-dismiss-offline-modal" style="width: 100%;">
+                Got It • Browse Read-Only
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Toast notification popup (Native Gesture Bar strictly excluded) -->

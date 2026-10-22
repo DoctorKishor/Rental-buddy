@@ -49,6 +49,8 @@ import {
   resetUserPassword,
   updateUserProfile,
   deleteUserAccountAndData,
+  assertOnline,
+  initSupabaseRealtime,
 } from './supabase.js';
 import html2canvas from 'html2canvas';
 
@@ -135,6 +137,13 @@ function showToast(message, duration = 3000) {
 
 // Screen Transition Navigator with Strict Auth Guard
 function navigateToScreen(targetScreenNumber) {
+  // Offline Guard: Transaction creation/editing screens strictly require active internet
+  if ([7, 8, 9, 11, 12, 13, 14].includes(targetScreenNumber) && !isAppOnline()) {
+    showToast('📡 You are offline. Recording transactions or modifying tenancies requires an active connection.', 4500);
+    showOfflineModal();
+    return;
+  }
+
   // Screen 13 Guard: If target is 13 (Generate Bill) but active tenancy is rent-only or user is a Viewer
   if (targetScreenNumber === 13) {
     if (currentActiveTenancy && getTenancyUserRole(currentActiveTenancy) === 'viewer') {
@@ -3281,6 +3290,11 @@ function initEditTenancy() {
 export let selectedRecordTenancy = null;
 
 export function openRecordPaymentPage(tenancyOrId) {
+  if (!isAppOnline()) {
+    showToast('📡 You are offline. Recording payments requires an active internet connection to prevent duplicate entries.', 4500);
+    showOfflineModal();
+    return;
+  }
   if (!cloudTenanciesList || cloudTenanciesList.length === 0) {
     showToast('⚠️ Please create a tenancy first before recording payments', 3500);
     navigateToScreen(7);
@@ -4132,6 +4146,11 @@ function initRecordPaymentPage() {
 export let activeBillDraft = null;
 
 export function setupGenerateBillScreen(target) {
+  if (!isAppOnline()) {
+    showToast('📡 You are offline. Generating bills requires an active internet connection to prevent billing collisions.', 4500);
+    showOfflineModal();
+    return;
+  }
   if (!target) return;
   if (!tenancyHasUtilities(target)) {
     showToast(`ℹ️ "${target.property_name}" is a rent-only tenancy. Use "Record Payment" to record rent.`, 3500);
@@ -6660,6 +6679,101 @@ export function initPwaInstallation() {
 }
 
 // ==========================================================================
+// OFFLINE / ONLINE CONNECTIVITY LIFECYCLE CONTROLLER
+// ==========================================================================
+
+export function isAppOnline() {
+  return typeof navigator !== 'undefined' ? navigator.onLine : true;
+}
+
+export function showOfflineModal() {
+  const modal = document.getElementById('modal-offline-notice');
+  if (modal) {
+    modal.classList.remove('hidden');
+  } else {
+    showToast('📡 You are offline. Read-only mode active. Connect to internet to make changes.', 4500);
+  }
+}
+
+export function hideOfflineModal() {
+  const modal = document.getElementById('modal-offline-notice');
+  modal?.classList.add('hidden');
+}
+
+export function updateConnectivityUI() {
+  const online = isAppOnline();
+  const banner = document.getElementById('offline-indicator-banner');
+  if (banner) {
+    if (!online) {
+      banner.classList.remove('hidden');
+    } else {
+      banner.classList.add('hidden');
+    }
+  }
+}
+
+export function initConnectivityLifecycle() {
+  window.addEventListener('online', async () => {
+    updateConnectivityUI();
+    hideOfflineModal();
+    showToast('⚡ Back online! Reconnected & syncing with Supabase Cloud...', 3000);
+    try {
+      await syncDashboardFromCloud();
+    } catch (e) {
+      console.warn('Online resync error:', e);
+    }
+  });
+
+  window.addEventListener('offline', () => {
+    updateConnectivityUI();
+    showOfflineModal();
+  });
+
+  // Modal close handlers
+  document.getElementById('btnCloseOfflineModal')?.addEventListener('click', hideOfflineModal);
+  document.getElementById('btn-dismiss-offline-modal')?.addEventListener('click', hideOfflineModal);
+  const modalOffline = document.getElementById('modal-offline-notice');
+  modalOffline?.addEventListener('click', (e) => {
+    if (e.target === modalOffline) hideOfflineModal();
+  });
+
+  // Initial check on boot
+  updateConnectivityUI();
+  if (!isAppOnline()) {
+    showOfflineModal();
+  }
+}
+
+// ==========================================================================
+// LIVE MULTI-USER REALTIME HANDLER
+// ==========================================================================
+
+let realtimeDebounceTimer = null;
+export function handleRealtimeCloudUpdate(table, payload) {
+  clearTimeout(realtimeDebounceTimer);
+  realtimeDebounceTimer = setTimeout(async () => {
+    try {
+      await syncDashboardFromCloud();
+      showToast('⚡ Live sync: Updated with latest changes from cloud', 2500);
+
+      // Re-render currently active view if applicable
+      if (state.currentScreen === 10 && currentActiveTenancy) {
+        const fresh = cloudTenanciesList.find((t) => t.id === currentActiveTenancy.id);
+        if (fresh) {
+          bindTenancyToDetails(fresh);
+        }
+      } else if (state.currentScreen === 18 && currentArchivedTenancy) {
+        openArchivedDetails(currentArchivedTenancy);
+      } else if (state.currentScreen === 22) {
+        refreshFamilySharingPage();
+      }
+    } catch (err) {
+      console.warn('Realtime cloud sync update error:', err);
+    }
+  }, 400);
+}
+
+// ==========================================================================
 // INITIAL APPLICATION BOOT & STRICT AUTH GUARD
 // ==========================================================================
 
@@ -6681,6 +6795,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initReceiptPage();
   initNumericAndPhoneInputs();
   initPwaInstallation();
+  initConnectivityLifecycle();
 
   // Check Supabase Cloud Session on Boot
   const session = await getCurrentSession();
@@ -6697,6 +6812,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       cloudSession.user = currentAuthSession.user;
       cloudSession.isCloudConnected = true;
       updateAuthUI(currentAuthSession.user);
+      initSupabaseRealtime(handleRealtimeCloudUpdate);
     } else if (event === 'SIGNED_OUT') {
       cloudSession.user = null;
       cloudSession.profile = null;
@@ -6712,6 +6828,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else {
     // User is authenticated!
     updateAuthUI(session.user);
+    initSupabaseRealtime(handleRealtimeCloudUpdate);
 
     try {
       await syncDashboardFromCloud();

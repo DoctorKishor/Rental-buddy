@@ -5246,4 +5246,37 @@ select.form-input:disabled {
   line-height: 1.35;
 }
 
+/* ==========================================================================
+   Offline Indicator Banner & Read-Only Badge
+   ========================================================================== */
+.offline-indicator-banner {
+  background: #FEF3C7;
+  color: #92400E;
+  border-bottom: 1px solid #FDE68A;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  animation: slideDownBanner 0.25s ease-out;
+}
+
+@keyframes slideDownBanner {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+
 

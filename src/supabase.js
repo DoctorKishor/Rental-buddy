@@ -245,12 +245,33 @@ export async function getCurrentSession() {
 }
 
 // ==========================================================================
+// CONNECTIVITY & OFFLINE SAFETY GUARD
+// ==========================================================================
+
+export function assertOnline(actionName = 'perform this action') {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    throw new Error(`You are currently offline. An active internet connection is required to ${actionName}.`);
+  }
+}
+
+// ==========================================================================
 // TENANCIES CLOUD CRUD
 // ==========================================================================
 
 export async function fetchCloudTenancies(status = 'active') {
   await ensureAuthenticated();
   if (!cloudSession.user) return [];
+  const cacheKey = `rb_cache_tenancies_${cloudSession.user.id}_${status}`;
+
+  // If offline, return cached snapshot immediately
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) {}
+    }
+    return [];
+  }
+
   try {
     const { data, error } = await supabase
       .from('tenancies')
@@ -265,14 +286,22 @@ export async function fetchCloudTenancies(status = 'active') {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
+    if (data) {
+      try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) {}
+    }
     return data || [];
   } catch (err) {
-    console.error('Fetch Tenancies Error:', err);
+    console.warn('Fetch Tenancies Network Notice, falling back to cache:', err);
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) {}
+    }
     return [];
   }
 }
 
 export async function createCloudTenancy(tenancyData) {
+  assertOnline('create a new tenancy');
   await ensureAuthenticated();
   if (!cloudSession.user) return null;
   try {
@@ -562,6 +591,16 @@ export async function fetchCloudRentRevisions(tenancyId) {
 
 export async function fetchCloudBills(tenancyId) {
   await ensureAuthenticated();
+  const cacheKey = `rb_cache_bills_${cloudSession.user?.id || 'anon'}_${tenancyId || 'all'}`;
+
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) {}
+    }
+    return [];
+  }
+
   try {
     let query = supabase.from('bills').select('*, tenancies (property_name)').order('created_at', { ascending: false });
     if (tenancyId) {
@@ -569,14 +608,22 @@ export async function fetchCloudBills(tenancyId) {
     }
     const { data, error } = await query;
     if (error) throw error;
+    if (data) {
+      try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) {}
+    }
     return data || [];
   } catch (err) {
-    console.error('Fetch Bills Error:', err);
+    console.warn('Fetch Bills Network Notice, falling back to cache:', err);
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) {}
+    }
     return [];
   }
 }
 
 export async function createCloudBill(billData) {
+  assertOnline('generate a new bill');
   await ensureAuthenticated();
   try {
     const invoiceNum =
@@ -621,6 +668,16 @@ export async function createCloudBill(billData) {
 
 export async function fetchCloudPayments(tenancyId) {
   await ensureAuthenticated();
+  const cacheKey = `rb_cache_payments_${cloudSession.user?.id || 'anon'}_${tenancyId || 'all'}`;
+
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) {}
+    }
+    return [];
+  }
+
   try {
     let query = supabase.from('payments').select('*, tenancies (property_name)').order('created_at', { ascending: false });
     if (tenancyId) {
@@ -628,14 +685,22 @@ export async function fetchCloudPayments(tenancyId) {
     }
     const { data, error } = await query;
     if (error) throw error;
+    if (data) {
+      try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) {}
+    }
     return data || [];
   } catch (err) {
-    console.error('Fetch Payments Error:', err);
+    console.warn('Fetch Payments Network Notice, falling back to cache:', err);
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) {}
+    }
     return [];
   }
 }
 
 export async function recordCloudPayment(paymentData) {
+  assertOnline('record a payment');
   await ensureAuthenticated();
   try {
     // Sanitize Channel & Payment Mode to strictly satisfy Postgres check constraints:
@@ -877,3 +942,49 @@ export async function updateFamilyShareRole(shareId, newRole) {
 export const fetchCloudFamilyMembers = fetchOutgoingFamilyShares;
 export const inviteCloudFamilyMember = (email, role) => createSelectiveFamilyShare({ email, role, tenancyIds: [] });
 export const revokeCloudFamilyMember = revokeFamilyShare;
+
+// ==========================================================================
+// SUPABASE REALTIME WEB-SOCKET SUBSCRIPTIONS (LIVE MULTI-USER SYNC)
+// ==========================================================================
+
+let realtimeChannel = null;
+
+export function initSupabaseRealtime(onDataChanged) {
+  if (!cloudSession.user) return null;
+  if (realtimeChannel) {
+    try {
+      supabase.removeChannel(realtimeChannel);
+    } catch (e) {}
+    realtimeChannel = null;
+  }
+
+  // Subscribe to live postgres changes across core ledger tables
+  realtimeChannel = supabase
+    .channel('rental-buddy-live-sync')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'tenancies' }, (payload) => {
+      console.log('Realtime tenancies change:', payload);
+      if (typeof onDataChanged === 'function') onDataChanged('tenancies', payload);
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, (payload) => {
+      console.log('Realtime payments change:', payload);
+      if (typeof onDataChanged === 'function') onDataChanged('payments', payload);
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, (payload) => {
+      console.log('Realtime bills change:', payload);
+      if (typeof onDataChanged === 'function') onDataChanged('bills', payload);
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'rent_revisions' }, (payload) => {
+      console.log('Realtime rent_revisions change:', payload);
+      if (typeof onDataChanged === 'function') onDataChanged('rent_revisions', payload);
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'family_shares' }, (payload) => {
+      console.log('Realtime family_shares change:', payload);
+      if (typeof onDataChanged === 'function') onDataChanged('family_shares', payload);
+    })
+    .subscribe((status) => {
+      console.log('Supabase Realtime status:', status);
+    });
+
+  return realtimeChannel;
+}
+

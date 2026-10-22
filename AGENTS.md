@@ -1625,3 +1625,33 @@ To eliminate dead placeholders and provide a production-ready user experience, a
   - Added an interactive `"Install App (PWA)"` item in Settings (`#item-install-pwa`) with dynamic status chip (`Install` / `Installed ✔`).
   - Automatically captures the `beforeinstallprompt` event and allows one-tap home-screen installation.
   - Detects standalone mode (`display-mode: standalone`) and gives platform-specific installation instructions for iOS Safari and desktop Chrome.
+
+---
+
+## 45. Offline Read-Only Access, Collision Prevention & Supabase Realtime Multi-User Sync Architecture
+
+### 1. The Offline Collision Prevention Problem & Solution
+- **The Financial Integrity Risk**: Blindly recording payments, bills, or rent changes while offline causes severe race conditions (the "Double-Payment" / "Phantom Advance" problem) when multiple landlords, co-hosts, or family members use the app simultaneously.
+- **The Solution (Two-Tier Offline Architecture)**:
+  1. **Tier 1 (Read-Only Offline Access)**: The app loads instantly offline. All tenancies, tenant contacts, monthly billing ledgers, and payment vouchers are cached locally in `localStorage` (`rb_cache_tenancies_*`, `rb_cache_bills_*`, `rb_cache_payments_*`) and remain fully inspectable without internet.
+  2. **Tier 2 (Online-Mandatory Mutations)**: All balance-affecting operations (`Record Payment`, `Generate Bill`, `Create Tenancy`, `Edit Tenancy`, `Revise Rent`, and `Family Share invitations`) strictly require an active internet connection.
+
+### 2. Offline Notice Modal & Top Status Banner
+- **Persistent Sticky Status Banner (`#offline-indicator-banner`)**:
+  - Automatically slides down at the top of the mobile frame when offline: `📡 Offline Mode • Read-Only (Cloud sync paused)`.
+  - Disappears automatically upon reconnecting.
+- **Offline Explanation Modal (`#modal-offline-notice`)**:
+  - Displays when the app detects an offline state or when a user attempts a write action while offline.
+  - Transparently explains why live transactions are paused: *"To protect your ledgers and prevent data collisions with other family members or co-hosts, recording transactions requires an active connection."*
+  - Summarizes everything the user can still do offline (view cached ledgers, receipts, tenancy details).
+  - Dismiss button: `"Got It • Browse Read-Only"`.
+- **Auto-Recovery on Reconnect**:
+  - Listening to `window.addEventListener('online')` automatically dismisses the offline banner and triggers an immediate background `syncDashboardFromCloud()` with a celebratory toast (`⚡ Back online! Reconnected & syncing with Supabase Cloud...`).
+
+### 3. Supabase Realtime WebSockets for Multi-User Live Sync
+- **Implementation**:
+  - Built `initSupabaseRealtime(onDataChanged)` in `src/supabase.js` subscribing to live `postgres_changes` across `tenancies`, `payments`, `bills`, `rent_revisions`, and `family_shares`.
+- **Zero-Stale-Screen Guarantee**:
+  - When User A records a rent payment on their phone, User B's device receives the WebSocket event within milliseconds, automatically re-synchronizing the dashboard, ledger balances, and vouchers without requiring manual page reload.
+  - Eliminates stale ledger calculations and prevents co-hosts from collecting rent for already-settled cycles.
+
