@@ -40,6 +40,8 @@ export async function ensureAuthenticated() {
   return null;
 }
 
+export const getCurrentUser = ensureAuthenticated;
+
 export async function signInUser(email, password) {
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -427,7 +429,7 @@ export async function updateCloudTenancyUtilities(tenancyId, utilities) {
 
 async function verifyWritePermission(tenancyId) {
   try {
-    const user = await getCurrentUser();
+    const user = await ensureAuthenticated();
     if (!user) throw new Error('Authentication required');
     // Check if owner
     const { data: tenancy } = await supabase
@@ -438,10 +440,11 @@ async function verifyWritePermission(tenancyId) {
     if (tenancy && tenancy.owner_id === user.id) return true;
 
     // If not owner, check if user is manager in approved family share
+    const userEmail = (user.email || '').toLowerCase().trim();
     const { data: shares } = await supabase
       .from('family_shares')
       .select('role, tenancy_ids, status')
-      .eq('shared_with_email', user.email)
+      .or(`member_email.eq.${userEmail},member_id.eq.${user.id}`)
       .in('status', ['approved', 'accepted']);
 
     if (shares && shares.length > 0) {

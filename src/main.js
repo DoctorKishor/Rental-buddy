@@ -48,6 +48,8 @@ import {
   resendVerificationEmail,
   resetUserPassword,
   updateUserProfile,
+  syncUserProfile,
+  getCurrentUser,
   deleteUserAccountAndData,
   assertOnline,
   initSupabaseRealtime,
