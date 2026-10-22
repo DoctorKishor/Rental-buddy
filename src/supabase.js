@@ -481,6 +481,40 @@ export async function cancelCloudRentRevision(idOrTenancyId) {
   }
 }
 
+export async function applyDueRentRevisions(tenancy) {
+  if (!tenancy || !Array.isArray(tenancy.rent_revisions)) return tenancy;
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  const dueRevisions = tenancy.rent_revisions.filter((r) => {
+    return r.status === 'scheduled' && r.effective_date && r.effective_date <= todayStr;
+  });
+
+  if (dueRevisions.length === 0) return tenancy;
+
+  dueRevisions.sort((a, b) => new Date(a.effective_date) - new Date(b.effective_date));
+
+  for (const rev of dueRevisions) {
+    try {
+      await updateCloudTenancy(tenancy.id, {
+        base_rent: parseFloat(rev.new_rent),
+      });
+      await supabase
+        .from('rent_revisions')
+        .update({ status: 'applied' })
+        .eq('id', rev.id);
+
+      rev.status = 'applied';
+      tenancy.base_rent = parseFloat(rev.new_rent);
+      console.log(`✅ Applied scheduled rent revision for ${tenancy.property_name}: ₹${rev.old_rent} -> ₹${rev.new_rent}`);
+    } catch (e) {
+      console.warn('Failed to auto-apply rent revision:', e);
+    }
+  }
+
+  return tenancy;
+}
+
 export async function fetchCloudRentRevisions(tenancyId) {
   await ensureAuthenticated();
   try {

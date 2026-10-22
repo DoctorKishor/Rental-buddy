@@ -30,6 +30,7 @@ import {
   scheduleCloudRentRevision,
   cancelCloudRentRevision,
   fetchCloudRentRevisions,
+  applyDueRentRevisions,
   fetchCloudBills,
   createCloudBill,
   fetchCloudPayments,
@@ -1471,6 +1472,9 @@ export async function syncDashboardFromCloud() {
     cloudBillsList = cloudBills || [];
     cloudPaymentsList = cloudPayments || [];
 
+    // Automatically apply any scheduled revisions that have reached their effective date
+    await Promise.all(cloudTenanciesList.map((t) => applyDueRentRevisions(t)));
+
     // Populate quick record modal select
     if (recordSelect) {
       recordSelect.innerHTML = '';
@@ -1733,6 +1737,7 @@ export async function syncDashboardFromCloud() {
 
 export async function bindTenancyToDetails(t, targetYear = null) {
   if (!t) return;
+  await applyDueRentRevisions(t);
   currentActiveTenancy = t;
 
   const propTitle = document.getElementById('details-prop-title');
@@ -2481,21 +2486,42 @@ function initEditTenancy() {
 
       // Sort revisions by effective_date or created_at descending
       const sorted = [...revisions].sort((a, b) => new Date(b.created_at || b.effective_date) - new Date(a.created_at || a.effective_date));
-      const mostRecent = sorted[0];
+      const activeScheduled = sorted.find((r) => r.status === 'scheduled');
+      const lastApplied = sorted.find((r) => r.status === 'applied');
 
-      const revDate = new Date(mostRecent.effective_date || mostRecent.created_at);
-      const diffDays = Math.max(0, Math.floor((now - revDate) / (1000 * 60 * 60 * 24)));
-      const daysText = diffDays === 0 ? 'Today' : (diffDays === 1 ? '1 day ago' : `${diffDays} days ago`);
+      if (activeScheduled) {
+        const scheduledDate = activeScheduled.effective_date
+          ? new Date(activeScheduled.effective_date + 'T00:00:00')
+          : null;
+        const fmtDate = scheduledDate && !isNaN(scheduledDate.getTime())
+          ? `${scheduledDate.getDate()} ${scheduledDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+          : (activeScheduled.effective_date || 'Next Cycle');
+        const diffDays = scheduledDate ? Math.ceil((scheduledDate - now) / (1000 * 60 * 60 * 24)) : 0;
+        const inDaysText = diffDays > 0 ? ` (in ${diffDays} day${diffDays === 1 ? '' : 's'})` : '';
 
-      const formattedOld = `₹${parseFloat(mostRecent.old_rent || 0).toLocaleString('en-IN')}`;
-      const formattedNew = `₹${parseFloat(mostRecent.new_rent || 0).toLocaleString('en-IN')}`;
-      const dateLabel = mostRecent.effective_date || (mostRecent.created_at ? mostRecent.created_at.split('T')[0] : '');
+        if (indicatorTitle) indicatorTitle.textContent = `⏱️ Revision Scheduled${inDaysText}`;
+        if (indicatorSub) {
+          indicatorSub.textContent = `₹${parseFloat(activeScheduled.old_rent || 0).toLocaleString('en-IN')} → ₹${parseFloat(activeScheduled.new_rent || 0).toLocaleString('en-IN')} on ${fmtDate}`;
+        }
+      } else if (lastApplied) {
+        const revDate = new Date(lastApplied.effective_date || lastApplied.created_at);
+        const diffDays = Math.max(0, Math.floor((now - revDate) / (1000 * 60 * 60 * 24)));
+        const daysText = diffDays === 0 ? 'Today' : (diffDays === 1 ? '1 day ago' : `${diffDays} days ago`);
+        const formattedOld = `₹${parseFloat(lastApplied.old_rent || 0).toLocaleString('en-IN')}`;
+        const formattedNew = `₹${parseFloat(lastApplied.new_rent || 0).toLocaleString('en-IN')}`;
+        const dateLabel = lastApplied.effective_date || (lastApplied.created_at ? lastApplied.created_at.split('T')[0] : '');
 
-      if (indicatorTitle) {
-        indicatorTitle.textContent = `⏱️ Last revised: ${daysText}`;
-      }
-      if (indicatorSub) {
-        indicatorSub.textContent = `${formattedOld} → ${formattedNew} • ${dateLabel}`;
+        if (indicatorTitle) indicatorTitle.textContent = `⏱️ Last revised: ${daysText}`;
+        if (indicatorSub) indicatorSub.textContent = `${formattedOld} → ${formattedNew} • ${dateLabel}`;
+      } else {
+        const start = tenancy.start_date
+          ? new Date(tenancy.start_date + 'T00:00:00')
+          : (tenancy.created_at ? new Date(tenancy.created_at) : now);
+        const diffDays = Math.max(0, Math.floor((now - start) / (1000 * 60 * 60 * 24)));
+        const daysText = diffDays === 0 ? 'Today' : `${diffDays} day${diffDays === 1 ? '' : 's'}`;
+
+        if (indicatorTitle) indicatorTitle.textContent = '⏱️ No active revisions';
+        if (indicatorSub) indicatorSub.textContent = `Base rent unchanged (Active for ${daysText})`;
       }
 
       if (historyList) {
@@ -2630,6 +2656,19 @@ function initEditTenancy() {
     if (curRentDisplay) {
       curRentDisplay.value = `₹${parseFloat(currentActiveTenancy.base_rent || 0).toLocaleString('en-IN')}`;
     }
+
+    // Check if an active scheduled revision exists to prefill or clear inputs
+    const activeScheduled = currentActiveTenancy.rent_revisions?.find((r) => r.status === 'scheduled');
+    const inputNewRent = document.getElementById('input-new-rent');
+    const inputReason = document.getElementById('input-revise-reason');
+    if (activeScheduled) {
+      if (inputNewRent) inputNewRent.value = activeScheduled.new_rent || '';
+      if (inputReason) inputReason.value = activeScheduled.note || '';
+    } else {
+      if (inputNewRent) inputNewRent.value = '';
+      if (inputReason) inputReason.value = '';
+    }
+
     // Dynamically calculate and populate the actual next cycles based on tenancy billing day!
     populateReviseCycleOptions(currentActiveTenancy);
 
@@ -2718,13 +2757,14 @@ function initEditTenancy() {
     }
   });
 
-  // Cancel Scheduled Revision
+  // Cancel Scheduled Revision with Confirmation
   btnCancelRevision?.addEventListener('click', async () => {
     if (!currentActiveTenancy) return;
+    if (!confirm('Are you sure you want to cancel the scheduled rent revision?')) return;
     try {
       await cancelCloudRentRevision(currentActiveTenancy.id);
       if (currentActiveTenancy.rent_revisions) {
-        currentActiveTenancy.rent_revisions.forEach(r => {
+        currentActiveTenancy.rent_revisions.forEach((r) => {
           if (r.status === 'scheduled') r.status = 'cancelled';
         });
       }
@@ -2748,6 +2788,9 @@ function initEditTenancy() {
     const editDateDisplay = document.getElementById('edit-billing-date-display');
     const editNativeStartDate = document.getElementById('edit-native-start-date');
     const updatedStartDate = editNativeStartDate?.value || currentActiveTenancy.start_date;
+
+    const selectedCycleRadio = document.querySelector('input[name="edit-billing-cycle"]:checked');
+    const updatedCycle = selectedCycleRadio ? selectedCycleRadio.value : (currentActiveTenancy.billing_cycle || 'Monthly');
 
     let updatedDay = currentActiveTenancy.billing_day || 1;
     if (nativeDate?.value) {
@@ -2777,6 +2820,7 @@ function initEditTenancy() {
         tenant_phone: updatedPhone || null,
         advance_amount: parseFloat(updatedAdvance) || 0,
         billing_day: updatedDay,
+        billing_cycle: updatedCycle,
         start_date: updatedStartDate,
       });
 
@@ -2786,7 +2830,7 @@ function initEditTenancy() {
       const waterEnabled = document.getElementById('edit-toggle-water')?.checked ?? true;
       const waterAmount = parseFloat(document.getElementById('edit-water-amount')?.value) || 0;
 
-      const existingElec = currentActiveTenancy.tenancy_utilities?.find(u => u.utility_type === 'electricity');
+      const existingElec = currentActiveTenancy.tenancy_utilities?.find((u) => u.utility_type === 'electricity');
       const updatedUtils = [
         {
           utility_type: 'electricity',
@@ -2818,9 +2862,13 @@ function initEditTenancy() {
       if (updatedPhone) currentActiveTenancy.tenant_phone = updatedPhone;
       if (updatedAdvance) currentActiveTenancy.advance_amount = parseFloat(updatedAdvance);
       currentActiveTenancy.billing_day = updatedDay;
+      currentActiveTenancy.billing_cycle = updatedCycle;
       currentActiveTenancy.start_date = updatedStartDate;
 
       await syncDashboardFromCloud();
+      const fresh = cloudTenanciesList.find((t) => t.id === currentActiveTenancy.id);
+      if (fresh) currentActiveTenancy = fresh;
+
       showToast('✅ Tenancy details updated & saved to Supabase Cloud!', 3000);
       setTimeout(() => {
         bindTenancyToDetails(currentActiveTenancy);
@@ -2884,11 +2932,14 @@ function initEditTenancy() {
   nativeDate?.addEventListener('change', (e) => {
     const val = e.target.value;
     if (val && dateDisplay) {
-      const day = parseInt(val.split('-')[2], 10);
-      if (!isNaN(day)) {
+      const d = new Date(val + 'T00:00:00');
+      if (!isNaN(d.getTime())) {
+        const day = d.getDate();
         const formatted = getOrdinal(day);
-        dateDisplay.value = `${formatted} of every month`;
-        showToast(`Recurring billing date set to ${formatted} of every month`);
+        const isYearly = document.querySelector('input[name="edit-billing-cycle"]:checked')?.value === 'Yearly';
+        const m = d.toLocaleDateString('en-US', { month: 'long' });
+        dateDisplay.value = isYearly ? `${formatted} ${m} of every year` : `${formatted} of every month`;
+        showToast(`Recurring billing date set to ${dateDisplay.value}`);
       }
     }
   });
@@ -2921,12 +2972,14 @@ function initEditTenancy() {
   const detailsElec = document.getElementById('edit-details-elec');
   toggleElec?.addEventListener('change', () => {
     detailsElec?.classList.toggle('hidden', !toggleElec.checked);
+    document.getElementById('edit-util-electricity')?.classList.toggle('expanded', toggleElec.checked);
   });
 
   const toggleWater = document.getElementById('edit-toggle-water');
   const detailsWater = document.getElementById('edit-details-water');
   toggleWater?.addEventListener('change', () => {
     detailsWater?.classList.toggle('hidden', !toggleWater.checked);
+    document.getElementById('edit-util-water')?.classList.toggle('expanded', toggleWater.checked);
   });
 }
 

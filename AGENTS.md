@@ -1530,3 +1530,14 @@ To eliminate dead placeholders and provide a production-ready user experience, a
     - Selecting `Custom Date` reveals an interactive date picker (`#input-revise-custom-date`) with min date validation (cannot schedule in the past).
     - When scheduled, the exact chosen ISO date is persisted to Supabase `rent_revisions.effective_date`.
 
+### 6. Edit Tenancy & Rent Revision Audit Enhancements
+- **Billing Cycle Persistence (`billing_cycle`)**:
+  - Previously, `billing_cycle` (`Monthly` vs `Yearly`) was selected in the form's radio cards, but was omitted from the `updateCloudTenancy` payload in `btnSave`. Now persisted to Supabase and synced with in-memory tenancy state.
+- **Auto-Maturity Engine (`applyDueRentRevisions`)**:
+  - Automatically evaluates scheduled rent revisions whenever tenancies are synced or bound (`effective_date <= today`). Updates `base_rent` in Supabase and marks the revision `status: 'applied'` without manual landlord intervention or breaking historical records.
+- **Active Revision Pre-Fill & Cancellation Guard**:
+  - Opening the revision modal with an already-scheduled revision automatically pre-fills the new rent and note fields.
+  - Cancelling a revision prompts a confirmation dialogue (`confirm(...)`) to prevent accidental taps.
+- **Accordion Visual Sync**:
+  - Toggling utility checkboxes on Screen 11 synchronizes the `.utility-card.expanded` CSS class alongside the inner `.utility-details.hidden` container.
+
