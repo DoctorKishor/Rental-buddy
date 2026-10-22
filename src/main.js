@@ -4421,41 +4421,61 @@ export async function refreshFamilySharingPage() {
           card.className = 'family-request-card';
           const isManager = share.role === 'manager';
           const roleBadge = isManager
-            ? '<span class="family-card-role-badge badge-manager">🛠️ Manager</span>'
-            : '<span class="family-card-role-badge badge-viewer">👁️ Viewer (Read Only)</span>';
+            ? '<span class="family-role-badge manager">🛠️ Manager</span>'
+            : '<span class="family-role-badge viewer">👁️ Viewer (Read Only)</span>';
 
-          const propertiesSummary = (share.tenancy_ids && share.tenancy_ids.length > 0)
-            ? `${share.tenancy_ids.length} Property Selection`
-            : 'All Properties';
+          const ownerName = share.admin_name || (share.admin_email ? share.admin_email.split('@')[0] : 'Owner');
+          const ownerEmail = share.admin_email || '';
+          const avatarInitial = (ownerName.charAt(0) || '👤').toUpperCase();
+
+          // Resolve tenancy names
+          let tenancyNames = [];
+          if (share.tenancy_names && Array.isArray(share.tenancy_names) && share.tenancy_names.length > 0) {
+            tenancyNames = share.tenancy_names;
+          } else {
+            const matched = (cloudTenanciesList || []).filter(
+              (t) => t.owner_id === share.admin_id || (share.tenancy_ids && share.tenancy_ids.includes(t.id))
+            );
+            tenancyNames = matched.map((t) => t.property_name);
+          }
+          if (tenancyNames.length === 0) {
+            tenancyNames = ['Selected Properties'];
+          }
+
+          const propChipsHtml = tenancyNames
+            .map((name) => `<span class="family-prop-chip">🏡 ${name}</span>`)
+            .join('');
 
           card.innerHTML = `
-            <div class="family-card-header">
-              <div class="family-card-sender-info">
-                <span class="family-card-sender-label">Invited by Property Owner</span>
-                <strong class="family-card-sender-email">${share.admin_email || 'Owner'}</strong>
+            <div class="family-card-top-row">
+              <div class="family-card-user-info">
+                <div class="family-avatar">${avatarInitial}</div>
+                <div class="family-user-texts">
+                  <span class="family-user-sub">Invited by Property Owner</span>
+                  <strong class="family-user-email">${ownerName}</strong>
+                  ${ownerEmail ? `<span class="family-user-sub" style="font-size: 11px;">${ownerEmail}</span>` : ''}
+                </div>
               </div>
               ${roleBadge}
             </div>
-            <div class="family-card-details">
-              <span class="family-detail-row">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                </svg>
-                <span><strong>Scope:</strong> ${propertiesSummary}</span>
-              </span>
-              <span class="family-detail-row">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-                <span>Awaiting your decision before syncing to your database</span>
-              </span>
+
+            <div class="family-properties-box">
+              <span class="family-prop-heading">Requested Tenancies</span>
+              <div class="family-prop-chips-wrap">
+                ${propChipsHtml}
+              </div>
             </div>
-            <div class="family-card-actions">
-              <button type="button" class="btn-share-action btn-share-approve" data-share-id="${share.id}">
+
+            <div style="font-size: 12px; color: #7D849B; display: flex; align-items: center; gap: 6px;">
+              <span>⏳</span>
+              <span>Awaiting your decision before syncing to your database</span>
+            </div>
+
+            <div class="family-card-actions-row">
+              <button type="button" class="btn-share-approve" data-share-id="${share.id}">
                 ✔ Approve & Sync
               </button>
-              <button type="button" class="btn-share-action btn-share-deny" data-share-id="${share.id}">
+              <button type="button" class="btn-share-deny" data-share-id="${share.id}">
                 ✕ Deny
               </button>
             </div>
@@ -4510,32 +4530,66 @@ export async function refreshFamilySharingPage() {
           card.className = 'family-request-card active-share-card';
           const isManager = share.role === 'manager';
           const roleBadge = isManager
-            ? '<span class="family-card-role-badge badge-manager">🛠️ Manager</span>'
-            : '<span class="family-card-role-badge badge-viewer">👁️ Viewer (Read Only)</span>';
+            ? '<span class="family-role-badge manager">🛠️ Manager</span>'
+            : '<span class="family-role-badge viewer">👁️ Viewer (Read Only)</span>';
+
+          const ownerName = share.admin_name || (share.admin_email ? share.admin_email.split('@')[0] : 'Owner');
+          const ownerEmail = share.admin_email || '';
+          const avatarInitial = (ownerName.charAt(0) || '👤').toUpperCase();
+
+          // Resolve tenancy names
+          let tenancyNames = [];
+          if (share.tenancy_names && Array.isArray(share.tenancy_names) && share.tenancy_names.length > 0) {
+            tenancyNames = share.tenancy_names;
+          } else {
+            const matched = (cloudTenanciesList || []).filter(
+              (t) => t.owner_id === share.admin_id || (share.tenancy_ids && share.tenancy_ids.includes(t.id))
+            );
+            tenancyNames = matched.map((t) => t.property_name);
+          }
+          if (tenancyNames.length === 0) {
+            tenancyNames = ['All Properties'];
+          }
+
+          const propChipsHtml = tenancyNames
+            .map((name) => `<span class="family-prop-chip">🏡 ${name}</span>`)
+            .join('');
 
           card.innerHTML = `
-            <div class="family-card-header">
-              <div class="family-card-sender-info">
-                <span class="family-card-sender-label">Shared by</span>
-                <strong class="family-card-sender-email">${share.admin_email || 'Owner'}</strong>
+            <div class="family-card-top-row">
+              <div class="family-card-user-info">
+                <div class="family-avatar">${avatarInitial}</div>
+                <div class="family-user-texts">
+                  <span class="family-user-sub">Shared by Owner</span>
+                  <strong class="family-user-email">${ownerName}</strong>
+                  ${ownerEmail ? `<span class="family-user-sub" style="font-size: 11px;">${ownerEmail}</span>` : ''}
+                </div>
               </div>
               ${roleBadge}
             </div>
-            <div class="family-card-details">
-              <div class="active-sync-badge">
-                <span class="sync-dot"></span>
-                <span>Live Synced to Your Dashboard</span>
+
+            <div class="family-properties-box">
+              <span class="family-prop-heading">Shared Tenancy</span>
+              <div class="family-prop-chips-wrap">
+                ${propChipsHtml}
               </div>
             </div>
-            <div class="family-card-actions" style="margin-top: 10px;">
-              <button type="button" class="btn-share-action btn-share-leave" data-share-id="${share.id}">
+
+            <div class="active-sync-badge">
+              <span class="sync-dot"></span>
+              <span>Live Synced to Your Dashboard</span>
+            </div>
+
+            <div class="family-card-actions-row" style="margin-top: 6px;">
+              <button type="button" class="btn-share-leave" data-share-id="${share.id}">
                 Leave Shared Access
               </button>
             </div>
           `;
 
           card.querySelector('.btn-share-leave')?.addEventListener('click', async () => {
-            if (!confirm(`Are you sure you want to stop viewing properties shared by ${share.admin_email || 'this owner'}?`)) return;
+            const targetLabel = share.admin_name || share.admin_email || 'this owner';
+            if (!confirm(`Are you sure you want to stop viewing properties shared by ${targetLabel}?`)) return;
             try {
               await revokeFamilyShare(share.id);
               showToast('Removed shared access.');
@@ -4565,51 +4619,64 @@ export async function refreshFamilySharingPage() {
 
           let statusBadge = '';
           if (share.status === 'pending') {
-            statusBadge = '<span class="share-live-pill pill-pending">⏳ Pending Approval</span>';
+            statusBadge = '<span class="family-status-pill pending">⏳ Pending Approval</span>';
           } else if (share.status === 'approved' || share.status === 'accepted') {
-            statusBadge = '<span class="share-live-pill pill-approved">✔ Approved & Synced</span>';
+            statusBadge = '<span class="family-status-pill approved">✔ Approved & Synced</span>';
           } else if (share.status === 'denied') {
-            statusBadge = '<span class="share-live-pill pill-denied">🚫 Denied by Recipient</span>';
+            statusBadge = '<span class="family-status-pill denied">🚫 Denied by Recipient</span>';
           } else {
-            statusBadge = `<span class="share-live-pill pill-pending">${share.status}</span>`;
+            statusBadge = `<span class="family-status-pill pending">${share.status}</span>`;
           }
 
           const isManager = share.role === 'manager';
           const roleBadge = isManager
-            ? '<span class="family-card-role-badge badge-manager">🛠️ Manager</span>'
-            : '<span class="family-card-role-badge badge-viewer">👁️ Viewer</span>';
+            ? '<span class="family-role-badge manager">🛠️ Manager</span>'
+            : '<span class="family-role-badge viewer">👁️ Viewer</span>';
 
-          // Properties included list
-          let propertiesText = 'All Properties';
-          if (share.tenancy_ids && Array.isArray(share.tenancy_ids) && share.tenancy_ids.length > 0) {
-            const matchedNames = share.tenancy_ids.map((tid) => {
-              const found = cloudTenanciesList.find((t) => t.id === tid);
+          const recipientEmail = share.member_email || 'Recipient';
+          const avatarInitial = (recipientEmail.charAt(0) || '✉️').toUpperCase();
+
+          // Resolve tenancy names
+          let tenancyNames = [];
+          if (share.tenancy_names && Array.isArray(share.tenancy_names) && share.tenancy_names.length > 0) {
+            tenancyNames = share.tenancy_names;
+          } else if (share.tenancy_ids && Array.isArray(share.tenancy_ids) && share.tenancy_ids.length > 0) {
+            tenancyNames = share.tenancy_ids.map((tid) => {
+              const found = (cloudTenanciesList || []).find((t) => t.id === tid);
               return found ? found.property_name : 'Selected Property';
             });
-            propertiesText = matchedNames.join(', ');
+          } else {
+            tenancyNames = ['All Properties'];
           }
 
+          const propChipsHtml = tenancyNames
+            .map((name) => `<span class="family-prop-chip">🏡 ${name}</span>`)
+            .join('');
+
           card.innerHTML = `
-            <div class="family-card-header">
-              <div class="family-card-sender-info">
-                <span class="family-card-sender-label">Recipient</span>
-                <strong class="family-card-sender-email">${share.member_email}</strong>
+            <div class="family-card-top-row">
+              <div class="family-card-user-info">
+                <div class="family-avatar">${avatarInitial}</div>
+                <div class="family-user-texts">
+                  <span class="family-user-sub">Recipient</span>
+                  <strong class="family-user-email">${recipientEmail}</strong>
+                </div>
               </div>
               <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
                 ${roleBadge}
                 ${statusBadge}
               </div>
             </div>
-            <div class="family-card-details">
-              <span class="family-detail-row">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                </svg>
-                <span><strong>Properties:</strong> ${propertiesText}</span>
-              </span>
+
+            <div class="family-properties-box">
+              <span class="family-prop-heading">Shared Tenancies</span>
+              <div class="family-prop-chips-wrap">
+                ${propChipsHtml}
+              </div>
             </div>
-            <div class="family-card-actions" style="margin-top: 10px;">
-              <button type="button" class="btn-share-action btn-share-revoke" data-share-id="${share.id}">
+
+            <div class="family-card-actions-row" style="margin-top: 6px;">
+              <button type="button" class="btn-share-revoke" data-share-id="${share.id}">
                 🗑️ Revoke Access
               </button>
             </div>
@@ -4796,6 +4863,10 @@ function initFamilySharingPage() {
 
     const selectedTenancyCheckboxes = checklistTenancies?.querySelectorAll('input[name="share-tenancy-select"]:checked');
     const selectedTenancyIds = Array.from(selectedTenancyCheckboxes || []).map((cb) => cb.value);
+    const selectedTenancyNames = selectedTenancyIds.map((id) => {
+      const match = (cloudTenanciesList || []).find((t) => t.id === id);
+      return match ? match.property_name : 'Selected Tenancy';
+    });
 
     if (selectedTenancyIds.length === 0) {
       showToast('⚠️ Please select at least one tenancy to share');
@@ -4812,6 +4883,7 @@ function initFamilySharingPage() {
         email,
         role,
         tenancyIds: selectedTenancyIds,
+        tenancyNames: selectedTenancyNames,
       });
 
       modalShare?.classList.add('hidden');

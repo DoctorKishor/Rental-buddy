@@ -640,7 +640,7 @@ export async function fetchIncomingFamilyShares() {
   }
 }
 
-export async function createSelectiveFamilyShare({ email, role = 'viewer', tenancyIds = [] }) {
+export async function createSelectiveFamilyShare({ email, role = 'viewer', tenancyIds = [], tenancyNames = [] }) {
   await ensureAuthenticated();
   if (!cloudSession.user) throw new Error('User not authenticated');
   const cleanEmail = (email || '').trim().toLowerCase();
@@ -655,6 +655,11 @@ export async function createSelectiveFamilyShare({ email, role = 'viewer', tenan
 
   const cleanRole = role === 'manager' ? 'manager' : 'viewer';
   const cleanTenancyIds = Array.isArray(tenancyIds) ? tenancyIds : [];
+  const cleanTenancyNames = Array.isArray(tenancyNames) ? tenancyNames : [];
+  const adminName =
+    cloudSession.profile?.full_name ||
+    cloudSession.user.user_metadata?.full_name ||
+    cloudSession.user.email.split('@')[0];
 
   try {
     const { data, error } = await supabase
@@ -663,9 +668,11 @@ export async function createSelectiveFamilyShare({ email, role = 'viewer', tenan
         {
           admin_id: cloudSession.user.id,
           admin_email: cloudSession.user.email,
+          admin_name: adminName,
           member_email: cleanEmail,
           role: cleanRole,
           tenancy_ids: cleanTenancyIds,
+          tenancy_names: cleanTenancyNames,
           status: 'pending',
         },
         { onConflict: 'admin_id,member_email' }
