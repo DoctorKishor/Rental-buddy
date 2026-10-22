@@ -38,6 +38,7 @@ import {
   createSelectiveFamilyShare,
   respondToFamilyShare,
   revokeFamilyShare,
+  leaveFamilyShare,
   fetchCloudFamilyMembers,
   inviteCloudFamilyMember,
   revokeCloudFamilyMember,
@@ -4587,16 +4588,25 @@ export async function refreshFamilySharingPage() {
             </div>
           `;
 
-          card.querySelector('.btn-share-leave')?.addEventListener('click', async () => {
+          card.querySelector('.btn-share-leave')?.addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
             const targetLabel = share.admin_name || share.admin_email || 'this owner';
             if (!confirm(`Are you sure you want to stop viewing properties shared by ${targetLabel}?`)) return;
+            if (btn) {
+              btn.disabled = true;
+              btn.textContent = 'Leaving...';
+            }
             try {
-              await revokeFamilyShare(share.id);
+              await leaveFamilyShare(share.id);
               showToast('Removed shared access.');
               await syncDashboardFromCloud();
               await refreshFamilySharingPage();
             } catch (err) {
               showToast(`❌ Error: ${err.message}`);
+              if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Leave Shared Access';
+              }
             }
           });
 

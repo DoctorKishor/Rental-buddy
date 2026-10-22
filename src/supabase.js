@@ -715,18 +715,29 @@ export async function respondToFamilyShare(shareId, accept = true) {
 export async function revokeFamilyShare(shareId) {
   await ensureAuthenticated();
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('family_shares')
       .delete()
-      .eq('id', shareId);
+      .eq('id', shareId)
+      .select();
 
     if (error) throw error;
+
+    // Double assurance: if delete affected 0 rows via RLS, mark as revoked
+    if (!data || data.length === 0) {
+      await supabase
+        .from('family_shares')
+        .update({ status: 'revoked' })
+        .eq('id', shareId);
+    }
     return true;
   } catch (err) {
     console.error('Revoke Family Share Error:', err);
     throw err;
   }
 }
+
+export const leaveFamilyShare = revokeFamilyShare;
 
 // Backward-compatible aliases
 export const fetchCloudFamilyMembers = fetchOutgoingFamilyShares;
