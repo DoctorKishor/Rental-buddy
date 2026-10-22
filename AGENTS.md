@@ -1591,3 +1591,37 @@ To eliminate dead placeholders and provide a production-ready user experience, a
 - **Functional Cloud Password Reset Dispatch**:
   - Implemented `resetUserPassword(email)` via Supabase Auth API (`supabase.auth.resetPasswordForEmail`).
   - Screen 20 Forgot Password trigger now validates the email input and dispatches the genuine Supabase reset email with immediate feedback.
+
+---
+
+## 44. PWA Installability Architecture, App Icons, Native Contact Picker & Settings Footer Cleanup
+
+### 1. Settings Footer Branding Removal
+- **Change**: Removed the obsolete footer (`Rental Buddy v1.0.0 Crafted using Vroxal Design`) from the bottom of Screen 16 (Settings), leaving a clean, spacious surface matching the fintech design guidelines.
+
+### 2. Native Device Contact Picker Integration
+- **Mobile Integration (`navigator.contacts.select`)**:
+  - Tapping the contact picker icon `[ 👤+ ]` on Step 1 (`#btn-pick-contact`) or Edit Tenancy (`#btn-edit-pick-contact`) now invokes the device's native contacts sheet on supported mobile browsers (Chrome on Android, iOS Safari PWA).
+  - Automatically extracts the selected contact's phone number, sanitizes to a 10-digit number (stripping country codes such as `+91` or leading `0`), and populates the field with reactive input event dispatch.
+  - If the tenancy or tenant name field is empty, automatically populates the contact's name.
+- **Desktop & Unsupported Browser Fallback**:
+  - Replaced the previous mock `"John Doe (9812345678)"` toast with clear guidance: `"📱 Device Contact Picker is available on mobile browsers (Android Chrome & iOS PWA). Please enter the 10-digit number directly."`
+  - Automatically focuses the phone number field with the numeric keypad ready.
+
+### 3. PWA Installability & App Icon Architecture
+- **Brand App Icon**:
+  - Generated pixel-perfect app icons directly matching the About modal icon (vibrant `#5452EC` rounded squircle with white house outline):
+    - `favicon.svg` (scalable vector icon)
+    - `favicon.png` (48×48)
+    - `icon-192.png` (192×192 standard PWA icon)
+    - `icon-512.png` (512×512 standard PWA icon)
+    - `icon-maskable-192.png` & `icon-maskable-512.png` (maskable adaptive icons with safe-zone margin for Android adaptive icon shapes)
+    - `apple-touch-icon.png` (180×180 for iOS home screen bookmarking)
+- **Web App Manifest (`/manifest.json`)**:
+  - Full PWA compliance: `standalone` display mode, `portrait-primary` orientation, theme color `#5452EC`, background color `#EFF0FA`, and all icon declarations (`any` and `maskable`).
+- **Service Worker (`/sw.js`)**:
+  - Implements app shell precaching, stale-while-revalidate for static assets, network-first with cache fallback for dynamic resources, and automatic activation.
+- **In-App PWA Install Trigger (Settings Screen)**:
+  - Added an interactive `"Install App (PWA)"` item in Settings (`#item-install-pwa`) with dynamic status chip (`Install` / `Installed ✔`).
+  - Automatically captures the `beforeinstallprompt` event and allows one-tap home-screen installation.
+  - Detects standalone mode (`display-mode: standalone`) and gives platform-specific installation instructions for iOS Safari and desktop Chrome.

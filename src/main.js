@@ -335,6 +335,57 @@ export function getOrdinal(n) {
   return `${num}${getOrdinalSuffix(num)}`;
 }
 
+// Native Device Contact Picker Handler (Supported on Android Chrome, iOS Safari PWA, etc.)
+export async function triggerDeviceContactPicker(phoneInputId, nameInputId) {
+  const phoneInput = document.getElementById(phoneInputId);
+  const nameInput = nameInputId ? document.getElementById(nameInputId) : null;
+
+  // 1. Check for native ContactsManager API (Android Chrome & supported mobile browsers)
+  if ('contacts' in navigator && 'ContactsManager' in window) {
+    try {
+      const props = ['name', 'tel'];
+      const contacts = await navigator.contacts.select(props, { multiple: false });
+      if (contacts && contacts.length > 0) {
+        const contact = contacts[0];
+        let phoneStr = '';
+        if (contact.tel && contact.tel.length > 0) {
+          phoneStr = contact.tel[0];
+        }
+        // Extract 10 digits
+        const rawDigits = phoneStr.replace(/\D/g, '');
+        const cleanPhone = rawDigits.length > 10 ? rawDigits.slice(-10) : rawDigits;
+
+        if (phoneInput && cleanPhone) {
+          phoneInput.value = cleanPhone;
+          phoneInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        let contactName = '';
+        if (contact.name && contact.name.length > 0) {
+          contactName = contact.name[0];
+        }
+
+        if (nameInput && contactName && !nameInput.value.trim()) {
+          nameInput.value = contactName;
+          nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        showToast(`📇 Contact selected: ${contactName ? contactName + ' (' + cleanPhone + ')' : cleanPhone}`, 3500);
+        return;
+      }
+    } catch (err) {
+      if (err.name === 'AbortError' || err.message?.includes('canceled') || err.message?.includes('cancelled')) {
+        return;
+      }
+      console.warn('Native contact picker notice:', err);
+    }
+  }
+
+  // 2. Clear explanation when running on desktop or browser without contacts permission
+  showToast('📱 Device Contact Picker is available on mobile browsers (Android Chrome & iOS PWA). Please enter the 10-digit number directly.', 4500);
+  phoneInput?.focus();
+}
+
 // Tenancy Step 1 Form Listeners
 function initStep1Form() {
   const monthlyRadio = document.getElementById('cycle-monthly');
@@ -389,12 +440,7 @@ function initStep1Form() {
   });
 
   document.getElementById('btn-pick-contact')?.addEventListener('click', () => {
-    showToast('📇 Contact picker: "John Doe (9812345678)" selected');
-    const phoneInput = document.getElementById('input-phone-number');
-    if (phoneInput) {
-      phoneInput.value = '9812345678';
-      phoneInput.dispatchEvent(new Event('input', { bubbles: true }));
-    }
+    triggerDeviceContactPicker('input-phone-number', 'input-tenancy-name');
   });
 
   // Interactive Date Picker Logic
@@ -2531,6 +2577,10 @@ function initEditTenancy() {
     navigateToScreen(10);
   });
 
+  document.getElementById('btn-edit-pick-contact')?.addEventListener('click', () => {
+    triggerDeviceContactPicker('edit-tenant-phone', null);
+  });
+
   // Revision History & Days-Elapsed Indicator Controller
   async function loadRentRevisionHistory(tenancy) {
     const indicatorTitle = document.getElementById('revise-indicator-title');
@@ -4553,6 +4603,32 @@ function initSettingsScreen() {
     navigateToScreen(19);
   });
 
+  // PWA Install Action from Settings
+  const itemInstallPwa = document.getElementById('item-install-pwa');
+  itemInstallPwa?.addEventListener('click', async () => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (isStandalone) {
+      showToast('✅ Rental Buddy is already installed and running as a standalone app!', 3500);
+      return;
+    }
+
+    if (deferredPwaInstallPrompt) {
+      deferredPwaInstallPrompt.prompt();
+      const { outcome } = await deferredPwaInstallPrompt.userChoice;
+      if (outcome === 'accepted') {
+        showToast('🚀 Installing Rental Buddy...', 3000);
+      }
+      deferredPwaInstallPrompt = null;
+    } else {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      if (isIOS) {
+        showToast('📲 On iPhone/iPad: Tap the Share button (⎋) in Safari and tap "Add to Home Screen".', 5500);
+      } else {
+        showToast('📲 Tap browser menu (⋮) and select "Install App" or "Add to Home screen" to install Rental Buddy.', 5000);
+      }
+    }
+  });
+
   // 1. About The App Modal Sheet
   const modalAbout = document.getElementById('modal-about-app');
   const btnCloseAbout = document.getElementById('btnCloseAboutModal');
@@ -6534,6 +6610,56 @@ function initReceiptPage() {
 }
 
 // ==========================================================================
+// PWA INSTALLATION & SERVICE WORKER CONTROLLER
+// ==========================================================================
+
+let deferredPwaInstallPrompt = null;
+
+export function initPwaInstallation() {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPwaInstallPrompt = e;
+    const badge = document.getElementById('badge-pwa-status');
+    if (badge) {
+      badge.textContent = 'Install App';
+      badge.style.background = '#DCFCE7';
+      badge.style.color = '#16A34A';
+    }
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredPwaInstallPrompt = null;
+    const badge = document.getElementById('badge-pwa-status');
+    if (badge) {
+      badge.textContent = 'Installed ✔';
+      badge.style.background = '#DCFCE7';
+      badge.style.color = '#16A34A';
+    }
+    showToast('🎉 Rental Buddy successfully installed to your device!');
+  });
+
+  // Check if already running as standalone PWA
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const badge = document.getElementById('badge-pwa-status');
+  if (badge && isStandalone) {
+    badge.textContent = 'Installed ✔';
+    badge.style.background = '#DCFCE7';
+    badge.style.color = '#16A34A';
+  }
+
+  // Register Service Worker
+  if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').then((reg) => {
+        console.log('Rental Buddy PWA Service Worker registered:', reg.scope);
+      }).catch((err) => {
+        console.warn('PWA Service Worker registration warning:', err);
+      });
+    });
+  }
+}
+
+// ==========================================================================
 // INITIAL APPLICATION BOOT & STRICT AUTH GUARD
 // ==========================================================================
 
@@ -6554,6 +6680,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initFamilySharingPage();
   initReceiptPage();
   initNumericAndPhoneInputs();
+  initPwaInstallation();
 
   // Check Supabase Cloud Session on Boot
   const session = await getCurrentSession();

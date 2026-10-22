@@ -3,10 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#EFF0FA" />
+    <meta name="theme-color" content="#5452EC" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Rental Buddy" />
+    <meta name="application-name" content="Rental Buddy" />
     <title>Rental Buddy — Property & Rent Manager</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -1315,16 +1321,26 @@
                   </div>
                   <div class="form-group">
                     <label class="form-label" for="edit-tenant-phone">Tenant Phone</label>
-                    <input
-                      type="tel"
-                      inputmode="tel"
-                      pattern="[0-9]*"
-                      maxlength="10"
-                      id="edit-tenant-phone"
-                      class="form-input"
-                      value=""
-                      placeholder="e.g. 9812345678"
-                    />
+                    <div class="input-with-action">
+                      <input
+                        type="tel"
+                        inputmode="tel"
+                        pattern="[0-9]*"
+                        maxlength="10"
+                        id="edit-tenant-phone"
+                        class="form-input"
+                        value=""
+                        placeholder="e.g. 9812345678"
+                      />
+                      <button type="button" class="input-action-btn" id="btn-edit-pick-contact" aria-label="Pick from contacts">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                          <circle cx="8.5" cy="7" r="4"></circle>
+                          <line x1="20" y1="8" x2="20" y2="14"></line>
+                          <line x1="23" y1="11" x2="17" y2="11"></line>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -2282,6 +2298,28 @@
                     </svg>
                   </div>
                 </div>
+
+                <div class="settings-divider"></div>
+
+                <!-- Install PWA App Option -->
+                <div class="settings-list-item" id="item-install-pwa" role="button" tabindex="0">
+                  <div class="settings-item-left">
+                    <div class="settings-item-icon" style="background: #E8E7FB; color: #5452EC;">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                      </svg>
+                    </div>
+                    <span class="settings-item-label">Install App (PWA)</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="badge-pill" id="badge-pwa-status" style="background: #E8E7FB; color: #5452EC; font-size: 11px; font-weight: 700;">Install</span>
+                    <svg class="settings-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                  </div>
+                </div>
               </div>
 
               <!-- Settings Group 2: Support & About -->
@@ -2403,14 +2441,6 @@
                     <polyline points="9 18 15 12 9 6"></polyline>
                   </svg>
                 </div>
-              </div>
-
-              <!-- Footer Branding -->
-              <div class="settings-footer" style="margin-top: 36px; text-align: center;">
-                <p class="settings-version" style="font-size: 13px; color: #7D849B; font-weight: 500;">Rental Buddy v1.0.0</p>
-                <p class="settings-credit" style="font-size: 13px; color: #52586E; margin-top: 4px;">
-                  Crafted using <span style="color: #5452EC; font-weight: 600;">Vroxal Design</span>
-                </p>
               </div>
 
 
