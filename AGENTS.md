@@ -1582,3 +1582,12 @@ To eliminate dead placeholders and provide a production-ready user experience, a
 - **Validation Guard**:
   - Validates that current water meter reading cannot be less than the previous reading (`currWater < prevWater`), matching the existing electricity meter check (`currElec < prevElec`).
   - Displays a clear warning toast (`⚠️ Current water reading ({currWater}) cannot be less than previous reading ({prevWater})`) and halts bill calculation, preventing negative utility unit computations and corrupted ledger entries.
+
+### 11. Hash Restoration Boundary, Viewer Screen 11 Guard & Supabase Password Reset Parity
+- **Hash Restoration Boundary (`#screen-22`)**:
+  - Fixed boot/reload URL hash check to allow screen numbers up to 22 (`screenNum <= 22`), ensuring direct links or browser refreshes on Screen 22 (Family Sharing) load cleanly without resetting to Dashboard.
+- **Screen 11 Viewer Permission Defense-in-Depth**:
+  - Added viewer access guard in `navigateToScreen(11)` to block direct transitions to Edit Tenancy when viewing a read-only shared property.
+- **Functional Cloud Password Reset Dispatch**:
+  - Implemented `resetUserPassword(email)` via Supabase Auth API (`supabase.auth.resetPasswordForEmail`).
+  - Screen 20 Forgot Password trigger now validates the email input and dispatches the genuine Supabase reset email with immediate feedback.

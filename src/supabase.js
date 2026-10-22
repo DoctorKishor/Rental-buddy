@@ -109,6 +109,19 @@ export async function resendVerificationEmail(email) {
   }
 }
 
+export async function resetUserPassword(email) {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+    });
+    if (error) throw error;
+    return { success: true };
+  } catch (err) {
+    console.error('Password Reset Error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
 export async function updateUserProfile(updates) {
   if (!cloudSession.user) return null;
   try {

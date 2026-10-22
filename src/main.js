@@ -46,6 +46,7 @@ import {
   inviteCloudFamilyMember,
   revokeCloudFamilyMember,
   resendVerificationEmail,
+  resetUserPassword,
   updateUserProfile,
   deleteUserAccountAndData,
 } from './supabase.js';
@@ -150,6 +151,12 @@ function navigateToScreen(targetScreenNumber) {
   // Screen 12 Guard: If target is 12 (Record Payment) but user is a Viewer
   if (targetScreenNumber === 12 && currentActiveTenancy && getTenancyUserRole(currentActiveTenancy) === 'viewer') {
     showToast('👁️ Viewers have read-only access and cannot record payments.', 3500);
+    return;
+  }
+
+  // Screen 11 Guard: If target is 11 (Edit Tenancy) but user is a Viewer
+  if (targetScreenNumber === 11 && currentActiveTenancy && getTenancyUserRole(currentActiveTenancy) === 'viewer') {
+    showToast('👁️ Viewers have read-only access and cannot edit property settings.', 3500);
     return;
   }
 
@@ -5299,9 +5306,20 @@ function initAuthScreen() {
     setAuthMode(!isAuthSignUpMode);
   });
 
-  btnForgot?.addEventListener('click', () => {
-    const email = inputEmail?.value?.trim() || 'your email';
-    showToast(`🔑 Password reset link dispatched via Supabase to ${email}`, 3500);
+  btnForgot?.addEventListener('click', async () => {
+    const email = inputEmail?.value?.trim();
+    if (!email || !email.includes('@')) {
+      showToast('⚠️ Please enter your email in the field above to reset password', 3500);
+      inputEmail?.focus();
+      return;
+    }
+    showToast('Sending password reset email...', 2000);
+    const res = await resetUserPassword(email);
+    if (res && res.success) {
+      showToast(`🔑 Password reset link dispatched via Supabase to ${email}`, 4500);
+    } else {
+      showToast(`❌ Failed to send reset email: ${res?.error || 'Unknown error'}`, 4000);
+    }
   });
 
   formAuth?.addEventListener('submit', async (e) => {
@@ -6586,7 +6604,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const hash = window.location.hash;
       if (hash && hash.startsWith('#screen-')) {
         const screenNum = parseInt(hash.replace('#screen-', ''), 10);
-        if (!isNaN(screenNum) && screenNum >= 1 && screenNum <= 21 && screenNum !== 2 && screenNum !== 20) {
+        if (!isNaN(screenNum) && screenNum >= 1 && screenNum <= 22 && screenNum !== 2 && screenNum !== 20) {
           navigateToScreen(screenNum);
         } else {
           navigateToScreen(6);
