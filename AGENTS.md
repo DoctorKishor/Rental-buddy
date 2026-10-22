@@ -1655,3 +1655,24 @@ To eliminate dead placeholders and provide a production-ready user experience, a
   - When User A records a rent payment on their phone, User B's device receives the WebSocket event within milliseconds, automatically re-synchronizing the dashboard, ledger balances, and vouchers without requiring manual page reload.
   - Eliminates stale ledger calculations and prevents co-hosts from collecting rent for already-settled cycles.
 
+---
+
+## 46. Authentication Screen Clean Branding & Action Button Standardization
+
+### 1. User-Facing Auth Copy Standardization
+- **Problem Resolved**: Exposing underlying infrastructure provider branding (e.g. "Supabase") in user-facing buttons, badges, and system toasts creates user confusion and dilutes Rental Buddy's brand cohesion.
+- **Action Buttons (`#btn-submit-auth`)**:
+  - Sign-in Mode: Standardized to `"Sign In"`.
+  - Sign-up Mode: Standardized to `"Create Account"`.
+  - Pending/Loading States:
+    - Sign-in: `"Signing In..."`.
+    - Sign-up: `"Creating Account..."`.
+  - Mode Switch Buttons (`#btn-toggle-auth-mode`):
+    - When on Sign In: `"Create Account"`.
+    - When on Sign Up: `"Sign In"`.
+- **Top Badge (`.auth-badge-cloud`)**:
+  - Updated from `"⚡ Cloud First • Supabase Auth"` to `"⚡ Cloud Synced & Secure"`.
+- **Toast Notifications**:
+  - Cleaned to natural product language (e.g. `"Account created successfully!"` and `"🔑 Password reset link dispatched to user@example.com"`).
+
+

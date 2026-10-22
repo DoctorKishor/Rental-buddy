@@ -5358,7 +5358,7 @@ export function setAuthMode(isSignUp) {
 
   if (nameGroup) nameGroup.classList.toggle('hidden', !isSignUp);
   if (formTitle) formTitle.textContent = isSignUp ? 'Create Your Admin Account' : 'Sign In to Your Account';
-  if (btnSubmit) btnSubmit.textContent = isSignUp ? 'Create Account with Supabase' : 'Sign In with Supabase';
+  if (btnSubmit) btnSubmit.textContent = isSignUp ? 'Create Account' : 'Sign In';
   if (switchText) switchText.textContent = isSignUp ? 'Already have an account?' : 'Don’t have an account?';
   if (btnToggleMode) btnToggleMode.textContent = isSignUp ? 'Sign In' : 'Create Account';
 }
@@ -5411,7 +5411,7 @@ function initAuthScreen() {
     showToast('Sending password reset email...', 2000);
     const res = await resetUserPassword(email);
     if (res && res.success) {
-      showToast(`🔑 Password reset link dispatched via Supabase to ${email}`, 4500);
+      showToast(`🔑 Password reset link dispatched to ${email}`, 4500);
     } else {
       showToast(`❌ Failed to send reset email: ${res?.error || 'Unknown error'}`, 4000);
     }
@@ -5434,7 +5434,7 @@ function initAuthScreen() {
 
     if (btnSubmit) {
       btnSubmit.disabled = true;
-      btnSubmit.textContent = isAuthSignUpMode ? 'Registering Admin Account...' : 'Signing In...';
+      btnSubmit.textContent = isAuthSignUpMode ? 'Creating Account...' : 'Signing In...';
     }
 
     try {
@@ -5467,7 +5467,7 @@ function initAuthScreen() {
       }
 
       updateAuthUI(authResult.user);
-      const actionWord = isAuthSignUpMode ? 'Admin account created & registered in Supabase Cloud' : 'Signed in successfully';
+      const actionWord = isAuthSignUpMode ? 'Account created successfully' : 'Signed in successfully';
       showToast(`⚡ ${actionWord}!`, 3500);
 
       // Check whether user has existing data or completed onboarding
@@ -5497,7 +5497,7 @@ function initAuthScreen() {
     } finally {
       if (btnSubmit) {
         btnSubmit.disabled = false;
-        btnSubmit.textContent = isAuthSignUpMode ? 'Create Account with Supabase' : 'Sign In with Supabase';
+        btnSubmit.textContent = isAuthSignUpMode ? 'Create Account' : 'Sign In';
       }
     }
   });
