@@ -1519,3 +1519,14 @@ To eliminate dead placeholders and provide a production-ready user experience, a
   - Cards display revision date, status chip (`Applied`, `Scheduled`, or `Cancelled`), old vs new rent, increment/decrement delta (`+₹500 (+14%)`), and revision reason.
   - Re-evaluates and refreshes dynamically whenever a new revision is scheduled or cancelled.
 
+### 5. Dynamic Effective Billing Cycle Calculator & Custom Date Support
+- **Problem Resolved**: The revision modal's "Effective From Cycle" select previously had hardcoded static placeholder options (`Next Cycle (1 May 2026)`, `In 2 Months (1 June 2026)`, `In 3 Months (1 July 2026)`), and choosing custom date lacked an input field.
+- **Real-Time Cycle Projections (`populateReviseCycleOptions`)**:
+  - Evaluates the tenancy's authoritative `billing_day` (e.g. 4th of the month) relative to today's date.
+  - Computes exact calendar dates for upcoming cycles:
+    - If today is Oct 23 and billing day is 4: Cycle 1 is `Next Cycle (4 Nov 2026)`, Cycle 2 is `In 2 Months (4 Dec 2026)`, Cycle 3 is `In 3 Months (4 Jan 2027)`.
+    - Supports yearly cycle projections if `billing_cycle === 'yearly'`.
+  - **Custom Date Field (`#group-revise-custom-date`)**:
+    - Selecting `Custom Date` reveals an interactive date picker (`#input-revise-custom-date`) with min date validation (cannot schedule in the past).
+    - When scheduled, the exact chosen ISO date is persisted to Supabase `rent_revisions.effective_date`.
+

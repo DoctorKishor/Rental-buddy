@@ -1505,11 +1505,14 @@
                   <div class="form-group">
                     <label class="form-label mini" for="select-revise-cycle">Effective From Cycle</label>
                     <select id="select-revise-cycle" class="form-input mini">
-                      <option value="1 May 2026" selected>Next Cycle (1 May 2026)</option>
-                      <option value="1 June 2026">In 2 Months (1 June 2026)</option>
-                      <option value="1 July 2026">In 3 Months (1 July 2026)</option>
-                      <option value="Custom Date">Custom Date</option>
+                      <!-- Dynamically populated on modal open based on tenancy billing day -->
                     </select>
+                  </div>
+
+                  <!-- Custom Date Picker (revealed when Custom Date is selected) -->
+                  <div class="form-group hidden" id="group-revise-custom-date">
+                    <label class="form-label mini" for="input-revise-custom-date">Custom Effective Date</label>
+                    <input type="date" id="input-revise-custom-date" class="form-input mini" />
                   </div>
 
                   <div class="form-group">

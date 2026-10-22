@@ -2554,6 +2554,75 @@ function initEditTenancy() {
     btnToggleRevisionHistory.textContent = isHidden ? 'View History' : 'Hide History';
   });
 
+  // Populate dynamically calculated upcoming billing cycles based on actual tenancy billing day
+  function populateReviseCycleOptions(tenancy) {
+    const cycleSelect = document.getElementById('select-revise-cycle');
+    const customDateGroup = document.getElementById('group-revise-custom-date');
+    const customDateInput = document.getElementById('input-revise-custom-date');
+    if (!cycleSelect) return;
+
+    const bDay = parseInt(tenancy?.billing_day, 10) || 1;
+    const now = new Date();
+    const isYearly = (tenancy?.billing_cycle || '').toLowerCase() === 'yearly';
+
+    const options = [];
+
+    if (isYearly) {
+      let cycle1 = new Date(now.getFullYear(), tenancy?.start_date ? new Date(tenancy.start_date + 'T00:00:00').getMonth() : now.getMonth(), bDay);
+      if (now >= cycle1) cycle1.setFullYear(cycle1.getFullYear() + 1);
+      const cycle2 = new Date(cycle1.getFullYear() + 1, cycle1.getMonth(), bDay);
+      const cycle3 = new Date(cycle1.getFullYear() + 2, cycle1.getMonth(), bDay);
+
+      const fmt = (d) => `${d.getDate()} ${d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
+      const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+      options.push({ label: `Next Cycle (${fmt(cycle1)})`, value: iso(cycle1) });
+      options.push({ label: `Next Year (${fmt(cycle2)})`, value: iso(cycle2) });
+      options.push({ label: `In 2 Years (${fmt(cycle3)})`, value: iso(cycle3) });
+    } else {
+      // Monthly Cycle (Standard)
+      let cycle1 = new Date(now.getFullYear(), now.getMonth(), bDay);
+      if (now.getDate() >= bDay) {
+        cycle1 = new Date(now.getFullYear(), now.getMonth() + 1, bDay);
+      }
+      const cycle2 = new Date(cycle1.getFullYear(), cycle1.getMonth() + 1, bDay);
+      const cycle3 = new Date(cycle1.getFullYear(), cycle1.getMonth() + 2, bDay);
+
+      const fmt = (d) => `${d.getDate()} ${d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
+      const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+      options.push({ label: `Next Cycle (${fmt(cycle1)})`, value: iso(cycle1) });
+      options.push({ label: `In 2 Months (${fmt(cycle2)})`, value: iso(cycle2) });
+      options.push({ label: `In 3 Months (${fmt(cycle3)})`, value: iso(cycle3) });
+    }
+
+    options.push({ label: 'Custom Date', value: 'custom' });
+
+    cycleSelect.innerHTML = options.map((opt, i) => `
+      <option value="${opt.value}" ${i === 0 ? 'selected' : ''}>${opt.label}</option>
+    `).join('');
+
+    if (customDateGroup) customDateGroup.classList.add('hidden');
+    if (customDateInput) {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const isoTomorrow = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+      customDateInput.min = isoTomorrow;
+      customDateInput.value = options[0].value !== 'custom' ? options[0].value : isoTomorrow;
+    }
+  }
+
+  // Handle Cycle Selector Change
+  const selectReviseCycle = document.getElementById('select-revise-cycle');
+  const groupCustomDate = document.getElementById('group-revise-custom-date');
+  selectReviseCycle?.addEventListener('change', () => {
+    if (selectReviseCycle.value === 'custom') {
+      groupCustomDate?.classList.remove('hidden');
+    } else {
+      groupCustomDate?.classList.add('hidden');
+    }
+  });
+
   // Open & Close Revise Rent Modal
   btnOpenRevise?.addEventListener('click', () => {
     if (!currentActiveTenancy) return;
@@ -2561,6 +2630,9 @@ function initEditTenancy() {
     if (curRentDisplay) {
       curRentDisplay.value = `₹${parseFloat(currentActiveTenancy.base_rent || 0).toLocaleString('en-IN')}`;
     }
+    // Dynamically calculate and populate the actual next cycles based on tenancy billing day!
+    populateReviseCycleOptions(currentActiveTenancy);
+
     // Reset toggle drawer to hidden
     reviseHistoryDrawer?.classList.add('hidden');
     if (btnToggleRevisionHistory) btnToggleRevisionHistory.textContent = 'View History';
@@ -2581,7 +2653,6 @@ function initEditTenancy() {
   btnConfirmRevise?.addEventListener('click', async () => {
     if (!currentActiveTenancy) return;
     const newRent = document.getElementById('input-new-rent')?.value;
-    const cycle = document.getElementById('select-revise-cycle')?.value || 'Next Cycle';
     const notifyTenant = document.getElementById('toggle-notify-tenant-revision')?.checked;
 
     if (!newRent || parseFloat(newRent) <= 0) {
@@ -2589,13 +2660,31 @@ function initEditTenancy() {
       return;
     }
 
+    const selectReviseCycle = document.getElementById('select-revise-cycle');
+    let effectiveDateStr = selectReviseCycle?.value;
+    let cycleLabel = selectReviseCycle?.options[selectReviseCycle.selectedIndex]?.text || 'Next Cycle';
+
+    if (effectiveDateStr === 'custom') {
+      const customDateVal = document.getElementById('input-revise-custom-date')?.value;
+      if (!customDateVal) {
+        showToast('⚠️ Please pick a custom effective date');
+        return;
+      }
+      effectiveDateStr = customDateVal;
+      const parsed = new Date(customDateVal + 'T00:00:00');
+      const fmtCustom = !isNaN(parsed.getTime())
+        ? `${parsed.getDate()} ${parsed.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+        : customDateVal;
+      cycleLabel = `Custom (${fmtCustom})`;
+    }
+
     try {
       const scheduled = await scheduleCloudRentRevision({
         tenancyId: currentActiveTenancy.id,
         oldRent: parseFloat(currentActiveTenancy.base_rent || 0),
         newRent: parseFloat(newRent),
-        effectiveDate: new Date().toISOString().split('T')[0],
-        note: document.getElementById('input-revise-reason')?.value || cycle,
+        effectiveDate: effectiveDateStr,
+        note: document.getElementById('input-revise-reason')?.value || cycleLabel,
         notifyTenant,
       });
 
@@ -2607,22 +2696,22 @@ function initEditTenancy() {
           tenancy_id: currentActiveTenancy.id,
           old_rent: parseFloat(currentActiveTenancy.base_rent || 0),
           new_rent: parseFloat(newRent),
-          effective_date: new Date().toISOString().split('T')[0],
-          note: cycle,
+          effective_date: effectiveDateStr,
+          note: cycleLabel,
           status: 'scheduled',
         });
       }
 
       if (bannerRevisionText) {
-        bannerRevisionText.textContent = `₹${parseFloat(newRent).toLocaleString('en-IN')} scheduled from ${cycle}`;
+        bannerRevisionText.textContent = `₹${parseFloat(newRent).toLocaleString('en-IN')} scheduled (${cycleLabel})`;
       }
       bannerRevision?.classList.remove('hidden');
       modalRevise?.classList.add('hidden');
       loadRentRevisionHistory(currentActiveTenancy);
 
       const msg = notifyTenant 
-        ? `📈 Rent revision scheduled to ₹${parseFloat(newRent).toLocaleString('en-IN')} from ${cycle} (Tenant notified via WhatsApp & Cloud Synced)`
-        : `📈 Rent revision scheduled to ₹${parseFloat(newRent).toLocaleString('en-IN')} from ${cycle} (Cloud Synced)`;
+        ? `📈 Rent revision scheduled to ₹${parseFloat(newRent).toLocaleString('en-IN')} (${cycleLabel}) • Tenant notified via WhatsApp`
+        : `📈 Rent revision scheduled to ₹${parseFloat(newRent).toLocaleString('en-IN')} (${cycleLabel}) • Cloud Synced`;
       showToast(msg, 3500);
     } catch (e) {
       showToast(`❌ Revision error: ${e.message}`);
