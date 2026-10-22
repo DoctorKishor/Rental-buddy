@@ -1267,4 +1267,43 @@
   `✓ October 2026 is already fully settled (₹5,000 paid). Payment applies to upcoming cycle.`
 - Eliminates any landlord ambiguity about why the current month is not being billed twice.
 
+---
+
+## 43. Intelligent Onboarding Bypass & User Data Presence Detection
+
+### 1. The Repeated Onboarding Loop Problem
+- **Issue**: Whenever an authenticated user logged in using their credentials (e.g., from a new session, refreshed browser, or incognito window), the app repeatedly redirected them to the Onboarding screens (Screen 2) instead of the Dashboard.
+- **Root Cause**:
+  1. The login handler checked `onboarding_completed` flag prior to dashboard data synchronization.
+  2. Because `localStorage` is empty on new browser sessions or after cache clears, and Supabase `profiles` may not hold a populated `onboarding_completed` flag, `isCompleted` evaluated to `false`.
+  3. The app did not check whether the user already had active tenancies, bills, or payment records in their account, resulting in unnecessary onboarding prompts for established landlords.
+
+### 2. User Data Presence Architecture (`userHasExistingData`)
+- **Comprehensive Data Verification**:
+  ```javascript
+  export function userHasExistingData(userId) {
+    const hasTenancies = Array.isArray(cloudTenanciesList) && cloudTenanciesList.length > 0;
+    const hasBills = Array.isArray(cloudBillsList) && cloudBillsList.length > 0;
+    const hasPayments = Array.isArray(cloudPaymentsList) && cloudPaymentsList.length > 0;
+    const isMarkedCompleted = Boolean(
+      cloudSession.profile?.onboarding_completed ||
+      (userId && localStorage.getItem(`rb_onboarding_completed_${userId}`) === 'true')
+    );
+    return hasTenancies || hasBills || hasPayments || isMarkedCompleted;
+  }
+  ```
+- **Strict Data Priority**:
+  - If a user has **any** tenancy (`cloudTenanciesList.length > 0`), **any** bill, or **any** payment, they are definitively recognized as an existing active user.
+  - The app **immediately bypasses onboarding** and navigates directly to the Dashboard (`Screen 6`).
+  - Automatically persists `onboarding_completed: true` in `localStorage` and updates the user's Supabase profile non-blockingly.
+
+### 3. Pure First-Time Onboarding Constraint
+- Onboarding (Screen 2) is **strictly reserved** for brand-new users who have:
+  - 0 tenancies
+  - 0 bills
+  - 0 payments
+  - No prior completed onboarding flag
+- As soon as a user creates their first tenancy on Screen 9, `onboarding_completed` is permanently marked and synced, ensuring they never see the onboarding flow on future logins.
+
+
 
