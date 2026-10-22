@@ -3843,20 +3843,46 @@ function initSettingsScreen() {
     navigateToScreen(19);
   });
 
+  // 1. About The App Modal Sheet
+  const modalAbout = document.getElementById('modal-about-app');
+  const btnCloseAbout = document.getElementById('btnCloseAboutModal');
+  const btnAboutCloseAction = document.getElementById('btnAboutClose');
+
+  const closeAboutModal = () => modalAbout?.classList.add('hidden');
   itemAbout?.addEventListener('click', () => {
-    showToast('Rental Buddy v1.0.0 — Modern mobile-first property ledger', 3000);
+    modalAbout?.classList.remove('hidden');
+  });
+  btnCloseAbout?.addEventListener('click', closeAboutModal);
+  btnAboutCloseAction?.addEventListener('click', closeAboutModal);
+  modalAbout?.addEventListener('click', (e) => {
+    if (e.target === modalAbout) closeAboutModal();
   });
 
+  // 2. Contact Support Modal Sheet
+  const modalSupport = document.getElementById('modal-contact-support');
+  const btnCloseSupport = document.getElementById('btnCloseSupportModal');
+  const btnCloseSupportAction = document.getElementById('btnCloseSupportAction');
+
+  const closeSupportModal = () => modalSupport?.classList.add('hidden');
   itemContact?.addEventListener('click', () => {
-    showToast('✉️ Support desk: support@rentalbuddy.app', 3000);
+    modalSupport?.classList.remove('hidden');
+  });
+  btnCloseSupport?.addEventListener('click', closeSupportModal);
+  btnCloseSupportAction?.addEventListener('click', closeSupportModal);
+  modalSupport?.addEventListener('click', (e) => {
+    if (e.target === modalSupport) closeSupportModal();
   });
 
+  // 3. Report a Bug (Direct to GitHub new issue)
   itemReport?.addEventListener('click', () => {
-    showToast('🐞 Bug report portal opened', 2500);
+    showToast('🐞 Opening GitHub bug report...', 2000);
+    window.open('https://github.com/DoctorKishor/Rental-buddy/issues/new', '_blank', 'noopener,noreferrer');
   });
 
+  // 4. Request Feature (Direct to GitHub new feature issue)
   itemRequest?.addEventListener('click', () => {
-    showToast('✨ Feature request board opened', 2500);
+    showToast('✨ Opening GitHub feature request board...', 2000);
+    window.open('https://github.com/DoctorKishor/Rental-buddy/issues/new?template=feature_request.md&title=%5BFeature%5D+', '_blank', 'noopener,noreferrer');
   });
 
   // Danger Zone: Delete Account & Cloud Data
@@ -4101,90 +4127,283 @@ function initBackupRestoreScreen() {
     navigateToScreen(16);
   });
 
-  btnCreateBackup?.addEventListener('click', () => {
-    const backupPayload = {
-      app: 'Rental Buddy',
-      format: 'rhb',
-      version: '1.0.0',
-      exportedAt: new Date().toISOString(),
-      userEmail: cloudSession.user?.email || null,
-      tenancies: cloudTenanciesList || [],
-      bills: cloudBillsList || [],
-      payments: cloudPaymentsList || [],
-      preferences: {
-        currency: 'INR',
-        currencySymbol: '₹',
-        hapticsEnabled: document.getElementById('toggle-haptics')?.checked ?? true,
-        notificationsEnabled: document.getElementById('toggle-settings-notifications')?.checked ?? true,
-      },
-    };
+  // 1. Create Comprehensive Backup (.rhb)
+  btnCreateBackup?.addEventListener('click', async () => {
+    const originalText = btnCreateBackup.innerHTML;
+    btnCreateBackup.disabled = true;
+    btnCreateBackup.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin-icon" style="width: 18px; height: 18px; margin-right: 8px;">
+        <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+        <path d="M12 2a10 10 0 0 1 10 10"></path>
+      </svg>
+      Exporting Live Records...
+    `;
 
-    const jsonString = JSON.stringify(backupPayload, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const downloadUrl = URL.createObjectURL(blob);
-    const downloadLink = document.createElement('a');
-    const dateStamp = new Date().toISOString().slice(0, 10);
+    try {
+      showToast('⏳ Gathering live properties, bills & payments from cloud...', 2000);
 
-    downloadLink.href = downloadUrl;
-    downloadLink.download = `rental-buddy-backup-${dateStamp}.rhb`;
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-    URL.revokeObjectURL(downloadUrl);
+      // Fetch latest authoritative dataset from Supabase
+      let tenancies = cloudTenanciesList || [];
+      let bills = cloudBillsList || [];
+      let payments = cloudPaymentsList || [];
 
-    showToast('📦 Created backup! Exported all live tenancies & records.', 3500);
+      if (cloudSession.user) {
+        try {
+          const [freshTenancies, freshBills, freshPayments] = await Promise.all([
+            fetchCloudTenancies(),
+            fetchCloudBills(),
+            fetchCloudPayments(),
+          ]);
+          if (freshTenancies && freshTenancies.length >= 0) tenancies = freshTenancies;
+          if (freshBills && freshBills.length >= 0) bills = freshBills;
+          if (freshPayments && freshPayments.length >= 0) payments = freshPayments;
+        } catch (fetchErr) {
+          console.warn('Backup cloud fetch warning, falling back to cached state:', fetchErr);
+        }
+      }
+
+      const backupPayload = {
+        app: 'Rental Buddy',
+        format: 'rhb',
+        schemaVersion: 2,
+        exportedAt: new Date().toISOString(),
+        userEmail: cloudSession.user?.email || null,
+        counts: {
+          tenancies: tenancies.length,
+          bills: bills.length,
+          payments: payments.length,
+        },
+        tenancies,
+        bills,
+        payments,
+        preferences: {
+          currency: state.currency || 'INR',
+          currencySymbol: state.currencySymbol || '₹',
+          hapticsEnabled: document.getElementById('toggle-haptics')?.checked ?? true,
+          notificationsEnabled: document.getElementById('toggle-settings-notifications')?.checked ?? true,
+        },
+      };
+
+      const jsonString = JSON.stringify(backupPayload, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const downloadUrl = URL.createObjectURL(blob);
+      const downloadLink = document.createElement('a');
+      const dateStamp = new Date().toISOString().slice(0, 10);
+
+      downloadLink.href = downloadUrl;
+      downloadLink.download = `rental-buddy-backup-${dateStamp}.rhb`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(downloadUrl);
+
+      showToast(`📦 Backup created! Exported ${tenancies.length} properties, ${bills.length} bills, ${payments.length} payments.`, 4000);
+    } catch (err) {
+      showToast(`❌ Backup failed: ${err.message}`, 3500);
+    } finally {
+      btnCreateBackup.disabled = false;
+      btnCreateBackup.innerHTML = originalText;
+    }
   });
 
+  // 2. Trigger File Picker for Restore
   btnRestoreBackup?.addEventListener('click', () => {
     inputRhbFile?.click();
   });
 
-  inputRhbFile?.addEventListener('change', (e) => {
+  // 3. Process & Restore .rhb Backup File
+  inputRhbFile?.addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const originalText = btnRestoreBackup.innerHTML;
+    btnRestoreBackup.disabled = true;
+    btnRestoreBackup.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin-icon" style="width: 18px; height: 18px; margin-right: 8px;">
+        <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+        <path d="M12 2a10 10 0 0 1 10 10"></path>
+      </svg>
+      Restoring Records...
+    `;
 
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
         const content = event.target?.result;
-        const parsed = JSON.parse(content);
+        if (!content || typeof content !== 'string') {
+          throw new Error('Selected backup file is empty');
+        }
 
-        if (parsed.format === 'rhb' || parsed.app === 'Rental Buddy' || parsed.tenancies) {
-          showToast(`📦 Restoring records from ${file.name}...`, 3000);
-          if (Array.isArray(parsed.tenancies) && parsed.tenancies.length > 0 && cloudSession.user) {
-            for (const t of parsed.tenancies) {
-              const alreadyExists = cloudTenanciesList.some(ct => ct.property_name.toLowerCase() === (t.property_name || '').toLowerCase());
-              if (!alreadyExists && t.property_name) {
-                try {
-                  await createCloudTenancy({
-                    propertyName: t.property_name,
-                    tenantName: t.tenant_name || 'Tenant',
-                    tenantPhone: t.tenant_phone || '',
-                    baseRent: t.base_rent || 0,
-                    advanceAmount: t.advance_amount || 0,
-                    billingDay: t.billing_day || 1,
-                    utilities: t.tenancy_utilities || [],
-                  });
-                } catch (createErr) {
-                  console.warn('Restore tenancy notice:', createErr);
+        const parsed = JSON.parse(content);
+        if (parsed.app !== 'Rental Buddy' && parsed.format !== 'rhb' && !parsed.tenancies) {
+          throw new Error('Not a valid Rental Buddy (.rhb) backup file');
+        }
+
+        showToast(`📦 Reading backup from ${file.name}...`, 2000);
+
+        let restoredTenanciesCount = 0;
+        let restoredBillsCount = 0;
+        let restoredPaymentsCount = 0;
+        const tenancyIdMap = {}; // Maps old backup tenancy ID -> current/created tenancy ID
+
+        // Step A: Restore Tenancies
+        if (Array.isArray(parsed.tenancies) && parsed.tenancies.length > 0 && cloudSession.user) {
+          // Fetch existing to avoid duplicate names
+          const existingTenancies = (await fetchCloudTenancies()) || [];
+
+          for (const t of parsed.tenancies) {
+            if (!t.property_name) continue;
+
+            const existing = existingTenancies.find(
+              (et) => (et.property_name || '').trim().toLowerCase() === t.property_name.trim().toLowerCase()
+            );
+
+            if (existing) {
+              tenancyIdMap[t.id] = existing.id;
+            } else {
+              try {
+                const cleanUtilities = (t.tenancy_utilities || t.utilities || []).map((u) => ({
+                  utility_type: u.utility_type || u.type,
+                  bill_type: u.bill_type || u.billType || 'Flat',
+                  price_per_unit: u.price_per_unit ?? u.pricePerUnit ?? null,
+                  flat_amount: u.flat_amount ?? u.flatAmount ?? null,
+                  last_reading: u.last_reading ?? u.lastReading ?? null,
+                }));
+
+                const created = await createCloudTenancy({
+                  propertyName: t.property_name,
+                  tenantName: t.tenant_name || 'Tenant',
+                  tenantPhone: t.tenant_phone || '',
+                  baseRent: t.base_rent ?? 0,
+                  advanceAmount: t.advance_amount ?? 0,
+                  billingDay: t.billing_day || 1,
+                  startDate: t.start_date || new Date().toISOString().split('T')[0],
+                  billingCycle: t.billing_cycle || 'Monthly',
+                  utilities: cleanUtilities,
+                });
+
+                if (created && created.id) {
+                  tenancyIdMap[t.id] = created.id;
+                  restoredTenanciesCount++;
                 }
+              } catch (tenancyErr) {
+                console.warn(`Restore tenancy "${t.property_name}" error:`, tenancyErr);
               }
             }
-            await syncDashboardFromCloud();
           }
-          showToast(`✅ Successfully restored backup from ${file.name}!`, 3500);
-          setTimeout(() => {
-            navigateToScreen(6);
-          }, 800);
-        } else {
-          showToast('⚠️ Restored file loaded. Formatted records synchronized.', 3000);
         }
+
+        // Step B: Restore Bills
+        if (Array.isArray(parsed.bills) && parsed.bills.length > 0 && cloudSession.user) {
+          const existingBills = (await fetchCloudBills()) || [];
+
+          for (const b of parsed.bills) {
+            const targetTenancyId = tenancyIdMap[b.tenancy_id] || b.tenancy_id;
+            if (!targetTenancyId) continue;
+
+            const alreadyExists = existingBills.some(
+              (eb) =>
+                (b.invoice_number && eb.invoice_number === b.invoice_number) ||
+                (eb.tenancy_id === targetTenancyId &&
+                  eb.duration_start === b.duration_start &&
+                  eb.duration_end === b.duration_end)
+            );
+
+            if (!alreadyExists) {
+              try {
+                await createCloudBill({
+                  tenancyId: targetTenancyId,
+                  invoiceNumber: b.invoice_number || b.invoiceNumber,
+                  durationStart: b.duration_start || b.durationStart,
+                  durationEnd: b.duration_end || b.durationEnd,
+                  generatedDate: b.generated_date || b.generatedDate,
+                  baseRent: b.base_rent ?? b.baseRent ?? 0,
+                  electricityUnits: b.electricity_units ?? b.electricityUnits ?? 0,
+                  electricityCost: b.electricity_cost ?? b.electricityCost ?? 0,
+                  waterUnits: b.water_units ?? b.waterUnits ?? 0,
+                  waterCost: b.water_cost ?? b.waterCost ?? 0,
+                  otherUtilitiesCost: b.other_utilities_cost ?? b.otherUtilitiesCost ?? 0,
+                  subtotal: b.subtotal ?? 0,
+                  advanceDeducted: b.advance_deducted ?? b.advanceDeducted ?? 0,
+                  dueCarried: b.due_carried ?? b.dueCarried ?? 0,
+                  netPayable: b.net_payable ?? b.netPayable ?? 0,
+                  status: b.status || 'unpaid',
+                  notes: b.notes || '',
+                });
+                restoredBillsCount++;
+              } catch (billErr) {
+                console.warn('Restore bill notice:', billErr);
+              }
+            }
+          }
+        }
+
+        // Step C: Restore Payments
+        if (Array.isArray(parsed.payments) && parsed.payments.length > 0 && cloudSession.user) {
+          const existingPayments = (await fetchCloudPayments()) || [];
+
+          for (const p of parsed.payments) {
+            const targetTenancyId = tenancyIdMap[p.tenancy_id] || p.tenancy_id;
+            if (!targetTenancyId) continue;
+
+            const alreadyExists = existingPayments.some(
+              (ep) =>
+                ep.tenancy_id === targetTenancyId &&
+                ep.payment_date === p.payment_date &&
+                Math.abs(parseFloat(ep.amount) - parseFloat(p.amount)) < 0.01
+            );
+
+            if (!alreadyExists) {
+              try {
+                await recordCloudPayment({
+                  tenancyId: targetTenancyId,
+                  amount: parseFloat(p.amount) || 0,
+                  paymentMode: p.payment_mode || p.paymentMode || 'cash',
+                  channel: p.channel || 'cash',
+                  referenceNo: p.reference_no || p.referenceNo || null,
+                  settledMonths: p.settled_months || p.settledMonths || [],
+                  paymentDate: p.payment_date || p.paymentDate || new Date().toISOString().split('T')[0],
+                });
+                restoredPaymentsCount++;
+              } catch (payErr) {
+                console.warn('Restore payment notice:', payErr);
+              }
+            }
+          }
+        }
+
+        // Step D: Restore Preferences
+        if (parsed.preferences) {
+          if (parsed.preferences.hapticsEnabled !== undefined) {
+            const toggleHaptics = document.getElementById('toggle-haptics');
+            if (toggleHaptics) toggleHaptics.checked = parsed.preferences.hapticsEnabled;
+          }
+          if (parsed.preferences.notificationsEnabled !== undefined) {
+            const toggleNotifs = document.getElementById('toggle-settings-notifications');
+            if (toggleNotifs) toggleNotifs.checked = parsed.preferences.notificationsEnabled;
+          }
+        }
+
+        // Finalize Dashboard Sync
+        await syncDashboardFromCloud();
+
+        showToast(
+          `✅ Restore successful! Synced ${restoredTenanciesCount} properties, ${restoredBillsCount} bills, ${restoredPaymentsCount} payments.`,
+          4500
+        );
+
+        setTimeout(() => {
+          navigateToScreen(6);
+        }, 800);
       } catch (err) {
-        showToast('⚠️ Could not parse backup file. Please select a valid .rhb file.', 3500);
+        showToast(`⚠️ Could not restore: ${err.message}`, 4000);
+      } finally {
+        btnRestoreBackup.disabled = false;
+        btnRestoreBackup.innerHTML = originalText;
+        inputRhbFile.value = '';
       }
     };
     reader.readAsText(file);
-    inputRhbFile.value = '';
   });
 }
 

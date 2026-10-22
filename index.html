@@ -2172,6 +2172,9 @@
                     </div>
                     <span class="settings-item-label">About The App</span>
                   </div>
+                  <svg class="settings-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
                 </div>
 
                 <div class="settings-divider"></div>
@@ -2186,6 +2189,9 @@
                     </div>
                     <span class="settings-item-label">Contact Support</span>
                   </div>
+                  <svg class="settings-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
                 </div>
 
                 <div class="settings-divider"></div>
@@ -2204,6 +2210,11 @@
                     </div>
                     <span class="settings-item-label">Report a Bug</span>
                   </div>
+                  <svg class="settings-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; opacity: 0.7;">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                  </svg>
                 </div>
 
                 <div class="settings-divider"></div>
@@ -2217,6 +2228,11 @@
                     </div>
                     <span class="settings-item-label">Request Feature</span>
                   </div>
+                  <svg class="settings-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; opacity: 0.7;">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                  </svg>
                 </div>
               </div>
 
@@ -2345,6 +2361,121 @@
                     </button>
                     <button type="button" class="btn btn-pill" id="btnConfirmDeleteAccount" style="flex: 1.4; height: 50px; background: #DC2626; color: #FFFFFF; font-weight: 700; border: none; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);">
                       Delete Everything
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- MODAL: About The App Bottom Sheet -->
+              <div class="modal-overlay hidden" id="modal-about-app" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle">
+                <div class="modal-sheet">
+                  <div class="modal-handle"></div>
+                  <div class="modal-header">
+                    <h3 class="modal-title" id="aboutModalTitle">About Rental Buddy</h3>
+                    <button class="modal-close-btn" id="btnCloseAboutModal" aria-label="Close dialog">✕</button>
+                  </div>
+                  <div class="about-app-content" style="padding: 10px 0 16px;">
+                    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px;">
+                      <div class="brand-icon-wrapper" style="width: 52px; height: 52px; border-radius: 16px; background: #5452EC; color: #FFFFFF; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 26px; height: 26px;">
+                          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 style="font-size: 18px; font-weight: 800; color: #0E1326; margin: 0;">Rental Buddy</h4>
+                        <span style="font-size: 12px; color: #5452EC; font-weight: 700; background: #E8E7FB; padding: 2px 8px; border-radius: 9999px; display: inline-block; margin-top: 4px;">v1.0.0 Production</span>
+                      </div>
+                    </div>
+
+                    <p style="font-size: 13.5px; color: #52586E; line-height: 1.5; margin-bottom: 16px;">
+                      High-clarity property ledger and utility splitting tool designed for landlords and tenants to record monthly rent, split electricity and water bills, and generate digital payment vouchers with automated clarity.
+                    </p>
+
+                    <div style="background: #F8F9FE; border-radius: 14px; padding: 12px 14px; border: 1px solid #E2E4F2; display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; font-size: 13px;">
+                      <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #7D849B;">Crafted With</span>
+                        <strong style="color: #0E1326;">Vroxal Design System</strong>
+                      </div>
+                      <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #7D849B;">Developer &amp; Maintainer</span>
+                        <strong style="color: #0E1326;">Dr. Kishor (@DoctorKishor)</strong>
+                      </div>
+                      <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #7D849B;">Cloud Backend</span>
+                        <strong style="color: #0E1326;">Supabase Cloud &amp; Auth</strong>
+                      </div>
+                      <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #7D849B;">Calendar Support</span>
+                        <strong style="color: #0E1326;">Gregorian &amp; Bikram Sambat (BS)</strong>
+                      </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                      <button type="button" class="btn btn-secondary btn-pill" id="btnAboutClose" style="flex: 1; height: 48px;">
+                        Close
+                      </button>
+                      <a href="https://github.com/DoctorKishor/Rental-buddy" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-pill" id="btnAboutGithub" style="flex: 1.4; height: 48px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+                        <svg viewBox="0 0 24 24" fill="currentColor" style="width: 18px; height: 18px;">
+                          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                        </svg>
+                        GitHub Repo
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- MODAL: Contact Support Bottom Sheet -->
+              <div class="modal-overlay hidden" id="modal-contact-support" role="dialog" aria-modal="true" aria-labelledby="supportModalTitle">
+                <div class="modal-sheet">
+                  <div class="modal-handle"></div>
+                  <div class="modal-header">
+                    <h3 class="modal-title" id="supportModalTitle">Contact Support</h3>
+                    <button class="modal-close-btn" id="btnCloseSupportModal" aria-label="Close dialog">✕</button>
+                  </div>
+                  <div class="support-content" style="padding: 10px 0 16px;">
+                    <p style="font-size: 13.5px; color: #52586E; line-height: 1.5; margin-bottom: 16px;">
+                      Need help with your property ledgers, have questions, or want to reach out to the developer?
+                    </p>
+
+                    <!-- Option A: Direct Email Support -->
+                    <a href="mailto:kishoranbazhakan@gmail.com?subject=Rental%20Buddy%20Support%20Request" class="share-choice-card" style="text-decoration: none; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #FFFFFF; border: 1.5px solid #E2E4F2; border-radius: 16px;">
+                      <div class="share-choice-icon text-icon" style="background: #E8E7FB; color: #5452EC; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px;">
+                          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                          <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                      </div>
+                      <div style="flex: 1; min-width: 0;">
+                        <strong style="display: block; font-size: 14.5px; color: #0E1326; margin-bottom: 2px;">Email Developer Directly</strong>
+                        <span style="display: block; font-size: 12px; color: #5452EC; font-weight: 600;">kishoranbazhakan@gmail.com</span>
+                      </div>
+                      <svg class="settings-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; color: #7D849B;">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </a>
+
+                    <!-- Option B: GitHub Issues & Discussions -->
+                    <a href="https://github.com/DoctorKishor/Rental-buddy/issues" target="_blank" rel="noopener noreferrer" class="share-choice-card" style="text-decoration: none; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #FFFFFF; border: 1.5px solid #E2E4F2; border-radius: 16px;">
+                      <div class="share-choice-icon text-icon" style="background: #EFF6FF; color: #1D4ED8; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px;">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                      </div>
+                      <div style="flex: 1; min-width: 0;">
+                        <strong style="display: block; font-size: 14.5px; color: #0E1326; margin-bottom: 2px;">GitHub Help Desk &amp; Issues</strong>
+                        <span style="display: block; font-size: 12px; color: #7D849B;">Ask questions or browse community discussions</span>
+                      </div>
+                      <svg class="settings-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; color: #7D849B;">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </a>
+
+                    <button type="button" class="btn btn-secondary btn-pill" id="btnCloseSupportAction" style="width: 100%; height: 48px;">
+                      Close
                     </button>
                   </div>
                 </div>

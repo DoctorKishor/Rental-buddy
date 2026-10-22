@@ -1414,3 +1414,44 @@
 
 
 
+
+
+---
+
+## 39. Settings Menu Workflows & Complete Relational Backup & Restore Architecture
+
+### 1. Settings Menu Workflows
+To eliminate dead placeholders and provide a production-ready user experience, all four information and support menus on the Settings screen are backed by functional workflows:
+- **Report a Bug**:
+  - Direct external link triggering `window.open('https://github.com/DoctorKishor/Rental-buddy/issues/new', '_blank')`.
+  - Opens GitHub's issue creation portal directly in a new browser tab.
+- **About The App**:
+  - Triggers a rich, responsive bottom-sheet modal (`#modal-about-app`).
+  - Displays product branding, current app version (`v1.2.0`), author attribution (Dr. Kishor / Vroxal design), core value pillars (Offline-first, Zero data lock-in, WhatsApp invoice sync), and direct GitHub repository links.
+- **Contact Support**:
+  - Triggers a dedicated support modal (`#modal-contact-support`).
+  - Provides a 1-tap direct email mailto action to `kishoranbazhakan@gmail.com` pre-populated with subject and device metadata, alongside an alternate link to GitHub Community Discussions.
+- **Request Feature**:
+  - Direct external link to `https://github.com/DoctorKishor/Rental-buddy/issues/new?template=feature_request.md&title=%5BFeature%5D+`.
+  - Encourages community feature requests with pre-formatted issue templates.
+
+### 2. Complete Relational Backup & Restore Architecture (Screen 19)
+- **Previous Limitation**: The initial prototype backup only exported in-memory cached tenancies with zero bills or payments, and the restore flow naively created empty tenancies without relational bills or payment records.
+- **Authoritative Cloud-Backed Backup Engine**:
+  - Exports a unified `.rhb` (Rental Buddy Backup) JSON file containing:
+    - `metadata`: Export timestamp, schema version (2.0), source app, and user email.
+    - `tenancies`: Complete tenancy definitions, tenant names, contact numbers, and utility configurations.
+    - `bills`: Complete billing history, calculations, meter readings, and cycle periods.
+    - `payments`: Comprehensive ledger payments, transaction modes, reference numbers, and settled month tags.
+    - `preferences`: Currency token, haptics toggle, and notification settings.
+  - Asynchronously pulls fresh records directly from Supabase (`fetchCloudTenancies`, `fetchCloudBills`, `fetchCloudPayments`) to ensure zero dropped data even if local state is cold.
+- **Relational Integrity & Foreign Key Remapping**:
+  - In Supabase, the `bills` and `payments` tables enforce strict foreign key constraints (`tenancy_id -> tenancies.id`).
+  - When importing a `.rhb` backup, old UUIDs cannot simply be re-inserted if new tenancy records are created.
+  - The restore engine introduces an in-memory **`tenancyIdMap`**:
+    1. Checks if a tenancy already exists in the cloud by matching name. If found, uses its authoritative `id`.
+    2. If absent, creates the tenancy record in Supabase and maps the backup `oldId -> newId`.
+    3. Re-maps all foreign keys on `bills` and `payments` using the map before saving.
+    4. Automatically skips duplicate bills and payments (matching by cycle period / timestamp) to avoid inflating ledger balances.
+- **Reactivity & Synchronized Feedback**:
+  - On restore completion, restores local preferences (`rb_currency`, `rb_haptics`), triggers `syncDashboardFromCloud()`, refreshes the dashboard UI, and presents a celebratory toast summary with the exact count of properties, bills, and payments recovered.
