@@ -1736,6 +1736,28 @@ To eliminate dead placeholders and provide a production-ready user experience, a
   - Updated `<link rel="manifest" href="manifest.json" />` to relative resolution, ensuring 100% valid JSON responses across all server configurations.
 
 
+---
 
+## 50. Fail-Safe Splash Screen Dismissal & Cloudflare Pages Boot Protocol
 
+### 1. Root Cause of Stuck Loading Screen on Remote Hosting / Cloudflare Pages
+- **Root Cause A (Unprotected Async Handshake)**: In previous builds, `splash.classList.add('hidden')` was placed strictly after `await getCurrentSession()`. When deployed on Cloudflare Pages or remote networks, any network latency, DNS negotiation, or Supabase token validation delay stalled the boot async function, leaving the user blocked indefinitely on the `#app-splash-screen`.
+- **Root Cause B (Missed DOMContentLoaded Event)**: When assets are cached by Service Workers or CDN HTTP/2 preloading, the script evaluated when `document.readyState` was already `'interactive'` or `'complete'`, meaning `DOMContentLoaded` had already fired and the event listener would never execute.
+- **Root Cause C (Synchronous Exception Cascade)**: Any single DOM mismatch in the 18 synchronous `init*` functions aborted the entire boot runner before splash dismissal was reached.
+- **Root Cause D (Stale Service Worker Asset Hashes)**: When a new build was deployed, previous Service Worker cache instances (`rental-buddy-v1.0.1`) served cached `index.html` referencing outdated chunk hashes that returned 404.
 
+### 2. Multi-Layered Failsafe Architecture Applied
+1. **Zero-Dependency Inline HTML Failsafe**:
+   - Added an inline `<script>` directly after `#app-splash-screen` in `index.html` that defines `window.__dismissSplashScreen()` and schedules an unconditional hard fallback at `1800ms`.
+   - Even if network bundles fail to download or a script crashes, the splash screen is guaranteed to fade out and vanish.
+2. **Protected Supabase Auth Race (1200ms Timeout)**:
+   - Wrapped `getCurrentSession()` in `Promise.race([getCurrentSession(), timeoutPromise(1200)])`.
+   - If Supabase does not respond within 1.2s, the app proceeds seamlessly to the Auth Screen (Screen 20) or cached dashboard, dismissing the splash screen immediately.
+3. **Execution ReadyState Guard**:
+   - Replaced bare `DOMContentLoaded` listener with a dual check: `if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootApplication); else bootApplication();`.
+4. **Boot Function Error Boundaries**:
+   - All 18 UI initialization routines (`initClock`, `initCurrencySelection`, `initAuthScreen`, etc.) execute inside isolated `try...catch` blocks so one element warning cannot prevent the rest of the application from mounting.
+5. **Cloudflare SPA Routing (`_redirects`)**:
+   - Added `/*    /index.html   200` to `public/_redirects` and workspace root to guarantee 200 responses on client-side route reloads.
+6. **Service Worker Cache Invalidation**:
+   - Bumped cache to `rental-buddy-v1.0.2` in `public/sw.js` and `sw.js` so stale cached bundles are immediately purged upon activation.

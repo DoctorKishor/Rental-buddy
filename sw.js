@@ -2,7 +2,7 @@
 // RENTAL BUDDY — PWA SERVICE WORKER
 // ==========================================================================
 
-const CACHE_NAME = 'rental-buddy-v1.0.1';
+const CACHE_NAME = 'rental-buddy-v1.0.2';
 const PRECACHE_URLS = [
   '/',
   '/index.html',

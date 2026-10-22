@@ -204,7 +204,8 @@ function navigateToScreen(targetScreenNumber) {
     menu.classList.add('hidden');
   });
 
-  screens.forEach((screen) => {
+  const allScreens = screens && screens.length > 0 ? screens : document.querySelectorAll('.screen');
+  allScreens.forEach((screen) => {
     const screenNum = parseInt(screen.dataset.screen, 10);
     screen.classList.remove('active', 'exit-left');
 
@@ -6812,52 +6813,97 @@ export function handleRealtimeCloudUpdate(table, payload) {
 }
 
 // ==========================================================================
-// INITIAL APPLICATION BOOT & STRICT AUTH GUARD
+// FAIL-SAFE SPLASH SCREEN DISMISSAL & RESILIENT BOOT SEQUENCE
 // ==========================================================================
 
-document.addEventListener('DOMContentLoaded', async () => {
-  initClock();
-  initCurrencySelection();
-  initStep1Form();
-  initUtilityToggles();
-  initEventListeners();
-  initTenancyDetails();
-  initEditTenancy();
-  initRecordPaymentPage();
-  initBillGenerationFlow();
-  initSettingsScreen();
-  initArchivedTenanciesFlow();
-  initBackupRestoreScreen();
-  initAuthScreen();
-  initFamilySharingPage();
-  initReceiptPage();
-  initNumericAndPhoneInputs();
-  initPwaInstallation();
-  initConnectivityLifecycle();
-
-  // Check Supabase Cloud Session on Boot
-  const session = await getCurrentSession();
-
-  // Dismiss splash screen smoothly after session state resolves
+export function dismissSplashScreen() {
+  if (typeof window.__dismissSplashScreen === 'function') {
+    try {
+      window.__dismissSplashScreen();
+    } catch (e) {
+      // ignore
+    }
+  }
   const splash = document.getElementById('app-splash-screen');
-  if (splash) {
+  if (splash && !splash.classList.contains('hidden')) {
     splash.classList.add('hidden');
+    splash.style.opacity = '0';
+    splash.style.pointerEvents = 'none';
+    setTimeout(() => {
+      splash.style.display = 'none';
+    }, 300);
+  }
+}
+
+// Immediate module-level hard timeout: Guaranteed splash dismissal within 1500ms
+setTimeout(dismissSplashScreen, 1500);
+
+async function bootApplication() {
+  // Execute all UI init functions safely inside error boundaries
+  const inits = [
+    ['initClock', initClock],
+    ['initCurrencySelection', initCurrencySelection],
+    ['initStep1Form', initStep1Form],
+    ['initUtilityToggles', initUtilityToggles],
+    ['initEventListeners', initEventListeners],
+    ['initTenancyDetails', initTenancyDetails],
+    ['initEditTenancy', initEditTenancy],
+    ['initRecordPaymentPage', initRecordPaymentPage],
+    ['initBillGenerationFlow', initBillGenerationFlow],
+    ['initSettingsScreen', initSettingsScreen],
+    ['initArchivedTenanciesFlow', initArchivedTenanciesFlow],
+    ['initBackupRestoreScreen', initBackupRestoreScreen],
+    ['initAuthScreen', initAuthScreen],
+    ['initFamilySharingPage', initFamilySharingPage],
+    ['initReceiptPage', initReceiptPage],
+    ['initNumericAndPhoneInputs', initNumericAndPhoneInputs],
+    ['initPwaInstallation', initPwaInstallation],
+    ['initConnectivityLifecycle', initConnectivityLifecycle],
+  ];
+
+  for (const [name, fn] of inits) {
+    try {
+      if (typeof fn === 'function') fn();
+    } catch (err) {
+      console.warn(`Boot warning in ${name}:`, err);
+    }
   }
 
+  // Check Supabase Cloud Session on Boot with safety timeout (1200ms max)
+  let session = null;
+  try {
+    const sessionPromise = getCurrentSession().catch((e) => {
+      console.warn('Session check warning:', e);
+      return null;
+    });
+    const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 1200));
+    session = await Promise.race([sessionPromise, timeoutPromise]);
+  } catch (err) {
+    console.warn('Boot session resolution error:', err);
+    session = null;
+  }
+
+  // Dismiss splash screen smoothly after session state resolves or times out
+  dismissSplashScreen();
+
   // Subscribe to auth state changes to guarantee session persistence across refreshes & token renewals
-  supabase.auth.onAuthStateChange(async (event, currentAuthSession) => {
-    if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && currentAuthSession?.user) {
-      cloudSession.user = currentAuthSession.user;
-      cloudSession.isCloudConnected = true;
-      updateAuthUI(currentAuthSession.user);
-      initSupabaseRealtime(handleRealtimeCloudUpdate);
-    } else if (event === 'SIGNED_OUT') {
-      cloudSession.user = null;
-      cloudSession.profile = null;
-      cloudSession.isCloudConnected = false;
-      updateAuthUI(null);
-    }
-  });
+  try {
+    supabase.auth.onAuthStateChange(async (event, currentAuthSession) => {
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && currentAuthSession?.user) {
+        cloudSession.user = currentAuthSession.user;
+        cloudSession.isCloudConnected = true;
+        updateAuthUI(currentAuthSession.user);
+        initSupabaseRealtime(handleRealtimeCloudUpdate);
+      } else if (event === 'SIGNED_OUT') {
+        cloudSession.user = null;
+        cloudSession.profile = null;
+        cloudSession.isCloudConnected = false;
+        updateAuthUI(null);
+      }
+    });
+  } catch (authSubErr) {
+    console.warn('Auth state change subscription error:', authSubErr);
+  }
 
   if (!session || !session.user) {
     // STRICT PRODUCTION AUTH GUARD: User is not logged in!
@@ -6865,7 +6911,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     navigateToScreen(20);
   } else {
     // User is authenticated!
-    await syncUserProfile();
+    try {
+      await syncUserProfile();
+    } catch (e) {
+      console.warn('Profile sync on boot error:', e);
+    }
     updateAuthUI(session.user);
     initSupabaseRealtime(handleRealtimeCloudUpdate);
 
@@ -6900,5 +6950,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       navigateToScreen(2); // Direct first-time user to functional onboarding ONLY if no data exists
     }
   }
-});
+}
+
+// Ensure execution whether DOMContentLoaded has already fired or not
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootApplication);
+} else {
+  bootApplication();
+}
+
 

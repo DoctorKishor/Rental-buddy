@@ -47,8 +47,30 @@
             </div>
             <h2 class="brand-title" style="font-size: 22px; color: #0E1326; margin-top: 6px;">Rental Buddy</h2>
             <div class="splash-spinner"></div>
-          </div>
         </div>
+
+        <script>
+          // Fail-safe splash dismisser: Guarantees the splash screen NEVER gets stuck
+          // even if CDN bundles take long, service worker installs, or network drops.
+          (function() {
+            var dismissed = false;
+            window.__dismissSplashScreen = function() {
+              if (dismissed) return;
+              dismissed = true;
+              var splash = document.getElementById('app-splash-screen');
+              if (splash && !splash.classList.contains('hidden')) {
+                splash.classList.add('hidden');
+                splash.style.opacity = '0';
+                splash.style.pointerEvents = 'none';
+                setTimeout(function() {
+                  splash.style.display = 'none';
+                }, 300);
+              }
+            };
+            // Hard fallback timeout: Guarantees splash never blocks the user longer than 1.8s
+            setTimeout(window.__dismissSplashScreen, 1800);
+          })();
+        </script>
 
         <!-- Offline Read-Only Sticky Banner -->
         <div class="offline-indicator-banner hidden" id="offline-indicator-banner">
