@@ -1675,4 +1675,33 @@ To eliminate dead placeholders and provide a production-ready user experience, a
 - **Toast Notifications**:
   - Cleaned to natural product language (e.g. `"Account created successfully!"` and `"🔑 Password reset link dispatched to user@example.com"`).
 
+---
+
+## 47. Profile Full Name Propagation & UI Display Architecture
+
+### 1. The Discarded Full Name Issue & Resolution
+- **Problem**: When a user registered with a full name during sign up, Supabase Auth stored it in `user_metadata.full_name`. However, subsequent profile synchronization logic in `syncUserProfile` defaulted fallback profiles to `email.split('@')[0]`. This caused family sharing invitation cards and alert banners to render raw email prefixes (e.g., `user` instead of `Ramesh Sharma`).
+- **Resolution**:
+  - `syncUserProfile` now extracts `user_metadata.full_name || user_metadata.name` and ensures `profiles.full_name` is backfilled and kept in sync with the user's authentic name.
+  - `signUpUser` passes `cleanFullName` into both `auth.options.data` and the immediate profile record.
+
+### 2. Settings Screen User Account Banner Hierarchy
+- **Layout Specification (`#item-user-account`)**:
+  - **Full Name (`#current-user-name-display`)**: Displayed as the primary bold headline (`15px`, bold `#0E1326`).
+  - **Email Address (`#current-user-email-display`)**: Displayed directly below in smaller font (`12px`, `#52586E`).
+  - **Role Badge (`#current-user-role-badge`)**: Positioned neatly below (`👑 Admin (Owner)` or `👨‍👩‍👧 Family Member (Viewer)`).
+  - **Sign Out Action (`#btn-settings-logout`)**: Maintained on the right with danger red accent (`#DC2626`).
+
+### 3. Family Sharing Requests & Collaboration Cards
+- **Incoming Shared Requests & Active Shares**:
+  - Resolves `admin_name` by querying the property owner's profile (`profiles.full_name`), replacing stale email username tags with their real display name.
+  - Card displays:
+    - Primary bold title: `${ownerName}` (e.g. `Ramesh Sharma`).
+    - Subtitle: `${ownerEmail}` (e.g. `ramesh@example.com` in `11.5px` muted slate).
+- **Dashboard Incoming Share Alert Banner**:
+  - Greets the user naturally: `<strong>Ramesh Sharma</strong> invited you to view their properties!`.
+- **Outgoing Shares**:
+  - Displays recipient's full name (`share.member_name || share.member_email`) with secondary email label.
+
+
 

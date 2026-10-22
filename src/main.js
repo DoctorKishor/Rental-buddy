@@ -1503,11 +1503,21 @@ export async function syncDashboardFromCloud() {
       if (pendingIncoming.length > 0) {
         incomingBanner.classList.remove('hidden');
         if (incomingBannerMsg) {
-          incomingBannerMsg.innerHTML = `<strong>${pendingIncoming.length} incoming tenancy share${pendingIncoming.length > 1 ? 's' : ''}</strong> waiting for your approval!`;
+          const firstAdmin = pendingIncoming[0].admin_name || 'A property owner';
+          if (pendingIncoming.length === 1) {
+            incomingBannerMsg.innerHTML = `<strong>${firstAdmin}</strong> invited you to view their properties!`;
+          } else {
+            incomingBannerMsg.innerHTML = `<strong>${firstAdmin}</strong> and ${pendingIncoming.length - 1} other owner${pendingIncoming.length > 2 ? 's' : ''} invited you to collaborate!`;
+          }
         }
       } else {
         incomingBanner.classList.add('hidden');
       }
+    }
+
+    // Refresh Settings account banner with synced profile info
+    if (cloudSession.user) {
+      updateAuthUI(cloudSession.user);
     }
 
     // Update family count on Settings Screen (Screen 16)
@@ -5301,16 +5311,18 @@ function initBackupRestoreScreen() {
 export let currentUserSession = null;
 
 export function updateAuthUI(user) {
+  const nameDisplay = document.getElementById('current-user-name-display');
   const emailDisplay = document.getElementById('current-user-email-display');
   const roleBadge = document.getElementById('current-user-role-badge');
   const authNav = document.getElementById('auth-nav-header');
   const btnAuthBack = document.getElementById('btn-auth-back');
 
   if (!user) {
-    if (emailDisplay) emailDisplay.textContent = 'Not Signed In';
+    if (nameDisplay) nameDisplay.textContent = 'Not Signed In';
+    if (emailDisplay) emailDisplay.textContent = 'Sign in to access cloud features';
     if (roleBadge) {
-      roleBadge.textContent = 'Sign in to view account';
-      roleBadge.style.color = '#7D849B';
+      roleBadge.textContent = '';
+      roleBadge.style.display = 'none';
     }
     authNav?.classList.add('hidden');
     btnAuthBack?.classList.add('hidden');
@@ -5319,7 +5331,11 @@ export function updateAuthUI(user) {
   }
 
   const email = user.email || '';
-  const fullName = user.user_metadata?.full_name || email.split('@')[0];
+  const fullName =
+    cloudSession.profile?.full_name ||
+    user.user_metadata?.full_name ||
+    user.user_metadata?.name ||
+    email.split('@')[0];
   const role = cloudSession.role || 'admin';
   const isAdmin = role === 'admin';
 
@@ -5330,8 +5346,10 @@ export function updateAuthUI(user) {
     name: fullName,
   };
 
+  if (nameDisplay) nameDisplay.textContent = fullName;
   if (emailDisplay) emailDisplay.textContent = email;
   if (roleBadge) {
+    roleBadge.style.display = 'inline-block';
     roleBadge.textContent = isAdmin ? '👑 Admin (Owner)' : '👨‍👩‍👧 Family Member (Viewer)';
     roleBadge.style.color = isAdmin ? '#16A34A' : '#0284C7';
   }
@@ -5603,7 +5621,7 @@ export async function refreshFamilySharingPage() {
             ? '<span class="family-role-badge manager">🛠️ Manager</span>'
             : '<span class="family-role-badge viewer">👁️ Viewer (Read Only)</span>';
 
-          const ownerName = share.admin_name || (share.admin_email ? share.admin_email.split('@')[0] : 'Owner');
+          const ownerName = share.admin_name || (share.admin_email ? share.admin_email.split('@')[0] : 'Property Owner');
           const ownerEmail = share.admin_email || '';
           const avatarInitial = (ownerName.charAt(0) || '👤').toUpperCase();
 
@@ -5631,8 +5649,8 @@ export async function refreshFamilySharingPage() {
                 <div class="family-avatar">${avatarInitial}</div>
                 <div class="family-user-texts">
                   <span class="family-user-sub">Invited by Property Owner</span>
-                  <strong class="family-user-email">${ownerName}</strong>
-                  ${ownerEmail ? `<span class="family-user-sub" style="font-size: 11px;">${ownerEmail}</span>` : ''}
+                  <strong class="family-user-email" style="font-size: 15px; font-weight: 700; color: #0E1326;">${ownerName}</strong>
+                  ${ownerEmail ? `<span class="family-user-sub" style="font-size: 11.5px; color: #52586E; margin-top: 1px;">${ownerEmail}</span>` : ''}
                 </div>
               </div>
               ${roleBadge}
@@ -5712,7 +5730,7 @@ export async function refreshFamilySharingPage() {
             ? '<span class="family-role-badge manager">🛠️ Manager</span>'
             : '<span class="family-role-badge viewer">👁️ Viewer (Read Only)</span>';
 
-          const ownerName = share.admin_name || (share.admin_email ? share.admin_email.split('@')[0] : 'Owner');
+          const ownerName = share.admin_name || (share.admin_email ? share.admin_email.split('@')[0] : 'Property Owner');
           const ownerEmail = share.admin_email || '';
           const avatarInitial = (ownerName.charAt(0) || '👤').toUpperCase();
 
@@ -5739,9 +5757,9 @@ export async function refreshFamilySharingPage() {
               <div class="family-card-user-info">
                 <div class="family-avatar">${avatarInitial}</div>
                 <div class="family-user-texts">
-                  <span class="family-user-sub">Shared by Owner</span>
-                  <strong class="family-user-email">${ownerName}</strong>
-                  ${ownerEmail ? `<span class="family-user-sub" style="font-size: 11px;">${ownerEmail}</span>` : ''}
+                  <span class="family-user-sub">Shared by Property Owner</span>
+                  <strong class="family-user-email" style="font-size: 15px; font-weight: 700; color: #0E1326;">${ownerName}</strong>
+                  ${ownerEmail ? `<span class="family-user-sub" style="font-size: 11.5px; color: #52586E; margin-top: 1px;">${ownerEmail}</span>` : ''}
                 </div>
               </div>
               ${roleBadge}
@@ -5821,8 +5839,9 @@ export async function refreshFamilySharingPage() {
             ? '<button type="button" class="family-role-badge manager role-badge-clickable" title="Click to toggle between Manager and Viewer" style="cursor: pointer; border: 1px solid #DDD6FE;">🛠️ Manager ▾</button>'
             : '<button type="button" class="family-role-badge viewer role-badge-clickable" title="Click to toggle between Manager and Viewer" style="cursor: pointer; border: 1px solid #BAE6FD;">👁️ Viewer ▾</button>';
 
-          const recipientEmail = share.member_email || 'Recipient';
-          const avatarInitial = (recipientEmail.charAt(0) || '✉️').toUpperCase();
+          const recipientName = share.member_name || share.member_email || 'Recipient';
+          const recipientEmail = share.member_email || '';
+          const avatarInitial = (recipientName.charAt(0) || '✉️').toUpperCase();
 
           // Resolve tenancy names
           let tenancyNames = [];
@@ -5847,7 +5866,8 @@ export async function refreshFamilySharingPage() {
                 <div class="family-avatar">${avatarInitial}</div>
                 <div class="family-user-texts">
                   <span class="family-user-sub">Recipient</span>
-                  <strong class="family-user-email">${recipientEmail}</strong>
+                  <strong class="family-user-email" style="font-size: 15px; font-weight: 700; color: #0E1326;">${recipientName}</strong>
+                  ${share.member_name && recipientEmail ? `<span class="family-user-sub" style="font-size: 11.5px; color: #52586E; margin-top: 1px;">${recipientEmail}</span>` : ''}
                 </div>
               </div>
               <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
@@ -6827,6 +6847,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     navigateToScreen(20);
   } else {
     // User is authenticated!
+    await syncUserProfile();
     updateAuthUI(session.user);
     initSupabaseRealtime(handleRealtimeCloudUpdate);
 

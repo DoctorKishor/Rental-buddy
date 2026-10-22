@@ -59,12 +59,13 @@ export async function signInUser(email, password) {
 
 export async function signUpUser(email, password, fullName = '') {
   try {
+    const cleanFullName = (fullName || '').trim();
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          full_name: fullName || email.split('@')[0],
+          full_name: cleanFullName || email.split('@')[0],
         },
       },
     });
@@ -75,11 +76,12 @@ export async function signUpUser(email, password, fullName = '') {
       cloudSession.user = data.user;
       cloudSession.isCloudConnected = true;
       if (data.user) {
-        await supabase.from('profiles').upsert({
+        const { data: prof } = await supabase.from('profiles').upsert({
           id: data.user.id,
           email: data.user.email,
-          full_name: fullName || email.split('@')[0],
-        });
+          full_name: cleanFullName || email.split('@')[0],
+        }).select().single();
+        if (prof) cloudSession.profile = prof;
       }
     }
 
@@ -199,26 +201,43 @@ export async function signOutUser() {
 
 export async function syncUserProfile() {
   if (!cloudSession.user) return null;
+  const user = cloudSession.user;
+  const metaFullName = (user.user_metadata?.full_name || user.user_metadata?.name || '').trim();
   try {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', cloudSession.user.id)
+      .eq('id', user.id)
       .single();
 
     if (error && error.code === 'PGRST116') {
       // Create if missing
+      const resolvedName = metaFullName || user.email.split('@')[0];
       const { data: newProfile } = await supabase
         .from('profiles')
         .insert({
-          id: cloudSession.user.id,
-          email: cloudSession.user.email,
-          full_name: cloudSession.user.email.split('@')[0],
+          id: user.id,
+          email: user.email,
+          full_name: resolvedName,
         })
         .select()
         .single();
       cloudSession.profile = newProfile;
       return newProfile;
+    }
+
+    if (data) {
+      // If full_name is missing or is just the email username, but user_metadata has a real full name, update it!
+      const emailUser = user.email.split('@')[0];
+      if (metaFullName && (!data.full_name || data.full_name === emailUser || data.full_name === user.email)) {
+        await supabase
+          .from('profiles')
+          .update({ full_name: metaFullName })
+          .eq('id', user.id);
+        data.full_name = metaFullName;
+      }
+      cloudSession.profile = data;
+      return data;
     }
 
     cloudSession.profile = data;
@@ -791,7 +810,28 @@ export async function fetchOutgoingFamilyShares() {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    const shares = data || [];
+
+    // Fetch recipient profiles for member_ids to get recipient's full name
+    const memberIds = [...new Set(shares.map((s) => s.member_id).filter(Boolean))];
+    if (memberIds.length > 0) {
+      const { data: memberProfiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', memberIds);
+
+      if (memberProfiles && memberProfiles.length > 0) {
+        const memberMap = {};
+        memberProfiles.forEach((p) => { memberMap[p.id] = p; });
+        shares.forEach((s) => {
+          const prof = memberMap[s.member_id];
+          if (prof && prof.full_name) {
+            s.member_name = prof.full_name;
+          }
+        });
+      }
+    }
+    return shares;
   } catch (err) {
     console.error('Fetch Outgoing Family Shares Error:', err);
     return [];
@@ -810,7 +850,28 @@ export async function fetchIncomingFamilyShares() {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    const shares = data || [];
+
+    // Fetch profiles for admin_ids to resolve real full names
+    const adminIds = [...new Set(shares.map((s) => s.admin_id).filter(Boolean))];
+    if (adminIds.length > 0) {
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', adminIds);
+
+      if (profilesData && profilesData.length > 0) {
+        const profileMap = {};
+        profilesData.forEach((p) => { profileMap[p.id] = p; });
+        shares.forEach((s) => {
+          const prof = profileMap[s.admin_id];
+          if (prof && prof.full_name) {
+            s.admin_name = prof.full_name;
+          }
+        });
+      }
+    }
+    return shares;
   } catch (err) {
     console.error('Fetch Incoming Family Shares Error:', err);
     return [];
@@ -836,6 +897,7 @@ export async function createSelectiveFamilyShare({ email, role = 'viewer', tenan
   const adminName =
     cloudSession.profile?.full_name ||
     cloudSession.user.user_metadata?.full_name ||
+    cloudSession.user.user_metadata?.name ||
     cloudSession.user.email.split('@')[0];
 
   try {
