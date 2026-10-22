@@ -1411,6 +1411,13 @@ html, body {
   border: 1px solid #BAE6FD;
 }
 
+.status-pill.status-paid {
+  background-color: #DCFCE7;
+  color: #16A34A;
+  border: 1px solid #BBF7D0;
+}
+
+
 /* Tenancy Card Main Header Row */
 .tenancy-card-main-row {
   display: flex;

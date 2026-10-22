@@ -1455,3 +1455,27 @@ To eliminate dead placeholders and provide a production-ready user experience, a
     4. Automatically skips duplicate bills and payments (matching by cycle period / timestamp) to avoid inflating ledger balances.
 - **Reactivity & Synchronized Feedback**:
   - On restore completion, restores local preferences (`rb_currency`, `rb_haptics`), triggers `syncDashboardFromCloud()`, refreshes the dashboard UI, and presents a celebratory toast summary with the exact count of properties, bills, and payments recovered.
+
+---
+
+## 40. Dynamic Tenancy Payment Status Badges Architecture (Dashboard Cards)
+
+### 1. Replacement of Static Badges
+- **Previous Design**: Tenancy cards on the landlord dashboard displayed static operational labels: `Active • Rent Only` or `Active • Utilities Included`. These provided zero financial intelligence regarding rent collection.
+- **Enhanced Design**: Every tenancy card header now dynamically evaluates authoritative ledger payments, generated utility bills, billing recurrence dates, and the calendar date to display real-time, actionable financial status badges with color-coded psychological cues.
+
+### 2. Four Color-Coded Status Categories
+
+| Category | CSS Class | Color Palette (Background / Text / Border) | Icon | Example Copy | Condition |
+|---|---|---|:---:|---|---|
+| **Overdue / Outstanding** | `.status-pill.status-overdue` | `#FEE2E2` / `#DC2626` / `1px solid #FECACA` | ⚠️ | `Outstanding 2 months`<br>`Outstanding 1 month`<br>`Outstanding • ₹500 due`<br>`Overdue 19 days` | Past unsettled months, unpaid utility invoices, or current month due date elapsed with remaining balance. |
+| **Due Today / Due Soon** | `.status-pill.status-due-today` | `#FEF3C7` / `#B45309` / `1px solid #FDE68A` | ⏳ | `Due Today`<br>`Due tomorrow`<br>`Due in 2 days`<br>`Due in 3 days` | Current cycle payment due today or within a 3-day immediate window. |
+| **Upcoming Cycle** | `.status-pill.status-upcoming` | `#E0F2FE` / `#0284C7` / `1px solid #BAE6FD` | 📅 | `Due in 5 days`<br>`Due in 12 days` | Current cycle payment due in 4 or more days. |
+| **Paid / All Settled** | `.status-pill.status-paid` | `#DCFCE7` / `#16A34A` / `1px solid #BBF7D0` | ✔ | `Paid`<br>`Paid in Advance` | Current billing month completely paid and zero historical arrears. |
+
+### 3. Shared Tenancies (Viewer & Manager Support)
+- For shared properties, the dynamic financial status badge is preserved as the primary indicator so collaborators immediately see rent status. A secondary pill badge (`👁️ Viewer` or `🛠️ Manager`) is rendered adjacent to the status badge without layout breakage.
+
+### 4. Implementation Details
+- **Logic Engine**: `computeTenancyStatusBadge(tenancy, allBills, allPayments)` in `src/main.js`.
+- **Parallel Data Fetching**: `syncDashboardFromCloud` initiates `Promise.all([fetchCloudTenancies('active'), fetchCloudBills(), fetchCloudPayments()])` ensuring badge computations are instantaneous and avoid redundant network roundtrips.

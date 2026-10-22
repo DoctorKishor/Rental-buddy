@@ -1240,6 +1240,157 @@ export function getTenancyUserRole(tenancy) {
   return 'viewer';
 }
 
+export function computeTenancyStatusBadge(tenancy, allBills = [], allPayments = []) {
+  const now = new Date();
+  const todayDate = now.getDate();
+  const todayMonth = now.getMonth();
+  const todayYear = now.getFullYear();
+  const baseRent = parseFloat(tenancy.base_rent || 0);
+  const billingDay = parseInt(tenancy.billing_day, 10) || 1;
+  const tenancyPayments = (allPayments || []).filter((p) => p.tenancy_id === tenancy.id);
+  const tenancyBills = (allBills || []).filter((b) => b.tenancy_id === tenancy.id);
+
+  const MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  // 1. Check utility bills unpaid (if utilities enabled)
+  const unpaidBills = tenancyBills.filter((b) => b.status === 'unpaid');
+  if (unpaidBills.length > 0) {
+    if (unpaidBills.length >= 2) {
+      return { text: `Outstanding ${unpaidBills.length} bills`, category: 'overdue', icon: '⚠️' };
+    }
+    const netDue = parseFloat(unpaidBills[0].net_payable) || baseRent;
+    return { text: `Outstanding • ₹${formatCurrencyAmount(netDue)} bill`, category: 'overdue', icon: '⚠️' };
+  }
+
+  // 2. Build paid map
+  const paidMap = {};
+  tenancyPayments.forEach((p) => {
+    let pDateYear = null;
+    let pDateMonthName = null;
+    if (p.payment_date) {
+      const pDate = new Date(p.payment_date + 'T00:00:00');
+      if (!isNaN(pDate.getTime())) {
+        pDateYear = pDate.getFullYear();
+        pDateMonthName = MONTH_NAMES[pDate.getMonth()];
+      }
+    }
+    if (Array.isArray(p.settled_months) && p.settled_months.length > 0) {
+      p.settled_months.forEach((raw) => {
+        if (!raw) return;
+        const str = raw.toString();
+        const matchedM = MONTH_NAMES.find((m) => new RegExp(`\\b${m}\\b`, 'i').test(str));
+        if (!matchedM) return;
+        const yearMatch = str.match(/\b(20\d\d)\b/);
+        const entryYear = yearMatch ? parseInt(yearMatch[1], 10) : (pDateYear || todayYear);
+        const key = `${matchedM} ${entryYear}`;
+        const amtMatch = str.match(/(?:₹|Rs\.?)\s*([\d,]+(?:\.\d+)?)/i);
+        let allocatedAmt = 0;
+        if (amtMatch) {
+          allocatedAmt = parseFloat(amtMatch[1].replace(/,/g, '')) || 0;
+        } else {
+          allocatedAmt = parseFloat(p.amount) || baseRent;
+        }
+        if (!paidMap[key]) paidMap[key] = { totalPaid: 0 };
+        paidMap[key].totalPaid += allocatedAmt;
+      });
+    } else if (pDateMonthName && pDateYear) {
+      const key = `${pDateMonthName} ${pDateYear}`;
+      if (!paidMap[key]) paidMap[key] = { totalPaid: 0 };
+      paidMap[key].totalPaid += (parseFloat(p.amount) || baseRent);
+    }
+  });
+
+  // 3. Tenancy start boundary
+  const startDateStr = tenancy.start_date || tenancy.created_at;
+  const startDate = startDateStr ? new Date(startDateStr + (startDateStr.includes('T') ? '' : 'T00:00:00')) : new Date(todayYear, todayMonth, 1);
+  const startYear = startDate.getFullYear();
+  const startMonth = startDate.getMonth();
+
+  // 4. Check past months (strictly before current month)
+  let pastArrearsCount = 0;
+  let pastArrearsAmount = 0;
+  let iter = new Date(startYear, startMonth, 1);
+  const currentFirst = new Date(todayYear, todayMonth, 1);
+
+  while (iter < currentFirst) {
+    const mLabel = `${MONTH_NAMES[iter.getMonth()]} ${iter.getFullYear()}`;
+    const paid = paidMap[mLabel]?.totalPaid || 0;
+    if (paid < baseRent) {
+      pastArrearsCount++;
+      pastArrearsAmount += (baseRent - paid);
+    }
+    iter.setMonth(iter.getMonth() + 1);
+  }
+
+  // 5. Check Current Month
+  const currMonthLabel = `${MONTH_NAMES[todayMonth]} ${todayYear}`;
+  const currPaid = paidMap[currMonthLabel]?.totalPaid || 0;
+  const currNetDue = Math.max(0, baseRent - currPaid);
+
+  if (pastArrearsCount > 0) {
+    let totalOverdueMonths = pastArrearsCount;
+    if (todayDate > billingDay && currNetDue > 0) {
+      totalOverdueMonths += 1;
+    }
+    if (totalOverdueMonths >= 2) {
+      return { text: `Outstanding ${totalOverdueMonths} months`, category: 'overdue', icon: '⚠️' };
+    }
+    return { text: `Outstanding 1 month`, category: 'overdue', icon: '⚠️' };
+  }
+
+  // Zero past arrears
+  if (currNetDue <= 0 && baseRent > 0) {
+    // Current month is paid! Check advance
+    let hasAdvance = false;
+    for (let adv = 1; adv <= 12; adv++) {
+      const advD = new Date(todayYear, todayMonth + adv, 1);
+      const advLabel = `${MONTH_NAMES[advD.getMonth()]} ${advD.getFullYear()}`;
+      if ((paidMap[advLabel]?.totalPaid || 0) >= baseRent) {
+        hasAdvance = true;
+        break;
+      }
+    }
+    if (hasAdvance) {
+      return { text: 'Paid in Advance', category: 'paid', icon: '✔' };
+    }
+    return { text: 'Paid', category: 'paid', icon: '✔' };
+  }
+
+  // Current month has remaining dues
+  if (currPaid > 0 && currNetDue > 0) {
+    // Partial payment made
+    if (todayDate > billingDay) {
+      return { text: `Outstanding • ₹${formatCurrencyAmount(currNetDue)} due`, category: 'overdue', icon: '⚠️' };
+    } else if (todayDate === billingDay) {
+      return { text: `Due Today (₹${formatCurrencyAmount(currNetDue)})`, category: 'due-today', icon: '⏳' };
+    } else {
+      const diff = billingDay - todayDate;
+      if (diff === 1) return { text: 'Due tomorrow', category: 'due-today', icon: '⏳' };
+      if (diff <= 3) return { text: `Due in ${diff} days`, category: 'due-today', icon: '⏳' };
+      return { text: `Due in ${diff} days`, category: 'upcoming', icon: '📅' };
+    }
+  }
+
+  // Zero payment made for current month
+  if (todayDate > billingDay) {
+    const daysOverdue = todayDate - billingDay;
+    if (daysOverdue >= 15) {
+      return { text: 'Outstanding 1 month', category: 'overdue', icon: '⚠️' };
+    }
+    return { text: `Overdue ${daysOverdue} day${daysOverdue > 1 ? 's' : ''}`, category: 'overdue', icon: '⚠️' };
+  } else if (todayDate === billingDay) {
+    return { text: 'Due Today', category: 'due-today', icon: '⏳' };
+  } else {
+    const diff = billingDay - todayDate;
+    if (diff === 1) return { text: 'Due tomorrow', category: 'due-today', icon: '⏳' };
+    if (diff <= 3) return { text: `Due in ${diff} days`, category: 'due-today', icon: '⏳' };
+    return { text: `Due in ${diff} days`, category: 'upcoming', icon: '📅' };
+  }
+}
+
 export async function syncDashboardFromCloud() {
   try {
     const user = await ensureAuthenticated();
@@ -1297,9 +1448,15 @@ export async function syncDashboardFromCloud() {
       badgeFamilyCount.textContent = `${(cloudOutgoingSharesList || []).length} Sharing`;
     }
 
-    // 1. Fetch live active tenancies from Supabase
-    const cloudTenancies = await fetchCloudTenancies('active');
+    // 1. Fetch live active tenancies, bills, and payments together from Supabase
+    const [cloudTenancies, cloudBills, cloudPayments] = await Promise.all([
+      fetchCloudTenancies('active'),
+      fetchCloudBills(),
+      fetchCloudPayments(),
+    ]);
     cloudTenanciesList = cloudTenancies || [];
+    cloudBillsList = cloudBills || [];
+    cloudPaymentsList = cloudPayments || [];
 
     // Populate quick record modal select
     if (recordSelect) {
@@ -1337,13 +1494,26 @@ export async function syncDashboardFromCloud() {
           const isManager = userRole === 'manager';
           const isOwner = userRole === 'owner';
 
+          const statusBadge = computeTenancyStatusBadge(t, cloudBillsList, cloudPaymentsList);
+          const statusPillHtml = `<span class="status-pill status-${statusBadge.category}">${statusBadge.icon ? statusBadge.icon + ' ' : ''}${statusBadge.text}</span>`;
+
           let headerPillHtml = '';
           if (isViewer) {
-            headerPillHtml = `<span class="status-pill status-upcoming" style="background: #E8E7FB; color: #5452EC;">👁️ Shared • Viewer (Read Only)</span>`;
+            headerPillHtml = `
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                ${statusPillHtml}
+                <span class="status-pill" style="background: #E8E7FB; color: #5452EC; border: 1px solid #D6D8F8;">👁️ Viewer</span>
+              </div>
+            `;
           } else if (isManager) {
-            headerPillHtml = `<span class="status-pill status-upcoming" style="background: #FEF3C7; color: #B45309;">🛠️ Shared • Manager</span>`;
+            headerPillHtml = `
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                ${statusPillHtml}
+                <span class="status-pill" style="background: #FEF3C7; color: #B45309; border: 1px solid #FDE68A;">🛠️ Manager</span>
+              </div>
+            `;
           } else {
-            headerPillHtml = `<span class="status-pill status-upcoming" style="${hasUtils ? '' : 'background: #E8E7FB; color: #5452EC;'};">${hasUtils ? 'Active • Utilities Included' : 'Active • Rent Only'}</span>`;
+            headerPillHtml = statusPillHtml;
           }
 
           let actionRowHtml = '';
@@ -1467,9 +1637,7 @@ export async function syncDashboardFromCloud() {
       if (wrapper) wrapper.innerHTML = '';
     }
 
-    // 2. Fetch real bills from Supabase
-    const cloudBills = await fetchCloudBills();
-    cloudBillsList = cloudBills || [];
+    // 2. Render real bills from Supabase
     const listBills = document.getElementById('list-recent-bills');
     if (listBills) {
       listBills.innerHTML = '';
@@ -1505,9 +1673,7 @@ export async function syncDashboardFromCloud() {
       }
     }
 
-    // 3. Fetch real payments from Supabase
-    const cloudPayments = await fetchCloudPayments();
-    cloudPaymentsList = cloudPayments || [];
+    // 3. Render real payments from Supabase
     const listPayments = document.getElementById('list-recent-payments');
     if (listPayments) {
       listPayments.innerHTML = '';
