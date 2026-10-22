@@ -1305,5 +1305,48 @@
   - No prior completed onboarding flag
 - As soon as a user creates their first tenancy on Screen 9, `onboarding_completed` is permanently marked and synced, ensuring they never see the onboarding flow on future logins.
 
+---
+
+## 37. Dedicated Family Sharing Architecture, Selective Property Access & Role Enforcement (Screen 22)
+
+### 1. Dedicated Family Sharing Page (`Screen 22`)
+- **Structure**:
+  - Full mobile screen with back navigation returning cleanly to Dashboard (`Screen 6`) or Settings (`Screen 16`).
+  - Top action button `+` and bottom sticky bar button `+ Share New Tenancy` trigger the `#modal-selective-share` bottom sheet.
+  - **Two-Count Segmented Tab Controller**:
+    - **Tab 1: `Shared with Me` (`#badge-shared-with-me-count`)**: Displays incoming share invitations and active properties shared by other owners.
+    - **Tab 2: `Sharing` (`#badge-sharing-count`)**: Displays outgoing share invitations issued by the current user to other family members or co-hosts.
+
+### 2. Selective Property Sharing Architecture
+- **Non-Blanket Access**: Owners explicitly choose which specific tenancies to share via interactive checkboxes in `#modal-selective-share`.
+- **Database Schema**:
+  - `public.family_shares` column `tenancy_ids jsonb DEFAULT '[]'::jsonb`: Stores the array of UUID strings for selected properties.
+  - Postgres RLS function `has_family_access(target_tenancy_id, user_id)`:
+    - Verifies accepted/approved status: `(fs.status = 'accepted' OR fs.status = 'approved')`.
+    - Verifies selective containment: `(fs.tenancy_ids IS NULL OR jsonb_array_length(fs.tenancy_ids) = 0 OR fs.tenancy_ids ? target_tenancy_id::text)`.
+    - Unapproved (`pending`) or denied requests evaluate strictly to `FALSE`, preventing any premature data leakage.
+
+### 3. Manager vs Viewer Role Enforcement (Strict Read-Only Viewer)
+- **Role Permissions**:
+  - **`Manager`**: Full operational access — can record rent/utility payments, generate bills, share WhatsApp invoices, and view ledgers. Cannot delete or archive the property.
+  - **`Viewer`**: Strictly read-only access — can view property details, monthly billing ledger, and transaction history.
+- **Client UI Restrictions for Viewers**:
+  - **Dashboard (`Screen 6`)**: Tenancy card shows `👁️ Shared • Viewer (Read Only)` badge. The operational buttons ("Generate Bill" & "Record Payment") are replaced with a single `View Details (Read Only)` button.
+  - **Tenancy Details (`Screen 10`)**: 3-dots menu button is hidden (preventing editing, archiving, or deleting); sticky bottom "Generate New Bill" button is hidden.
+  - **Record Payment (`Screen 12`) & Generate Bill (`Screen 13`)**: Access is strictly guarded with warning toasts redirecting viewers away from mutation forms.
+
+### 4. Live Two-Way Approval / Denial & Zero-Premature Sync Protocol
+- **Recipient Workflow**:
+  - Incoming shares appear in `#stack-incoming-pending` with sender email, role badge, property scope summary, and action buttons (`✔ Approve & Sync` and `✕ Deny`).
+  - A prominent incoming shares banner (`#incoming-shares-alert-banner`) alerts the user on their dashboard.
+  - **Zero-Premature Sync**: The recipient's database and dashboard are **never** populated with the owner's properties until the recipient explicitly clicks **`Approve & Sync`**.
+- **Owner Visibility**:
+  - Outgoing shares stack displays live status badges:
+    - `⏳ Pending Approval` (amber pill)
+    - `✔ Approved & Synced` (emerald pill)
+    - `🚫 Denied by Recipient` (rose pill)
+  - Owners can revoke access at any time via `🗑️ Revoke Access`.
+
+
 
 

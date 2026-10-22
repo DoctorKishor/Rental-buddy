@@ -603,7 +603,7 @@ export async function recordCloudPayment(paymentData) {
 // FAMILY SHARING
 // ==========================================================================
 
-export async function fetchCloudFamilyMembers() {
+export async function fetchOutgoingFamilyShares() {
   await ensureAuthenticated();
   if (!cloudSession.user) return [];
   try {
@@ -611,28 +611,62 @@ export async function fetchCloudFamilyMembers() {
       .from('family_shares')
       .select('*')
       .eq('admin_id', cloudSession.user.id)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
     return data || [];
   } catch (err) {
-    console.error('Fetch Family Shares Error:', err);
+    console.error('Fetch Outgoing Family Shares Error:', err);
     return [];
   }
 }
 
-export async function inviteCloudFamilyMember(email, role = 'viewer') {
+export async function fetchIncomingFamilyShares() {
   await ensureAuthenticated();
-  if (!cloudSession.user) return null;
+  if (!cloudSession.user) return [];
+  try {
+    const userEmail = (cloudSession.user.email || '').toLowerCase().trim();
+    const { data, error } = await supabase
+      .from('family_shares')
+      .select('*')
+      .or(`member_email.eq.${userEmail},member_id.eq.${cloudSession.user.id}`)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error('Fetch Incoming Family Shares Error:', err);
+    return [];
+  }
+}
+
+export async function createSelectiveFamilyShare({ email, role = 'viewer', tenancyIds = [] }) {
+  await ensureAuthenticated();
+  if (!cloudSession.user) throw new Error('User not authenticated');
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const ownerEmail = (cloudSession.user.email || '').trim().toLowerCase();
+
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    throw new Error('Please enter a valid recipient email address');
+  }
+  if (cleanEmail === ownerEmail) {
+    throw new Error('You cannot share properties with your own email');
+  }
+
+  const cleanRole = role === 'manager' ? 'manager' : 'viewer';
+  const cleanTenancyIds = Array.isArray(tenancyIds) ? tenancyIds : [];
+
   try {
     const { data, error } = await supabase
       .from('family_shares')
       .upsert(
         {
           admin_id: cloudSession.user.id,
-          member_email: email.trim().toLowerCase(),
-          role: role,
-          status: 'accepted',
+          admin_email: cloudSession.user.email,
+          member_email: cleanEmail,
+          role: cleanRole,
+          tenancy_ids: cleanTenancyIds,
+          status: 'pending',
         },
         { onConflict: 'admin_id,member_email' }
       )
@@ -642,12 +676,37 @@ export async function inviteCloudFamilyMember(email, role = 'viewer') {
     if (error) throw error;
     return data;
   } catch (err) {
-    console.error('Invite Family Member Error:', err);
+    console.error('Create Family Share Error:', err);
     throw err;
   }
 }
 
-export async function revokeCloudFamilyMember(shareId) {
+export async function respondToFamilyShare(shareId, accept = true) {
+  await ensureAuthenticated();
+  if (!cloudSession.user) throw new Error('User not authenticated');
+  const newStatus = accept ? 'approved' : 'denied';
+
+  try {
+    const { data, error } = await supabase
+      .from('family_shares')
+      .update({
+        status: newStatus,
+        member_id: cloudSession.user.id,
+      })
+      .eq('id', shareId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Respond to Family Share Error:', err);
+    throw err;
+  }
+}
+
+export async function revokeFamilyShare(shareId) {
+  await ensureAuthenticated();
   try {
     const { error } = await supabase
       .from('family_shares')
@@ -657,7 +716,12 @@ export async function revokeCloudFamilyMember(shareId) {
     if (error) throw error;
     return true;
   } catch (err) {
-    console.error('Revoke Family Member Error:', err);
+    console.error('Revoke Family Share Error:', err);
     throw err;
   }
 }
+
+// Backward-compatible aliases
+export const fetchCloudFamilyMembers = fetchOutgoingFamilyShares;
+export const inviteCloudFamilyMember = (email, role) => createSelectiveFamilyShare({ email, role, tenancyIds: [] });
+export const revokeCloudFamilyMember = revokeFamilyShare;

@@ -33,6 +33,11 @@ import {
   createCloudBill,
   fetchCloudPayments,
   recordCloudPayment,
+  fetchOutgoingFamilyShares,
+  fetchIncomingFamilyShares,
+  createSelectiveFamilyShare,
+  respondToFamilyShare,
+  revokeFamilyShare,
   fetchCloudFamilyMembers,
   inviteCloudFamilyMember,
   revokeCloudFamilyMember,
@@ -125,16 +130,28 @@ function showToast(message, duration = 3000) {
 
 // Screen Transition Navigator with Strict Auth Guard
 function navigateToScreen(targetScreenNumber) {
-  // Screen 13 Guard: If target is 13 (Generate Bill) but active tenancy is rent-only, redirect to Screen 12 (Record Payment)
-  if (targetScreenNumber === 13 && currentActiveTenancy && !tenancyHasUtilities(currentActiveTenancy)) {
-    showToast(`ℹ️ "${currentActiveTenancy.property_name}" is a rent-only tenancy. Use "Record Payment" to record rent.`, 3000);
-    openRecordPaymentPage(currentActiveTenancy);
+  // Screen 13 Guard: If target is 13 (Generate Bill) but active tenancy is rent-only or user is a Viewer
+  if (targetScreenNumber === 13) {
+    if (currentActiveTenancy && getTenancyUserRole(currentActiveTenancy) === 'viewer') {
+      showToast('👁️ Viewers have read-only access and cannot generate bills.', 3500);
+      return;
+    }
+    if (currentActiveTenancy && !tenancyHasUtilities(currentActiveTenancy)) {
+      showToast(`ℹ️ "${currentActiveTenancy.property_name}" is a rent-only tenancy. Use "Record Payment" to record rent.`, 3000);
+      openRecordPaymentPage(currentActiveTenancy);
+      return;
+    }
+  }
+
+  // Screen 12 Guard: If target is 12 (Record Payment) but user is a Viewer
+  if (targetScreenNumber === 12 && currentActiveTenancy && getTenancyUserRole(currentActiveTenancy) === 'viewer') {
+    showToast('👁️ Viewers have read-only access and cannot record payments.', 3500);
     return;
   }
 
   // STRICT PRODUCTION AUTH GUARD:
-  // Disallow screens 6 through 21 if the user is not authenticated!
-  if (targetScreenNumber >= 6 && targetScreenNumber <= 21 && !cloudSession.user) {
+  // Disallow screens 6 through 22 if the user is not authenticated!
+  if (targetScreenNumber >= 6 && targetScreenNumber <= 22 && !cloudSession.user) {
     showToast('🔒 Please sign in or create an account to access Rental Buddy', 3000);
     targetScreenNumber = 20;
   }
@@ -168,6 +185,8 @@ function navigateToScreen(targetScreenNumber) {
     syncConfirmationScreen();
   } else if (targetScreenNumber === 17) {
     loadArchivedTenancies();
+  } else if (targetScreenNumber === 22) {
+    refreshFamilySharingPage();
   }
 }
 
@@ -1130,7 +1149,27 @@ function initDashboard() {
 export let cloudTenanciesList = [];
 export let cloudBillsList = [];
 export let cloudPaymentsList = [];
+export let cloudIncomingSharesList = [];
+export let cloudOutgoingSharesList = [];
 export let currentActiveTenancy = null;
+
+export function getTenancyUserRole(tenancy) {
+  if (!cloudSession.user || !tenancy) return 'viewer';
+  if (tenancy.owner_id === cloudSession.user.id) return 'owner';
+
+  // Check matching approved incoming share
+  const matchingShare = (cloudIncomingSharesList || []).find((s) => {
+    const isApproved = s.status === 'approved' || s.status === 'accepted';
+    if (!isApproved) return false;
+    if (!s.tenancy_ids || !Array.isArray(s.tenancy_ids) || s.tenancy_ids.length === 0) return true;
+    return s.tenancy_ids.includes(tenancy.id);
+  });
+
+  if (matchingShare) {
+    return matchingShare.role === 'manager' ? 'manager' : 'viewer';
+  }
+  return 'viewer';
+}
 
 export async function syncDashboardFromCloud() {
   try {
@@ -1152,6 +1191,41 @@ export async function syncDashboardFromCloud() {
       recentSection?.classList.add('hidden');
       if (wrapper) wrapper.innerHTML = '';
       return;
+    }
+
+    // 0. Fetch live incoming & outgoing family shares
+    try {
+      cloudIncomingSharesList = await fetchIncomingFamilyShares();
+    } catch (e) {
+      console.warn('Fetch incoming shares warning:', e);
+      cloudIncomingSharesList = [];
+    }
+    try {
+      cloudOutgoingSharesList = await fetchOutgoingFamilyShares();
+    } catch (e) {
+      console.warn('Fetch outgoing shares warning:', e);
+      cloudOutgoingSharesList = [];
+    }
+
+    // Update incoming shares alert banner on Dashboard
+    const pendingIncoming = (cloudIncomingSharesList || []).filter((s) => s.status === 'pending');
+    const incomingBanner = document.getElementById('incoming-shares-alert-banner');
+    const incomingBannerMsg = document.getElementById('share-alert-msg');
+    if (incomingBanner) {
+      if (pendingIncoming.length > 0) {
+        incomingBanner.classList.remove('hidden');
+        if (incomingBannerMsg) {
+          incomingBannerMsg.innerHTML = `<strong>${pendingIncoming.length} incoming tenancy share${pendingIncoming.length > 1 ? 's' : ''}</strong> waiting for your approval!`;
+        }
+      } else {
+        incomingBanner.classList.add('hidden');
+      }
+    }
+
+    // Update family count on Settings Screen (Screen 16)
+    const badgeFamilyCount = document.getElementById('badge-family-count');
+    if (badgeFamilyCount) {
+      badgeFamilyCount.textContent = `${(cloudOutgoingSharesList || []).length} Sharing`;
     }
 
     // 1. Fetch live active tenancies from Supabase
@@ -1189,9 +1263,36 @@ export async function syncDashboardFromCloud() {
           const hasUtils = tenancyHasUtilities(t);
           const billingDay = t.billing_day || 1;
           const rentFormatted = parseFloat(t.base_rent || 0).toLocaleString('en-IN');
+          const userRole = getTenancyUserRole(t);
+          const isViewer = userRole === 'viewer';
+          const isManager = userRole === 'manager';
+          const isOwner = userRole === 'owner';
 
-          const actionRowHtml = hasUtils
-            ? `
+          let headerPillHtml = '';
+          if (isViewer) {
+            headerPillHtml = `<span class="status-pill status-upcoming" style="background: #E8E7FB; color: #5452EC;">👁️ Shared • Viewer (Read Only)</span>`;
+          } else if (isManager) {
+            headerPillHtml = `<span class="status-pill status-upcoming" style="background: #FEF3C7; color: #B45309;">🛠️ Shared • Manager</span>`;
+          } else {
+            headerPillHtml = `<span class="status-pill status-upcoming" style="${hasUtils ? '' : 'background: #E8E7FB; color: #5452EC;'};">${hasUtils ? 'Active • Utilities Included' : 'Active • Rent Only'}</span>`;
+          }
+
+          let actionRowHtml = '';
+          if (isViewer) {
+            actionRowHtml = `
+            <div class="tenancy-action-row">
+              <button type="button" class="btn-card-action lavender-action btn-view-tenancy-card" style="width: 100%;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <span>View Details (Read Only)</span>
+              </button>
+            </div>
+            `;
+          } else if (hasUtils) {
+            actionRowHtml = `
             <div class="tenancy-action-row dual-action-row">
               <button type="button" class="btn-card-action peach-action btn-gen-bill-card">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1210,8 +1311,9 @@ export async function syncDashboardFromCloud() {
                 <span>Record Payment</span>
               </button>
             </div>
-            `
-            : `
+            `;
+          } else {
+            actionRowHtml = `
             <div class="tenancy-action-row">
               <button type="button" class="btn-card-action lavender-action btn-record-pay-card" style="width: 100%;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1222,10 +1324,11 @@ export async function syncDashboardFromCloud() {
               </button>
             </div>
             `;
+          }
 
           card.innerHTML = `
             <div class="tenancy-card-header">
-              <span class="status-pill status-upcoming" style="${hasUtils ? '' : 'background: #E8E7FB; color: #5452EC;'};">${hasUtils ? 'Active • Utilities Included' : 'Active • Rent Only'}</span>
+              ${headerPillHtml}
             </div>
             <div class="tenancy-card-main-row" role="button" tabindex="0" aria-label="View ${t.property_name} tenancy details">
               <div class="tenancy-info">
@@ -1259,13 +1362,27 @@ export async function syncDashboardFromCloud() {
             navigateToScreen(10);
           });
 
+          card.querySelector('.btn-view-tenancy-card')?.addEventListener('click', () => {
+            currentActiveTenancy = t;
+            bindTenancyToDetails(t);
+            navigateToScreen(10);
+          });
+
           card.querySelector('.btn-gen-bill-card')?.addEventListener('click', () => {
+            if (isViewer) {
+              showToast('👁️ Viewers have read-only access.');
+              return;
+            }
             currentActiveTenancy = t;
             setupGenerateBillScreen(t);
             navigateToScreen(13);
           });
 
           card.querySelector('.btn-record-pay-card')?.addEventListener('click', () => {
+            if (isViewer) {
+              showToast('👁️ Viewers have read-only access.');
+              return;
+            }
             currentActiveTenancy = t;
             openRecordPaymentPage(t);
           });
@@ -1546,10 +1663,23 @@ export async function bindTenancyToDetails(t, targetYear = null) {
       lastBillCol.classList.add('hidden');
     }
 
+    // Enforce role-based controls on Screen 10
+    const userRole = getTenancyUserRole(t);
+    const isViewer = userRole === 'viewer';
+    const menuBtn = document.getElementById('btn-details-menu');
+    if (menuBtn) {
+      menuBtn.style.display = isViewer ? 'none' : '';
+    }
+
     // Update sticky bottom button on Screen 10
     const generateBillBtn = document.getElementById('btn-details-generate-bill');
     if (generateBillBtn) {
-      generateBillBtn.textContent = hasUtils ? 'Generate New Bill' : 'Record Payment';
+      if (isViewer) {
+        generateBillBtn.style.display = 'none';
+      } else {
+        generateBillBtn.style.display = '';
+        generateBillBtn.textContent = hasUtils ? 'Generate New Bill' : 'Record Payment';
+      }
     }
 
     const emptyBillsHeading = document.querySelector('#details-empty-bills .empty-recent-heading');
@@ -1909,6 +2039,10 @@ function initTenancyDetails() {
   // Menu action handlers
   actionEdit?.addEventListener('click', () => {
     menuDropdown?.classList.add('hidden');
+    if (getTenancyUserRole(currentActiveTenancy) === 'viewer') {
+      showToast('👁️ Viewers cannot edit property settings.');
+      return;
+    }
     if (currentActiveTenancy) {
       bindTenancyToDetails(currentActiveTenancy);
     }
@@ -1917,6 +2051,10 @@ function initTenancyDetails() {
 
   actionArchive?.addEventListener('click', async () => {
     menuDropdown?.classList.add('hidden');
+    if (getTenancyUserRole(currentActiveTenancy) === 'viewer') {
+      showToast('👁️ Viewers cannot archive properties.');
+      return;
+    }
     if (currentActiveTenancy?.id) {
       const targetId = currentActiveTenancy.id;
       const targetName = currentActiveTenancy.property_name;
@@ -1935,6 +2073,10 @@ function initTenancyDetails() {
 
   actionDelete?.addEventListener('click', async () => {
     menuDropdown?.classList.add('hidden');
+    if (getTenancyUserRole(currentActiveTenancy) === 'viewer') {
+      showToast('👁️ Viewers cannot delete properties.');
+      return;
+    }
     if (currentActiveTenancy?.id) {
       const targetId = currentActiveTenancy.id;
       const targetName = currentActiveTenancy.property_name;
@@ -2322,6 +2464,11 @@ export function openRecordPaymentPage(tenancyOrId) {
     target = cloudTenanciesList.find((t) => t.id === tenancyOrId);
   }
   if (!target) target = cloudTenanciesList[0];
+
+  if (target && getTenancyUserRole(target) === 'viewer') {
+    showToast(`👁️ Viewers have read-only access to "${target.property_name}". You cannot record payments.`, 3500);
+    return;
+  }
 
   setupRecordPaymentForm(target);
   navigateToScreen(12);
@@ -4208,56 +4355,490 @@ function initAuthScreen() {
 }
 
 // ==========================================================================
-// FAMILY SHARING & CLOUD COLLABORATION (SETTINGS MODAL)
+// DEDICATED FAMILY SHARING PAGE CONTROLLER (SCREEN 22)
 // ==========================================================================
 
-function initFamilySharingModal() {
+let activeFamilyTab = 'shared-with-me'; // 'shared-with-me' | 'sharing'
+
+export async function refreshFamilySharingPage() {
+  if (!cloudSession.user) return;
+
+  const badgeSharedWithMe = document.getElementById('badge-shared-with-me-count');
+  const badgeSharing = document.getElementById('badge-sharing-count');
+  const stackIncomingPending = document.getElementById('stack-incoming-pending');
+  const stackIncomingActive = document.getElementById('stack-incoming-active');
+  const stackOutgoing = document.getElementById('stack-outgoing-shares');
+  const groupIncomingPending = document.getElementById('group-incoming-pending');
+  const groupIncomingActive = document.getElementById('group-incoming-active');
+  const labelPendingCount = document.getElementById('label-pending-count');
+  const labelActiveSharesCount = document.getElementById('label-active-shares-count');
+  const emptySharedWithMe = document.getElementById('empty-shared-with-me');
+  const emptySharing = document.getElementById('empty-sharing');
+
+  try {
+    // 1. Fetch live incoming & outgoing shares
+    const [incoming, outgoing] = await Promise.all([
+      fetchIncomingFamilyShares(),
+      fetchOutgoingFamilyShares(),
+    ]);
+    cloudIncomingSharesList = incoming || [];
+    cloudOutgoingSharesList = outgoing || [];
+
+    // 2. Update Tab Count Badges
+    const pendingIncoming = cloudIncomingSharesList.filter((s) => s.status === 'pending');
+    const activeIncoming = cloudIncomingSharesList.filter((s) => s.status === 'approved' || s.status === 'accepted');
+
+    if (badgeSharedWithMe) {
+      badgeSharedWithMe.textContent = (pendingIncoming.length + activeIncoming.length).toString();
+    }
+    if (badgeSharing) {
+      badgeSharing.textContent = cloudOutgoingSharesList.length.toString();
+    }
+
+    if (labelPendingCount) {
+      labelPendingCount.textContent = `${pendingIncoming.length} Pending`;
+    }
+    if (labelActiveSharesCount) {
+      labelActiveSharesCount.textContent = `${activeIncoming.length} Active`;
+    }
+
+    // 3. Render VIEW 1: Shared with Me
+    if (cloudIncomingSharesList.length === 0) {
+      emptySharedWithMe?.classList.remove('hidden');
+      if (groupIncomingPending) groupIncomingPending.style.display = 'none';
+      if (groupIncomingActive) groupIncomingActive.style.display = 'none';
+    } else {
+      emptySharedWithMe?.classList.add('hidden');
+
+      // Pending requests
+      if (groupIncomingPending) {
+        groupIncomingPending.style.display = pendingIncoming.length > 0 ? '' : 'none';
+      }
+      if (stackIncomingPending) {
+        stackIncomingPending.innerHTML = '';
+        pendingIncoming.forEach((share) => {
+          const card = document.createElement('div');
+          card.className = 'family-request-card';
+          const isManager = share.role === 'manager';
+          const roleBadge = isManager
+            ? '<span class="family-card-role-badge badge-manager">🛠️ Manager</span>'
+            : '<span class="family-card-role-badge badge-viewer">👁️ Viewer (Read Only)</span>';
+
+          const propertiesSummary = (share.tenancy_ids && share.tenancy_ids.length > 0)
+            ? `${share.tenancy_ids.length} Property Selection`
+            : 'All Properties';
+
+          card.innerHTML = `
+            <div class="family-card-header">
+              <div class="family-card-sender-info">
+                <span class="family-card-sender-label">Invited by Property Owner</span>
+                <strong class="family-card-sender-email">${share.admin_email || 'Owner'}</strong>
+              </div>
+              ${roleBadge}
+            </div>
+            <div class="family-card-details">
+              <span class="family-detail-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                </svg>
+                <span><strong>Scope:</strong> ${propertiesSummary}</span>
+              </span>
+              <span class="family-detail-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>Awaiting your decision before syncing to your database</span>
+              </span>
+            </div>
+            <div class="family-card-actions">
+              <button type="button" class="btn-share-action btn-share-approve" data-share-id="${share.id}">
+                ✔ Approve & Sync
+              </button>
+              <button type="button" class="btn-share-action btn-share-deny" data-share-id="${share.id}">
+                ✕ Deny
+              </button>
+            </div>
+          `;
+
+          // Approve Handler
+          card.querySelector('.btn-share-approve')?.addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            btn.textContent = 'Syncing...';
+            try {
+              await respondToFamilyShare(share.id, true);
+              showToast('✅ Approved! Syncing shared tenancies to your dashboard...', 3500);
+              await syncDashboardFromCloud();
+              await refreshFamilySharingPage();
+            } catch (err) {
+              showToast(`❌ Approval error: ${err.message}`);
+              btn.disabled = false;
+              btn.textContent = '✔ Approve & Sync';
+            }
+          });
+
+          // Deny Handler
+          card.querySelector('.btn-share-deny')?.addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            btn.textContent = 'Denying...';
+            try {
+              await respondToFamilyShare(share.id, false);
+              showToast('🚫 Share request denied.');
+              await syncDashboardFromCloud();
+              await refreshFamilySharingPage();
+            } catch (err) {
+              showToast(`❌ Deny error: ${err.message}`);
+              btn.disabled = false;
+              btn.textContent = '✕ Deny';
+            }
+          });
+
+          stackIncomingPending.appendChild(card);
+        });
+      }
+
+      // Active accepted requests
+      if (groupIncomingActive) {
+        groupIncomingActive.style.display = activeIncoming.length > 0 ? '' : 'none';
+      }
+      if (stackIncomingActive) {
+        stackIncomingActive.innerHTML = '';
+        activeIncoming.forEach((share) => {
+          const card = document.createElement('div');
+          card.className = 'family-request-card active-share-card';
+          const isManager = share.role === 'manager';
+          const roleBadge = isManager
+            ? '<span class="family-card-role-badge badge-manager">🛠️ Manager</span>'
+            : '<span class="family-card-role-badge badge-viewer">👁️ Viewer (Read Only)</span>';
+
+          card.innerHTML = `
+            <div class="family-card-header">
+              <div class="family-card-sender-info">
+                <span class="family-card-sender-label">Shared by</span>
+                <strong class="family-card-sender-email">${share.admin_email || 'Owner'}</strong>
+              </div>
+              ${roleBadge}
+            </div>
+            <div class="family-card-details">
+              <div class="active-sync-badge">
+                <span class="sync-dot"></span>
+                <span>Live Synced to Your Dashboard</span>
+              </div>
+            </div>
+            <div class="family-card-actions" style="margin-top: 10px;">
+              <button type="button" class="btn-share-action btn-share-leave" data-share-id="${share.id}">
+                Leave Shared Access
+              </button>
+            </div>
+          `;
+
+          card.querySelector('.btn-share-leave')?.addEventListener('click', async () => {
+            if (!confirm(`Are you sure you want to stop viewing properties shared by ${share.admin_email || 'this owner'}?`)) return;
+            try {
+              await revokeFamilyShare(share.id);
+              showToast('Removed shared access.');
+              await syncDashboardFromCloud();
+              await refreshFamilySharingPage();
+            } catch (err) {
+              showToast(`❌ Error: ${err.message}`);
+            }
+          });
+
+          stackIncomingActive.appendChild(card);
+        });
+      }
+    }
+
+    // 4. Render VIEW 2: Sharing (Outgoing Shares)
+    if (cloudOutgoingSharesList.length === 0) {
+      emptySharing?.classList.remove('hidden');
+      if (stackOutgoing) stackOutgoing.innerHTML = '';
+    } else {
+      emptySharing?.classList.add('hidden');
+      if (stackOutgoing) {
+        stackOutgoing.innerHTML = '';
+        cloudOutgoingSharesList.forEach((share) => {
+          const card = document.createElement('div');
+          card.className = 'family-request-card outgoing-share-card';
+
+          let statusBadge = '';
+          if (share.status === 'pending') {
+            statusBadge = '<span class="share-live-pill pill-pending">⏳ Pending Approval</span>';
+          } else if (share.status === 'approved' || share.status === 'accepted') {
+            statusBadge = '<span class="share-live-pill pill-approved">✔ Approved & Synced</span>';
+          } else if (share.status === 'denied') {
+            statusBadge = '<span class="share-live-pill pill-denied">🚫 Denied by Recipient</span>';
+          } else {
+            statusBadge = `<span class="share-live-pill pill-pending">${share.status}</span>`;
+          }
+
+          const isManager = share.role === 'manager';
+          const roleBadge = isManager
+            ? '<span class="family-card-role-badge badge-manager">🛠️ Manager</span>'
+            : '<span class="family-card-role-badge badge-viewer">👁️ Viewer</span>';
+
+          // Properties included list
+          let propertiesText = 'All Properties';
+          if (share.tenancy_ids && Array.isArray(share.tenancy_ids) && share.tenancy_ids.length > 0) {
+            const matchedNames = share.tenancy_ids.map((tid) => {
+              const found = cloudTenanciesList.find((t) => t.id === tid);
+              return found ? found.property_name : 'Selected Property';
+            });
+            propertiesText = matchedNames.join(', ');
+          }
+
+          card.innerHTML = `
+            <div class="family-card-header">
+              <div class="family-card-sender-info">
+                <span class="family-card-sender-label">Recipient</span>
+                <strong class="family-card-sender-email">${share.member_email}</strong>
+              </div>
+              <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                ${roleBadge}
+                ${statusBadge}
+              </div>
+            </div>
+            <div class="family-card-details">
+              <span class="family-detail-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                </svg>
+                <span><strong>Properties:</strong> ${propertiesText}</span>
+              </span>
+            </div>
+            <div class="family-card-actions" style="margin-top: 10px;">
+              <button type="button" class="btn-share-action btn-share-revoke" data-share-id="${share.id}">
+                🗑️ Revoke Access
+              </button>
+            </div>
+          `;
+
+          card.querySelector('.btn-share-revoke')?.addEventListener('click', async () => {
+            if (!confirm(`Revoke shared property access for ${share.member_email}?`)) return;
+            try {
+              await revokeFamilyShare(share.id);
+              showToast(`🗑️ Revoked sharing for ${share.member_email}`);
+              await syncDashboardFromCloud();
+              await refreshFamilySharingPage();
+            } catch (err) {
+              showToast(`❌ Error: ${err.message}`);
+            }
+          });
+
+          stackOutgoing.appendChild(card);
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('refreshFamilySharingPage warning:', err);
+  }
+}
+
+function initFamilySharingPage() {
+  const btnBack = document.getElementById('btn-family-page-back');
+  const btnTopAdd = document.getElementById('btn-top-add-share');
+  const btnFooterAdd = document.getElementById('btn-footer-create-share');
+  const btnOpenShareList = document.getElementById('btn-open-share-from-list');
+  const btnEmptyShare = document.getElementById('btn-empty-start-share');
+  const tabBtnSharedWithMe = document.getElementById('tab-btn-shared-with-me');
+  const tabBtnSharing = document.getElementById('tab-btn-sharing');
+  const viewSharedWithMe = document.getElementById('view-shared-with-me');
+  const viewSharing = document.getElementById('view-sharing');
+
+  const modalShare = document.getElementById('modal-selective-share');
+  const btnCloseModal = document.getElementById('btn-close-selective-share');
+  const formShare = document.getElementById('form-selective-share');
+  const inputEmail = document.getElementById('input-share-member-email');
+  const cardManager = document.getElementById('card-share-role-manager');
+  const cardViewer = document.getElementById('card-share-role-viewer');
+  const checklistTenancies = document.getElementById('checklist-share-tenancies');
+  const btnToggleSelectAll = document.getElementById('btn-toggle-select-all-tenancies');
+  const btnSubmitInvite = document.getElementById('btn-submit-share-invite');
+
+  const incomingBanner = document.getElementById('incoming-shares-alert-banner');
   const itemFamilySharing = document.getElementById('item-family-sharing');
-  const modalFamily = document.getElementById('modal-family-sharing');
-  const btnClose = document.getElementById('btnCloseFamilyModal');
-  const btnInvite = document.getElementById('btn-send-family-invite');
-  const inputEmail = document.getElementById('input-family-email');
-  const selectRole = document.getElementById('select-family-role');
   const btnLogout = document.getElementById('btn-settings-logout');
 
+  // Navigation handlers
+  btnBack?.addEventListener('click', () => {
+    navigateToScreen(6);
+  });
+
+  incomingBanner?.addEventListener('click', () => {
+    switchFamilyTab('shared-with-me');
+    navigateToScreen(22);
+  });
+
   itemFamilySharing?.addEventListener('click', () => {
-    modalFamily?.classList.remove('hidden');
+    navigateToScreen(22);
   });
 
-  btnClose?.addEventListener('click', () => modalFamily?.classList.add('hidden'));
-  modalFamily?.addEventListener('click', (e) => {
-    if (e.target === modalFamily) modalFamily.classList.add('hidden');
+  // Tab switching
+  function switchFamilyTab(tab) {
+    activeFamilyTab = tab;
+    if (tab === 'shared-with-me') {
+      tabBtnSharedWithMe?.classList.add('active');
+      tabBtnSharing?.classList.remove('active');
+      viewSharedWithMe?.classList.remove('hidden');
+      viewSharing?.classList.add('hidden');
+    } else {
+      tabBtnSharing?.classList.add('active');
+      tabBtnSharedWithMe?.classList.remove('active');
+      viewSharing?.classList.remove('hidden');
+      viewSharedWithMe?.classList.add('hidden');
+    }
+  }
+
+  tabBtnSharedWithMe?.addEventListener('click', () => switchFamilyTab('shared-with-me'));
+  tabBtnSharing?.addEventListener('click', () => switchFamilyTab('sharing'));
+
+  // Role radio cards in modal
+  cardManager?.addEventListener('click', () => {
+    cardManager.classList.add('selected');
+    cardViewer?.classList.remove('selected');
+    const radio = cardManager.querySelector('input[type="radio"]');
+    if (radio) radio.checked = true;
   });
 
-  btnInvite?.addEventListener('click', async () => {
-    const email = inputEmail?.value?.trim();
-    if (!email || !email.includes('@')) {
-      showToast('⚠️ Please enter a valid family email address');
+  cardViewer?.addEventListener('click', () => {
+    cardViewer.classList.add('selected');
+    cardManager?.classList.remove('selected');
+    const radio = cardViewer.querySelector('input[type="radio"]');
+    if (radio) radio.checked = true;
+  });
+
+  // Open Modal & Populate Selective Tenancies
+  function openSelectiveShareModal() {
+    if (!cloudSession.user) {
+      showToast('🔒 Please sign in first');
       return;
     }
 
-    const role = selectRole?.value || 'viewer';
-    btnInvite.disabled = true;
-    btnInvite.textContent = 'Granting Access...';
+    if (inputEmail) inputEmail.value = '';
+
+    // Reset role to manager
+    cardManager?.classList.add('selected');
+    cardViewer?.classList.remove('selected');
+    const radioMgr = cardManager?.querySelector('input[type="radio"]');
+    if (radioMgr) radioMgr.checked = true;
+
+    // Populate tenancies
+    if (checklistTenancies) {
+      checklistTenancies.innerHTML = '';
+      // Only include tenancies owned by this user
+      const ownedTenancies = (cloudTenanciesList || []).filter(
+        (t) => t.owner_id === cloudSession.user.id
+      );
+
+      if (ownedTenancies.length === 0) {
+        checklistTenancies.innerHTML = `
+          <div style="padding: 10px 0; color: #7D849B; font-size: 13.5px; text-align: center;">
+            No owned tenancies found to share. Create a tenancy first.
+          </div>
+        `;
+      } else {
+        ownedTenancies.forEach((t) => {
+          const item = document.createElement('label');
+          item.className = 'share-tenancy-check-item';
+          item.innerHTML = `
+            <input type="checkbox" name="share-tenancy-select" value="${t.id}" checked />
+            <div class="share-tenancy-info">
+              <strong class="share-tenancy-name">${t.property_name}</strong>
+              <span class="share-tenancy-rent">₹${parseFloat(t.base_rent || 0).toLocaleString('en-IN')} • Monthly</span>
+            </div>
+            <span class="check-custom-box"></span>
+          `;
+          checklistTenancies.appendChild(item);
+        });
+      }
+    }
+
+    modalShare?.classList.remove('hidden');
+  }
+
+  btnTopAdd?.addEventListener('click', openSelectiveShareModal);
+  btnFooterAdd?.addEventListener('click', openSelectiveShareModal);
+  btnOpenShareList?.addEventListener('click', openSelectiveShareModal);
+  btnEmptyShare?.addEventListener('click', openSelectiveShareModal);
+
+  // Close modal
+  btnCloseModal?.addEventListener('click', () => modalShare?.classList.add('hidden'));
+  modalShare?.addEventListener('click', (e) => {
+    if (e.target === modalShare) modalShare.classList.add('hidden');
+  });
+
+  // Select / Deselect all tenancies toggle
+  btnToggleSelectAll?.addEventListener('click', () => {
+    if (!checklistTenancies) return;
+    const checkboxes = checklistTenancies.querySelectorAll('input[type="checkbox"]');
+    const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
+    checkboxes.forEach((cb) => (cb.checked = !allChecked));
+    btnToggleSelectAll.textContent = allChecked ? 'Select All' : 'Deselect All';
+  });
+
+  // Submit Selective Share Form
+  formShare?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = inputEmail?.value?.trim()?.toLowerCase();
+    if (!email || !email.includes('@')) {
+      showToast('⚠️ Please enter a valid recipient email address');
+      return;
+    }
+    if (email === cloudSession.user.email?.toLowerCase()) {
+      showToast('⚠️ You cannot share properties with your own email');
+      return;
+    }
+
+    const selectedRoleInput = document.querySelector('input[name="selective-share-role"]:checked');
+    const role = selectedRoleInput?.value === 'viewer' ? 'viewer' : 'manager';
+
+    const selectedTenancyCheckboxes = checklistTenancies?.querySelectorAll('input[name="share-tenancy-select"]:checked');
+    const selectedTenancyIds = Array.from(selectedTenancyCheckboxes || []).map((cb) => cb.value);
+
+    if (selectedTenancyIds.length === 0) {
+      showToast('⚠️ Please select at least one tenancy to share');
+      return;
+    }
+
+    if (btnSubmitInvite) {
+      btnSubmitInvite.disabled = true;
+      btnSubmitInvite.textContent = 'Sending Invitation...';
+    }
 
     try {
-      await inviteCloudFamilyMember(email, role === 'editor' ? 'manager' : 'viewer');
-      if (inputEmail) inputEmail.value = '';
+      await createSelectiveFamilyShare({
+        email,
+        role,
+        tenancyIds: selectedTenancyIds,
+      });
+
+      modalShare?.classList.add('hidden');
+      showToast(`✉️ Share invitation sent to ${email}!`, 3500);
+
+      // Refresh data and switch to Sharing tab
       await syncDashboardFromCloud();
-      showToast(`✉️ Access granted to ${email} in Supabase Cloud!`, 3500);
+      switchFamilyTab('sharing');
+      await refreshFamilySharingPage();
     } catch (err) {
-      showToast(`❌ Invite error: ${err.message}`);
+      showToast(`❌ Share error: ${err.message}`);
     } finally {
-      btnInvite.disabled = false;
-      btnInvite.textContent = 'Grant Family Access';
+      if (btnSubmitInvite) {
+        btnSubmitInvite.disabled = false;
+        btnSubmitInvite.textContent = 'Send Share Invitation';
+      }
     }
   });
 
+  // Settings screen logout button
   btnLogout?.addEventListener('click', async () => {
     await signOutUser();
     cloudTenanciesList = [];
     cloudBillsList = [];
     cloudPaymentsList = [];
+    cloudIncomingSharesList = [];
+    cloudOutgoingSharesList = [];
     currentActiveTenancy = null;
     updateAuthUI(null);
     const wrapper = document.getElementById('tenancies-list-wrapper');
@@ -4721,7 +5302,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initArchivedTenanciesFlow();
   initBackupRestoreScreen();
   initAuthScreen();
-  initFamilySharingModal();
+  initFamilySharingPage();
   initReceiptPage();
 
   // Check Supabase Cloud Session on Boot

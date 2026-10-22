@@ -370,6 +370,15 @@
                 </button>
               </div>
 
+              <!-- Pending Family Shares Alert Banner -->
+              <div class="incoming-shares-alert-banner hidden" id="incoming-shares-alert-banner" role="button" tabindex="0">
+                <span class="share-alert-icon">✉️</span>
+                <div class="share-alert-text">
+                  <span id="share-alert-msg"><strong>Incoming tenancy share</strong> waiting for your approval!</span>
+                </div>
+                <span class="share-alert-cta">Review →</span>
+              </div>
+
               <!-- Page Title (Plural / Singular Dynamic) -->
               <h1 class="dashboard-title" id="dashboard-main-title">Your Tenancy</h1>
 
@@ -2905,6 +2914,177 @@
                     </button>
                   </div>
                 </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SCREEN 22: Dedicated Family Sharing & Tenancy Access Control -->
+          <section class="screen" id="screen-22" data-screen="22">
+            <div class="screen-content family-screen-content">
+              <!-- Top Navigation Header -->
+              <nav class="stepper-header">
+                <button class="nav-back-btn" id="btn-family-page-back" aria-label="Go back">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+                </button>
+                <div class="stepper-titles">
+                  <h2 class="stepper-main-title">Family Sharing</h2>
+                  <span class="stepper-sub-title">Selective Access Control</span>
+                </div>
+                <button class="nav-icon-btn" id="btn-top-add-share" aria-label="Share Tenancy" title="Share Tenancy">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                </button>
+              </nav>
+
+              <!-- Hero Heading -->
+              <div class="hero-block">
+                <h1 class="hero-title">Family Sharing</h1>
+                <p class="hero-subtitle">
+                  Selectively share specific tenancies with family members or co-hosts as Managers or Viewers.
+                </p>
+              </div>
+
+              <!-- Two Counts Segmented Controller (Shared with Me vs Sharing) -->
+              <div class="family-tab-segmented-bar">
+                <button type="button" class="family-tab-btn active" id="tab-btn-shared-with-me">
+                  <span>Shared with Me</span>
+                  <span class="family-tab-count-badge" id="badge-shared-with-me-count">0</span>
+                </button>
+                <button type="button" class="family-tab-btn" id="tab-btn-sharing">
+                  <span>Sharing</span>
+                  <span class="family-tab-count-badge" id="badge-sharing-count">0</span>
+                </button>
+              </div>
+
+              <!-- VIEW 1: Shared with Me (Incoming Shares from other owners) -->
+              <div class="family-view-panel" id="view-shared-with-me">
+                <!-- Section 1: Pending Requests Requiring Approval -->
+                <div class="family-section-group" id="group-incoming-pending">
+                  <div class="family-group-title-row">
+                    <h3 class="family-group-heading">Incoming Requests</h3>
+                    <span class="family-group-sub" id="label-pending-count">0 Pending</span>
+                  </div>
+                  <div class="family-cards-stack" id="stack-incoming-pending">
+                    <!-- Populated dynamically -->
+                  </div>
+                </div>
+
+                <!-- Section 2: Active Shared Tenancies -->
+                <div class="family-section-group" id="group-incoming-active" style="margin-top: 18px;">
+                  <div class="family-group-title-row">
+                    <h3 class="family-group-heading">Active Shares</h3>
+                    <span class="family-group-sub" id="label-active-shares-count">0 Active</span>
+                  </div>
+                  <div class="family-cards-stack" id="stack-incoming-active">
+                    <!-- Populated dynamically -->
+                  </div>
+                </div>
+
+                <!-- Empty State for Shared with Me -->
+                <div class="family-empty-box hidden" id="empty-shared-with-me">
+                  <div class="family-empty-icon">🤝</div>
+                  <strong class="family-empty-title">No Shared Tenancies</strong>
+                  <p class="family-empty-desc">When property owners share a tenancy with your email, you will see their invitation here to approve or deny.</p>
+                </div>
+              </div>
+
+              <!-- VIEW 2: Sharing (Outgoing Shares created by this owner) -->
+              <div class="family-view-panel hidden" id="view-sharing">
+                <div class="family-section-group">
+                  <div class="family-group-title-row">
+                    <h3 class="family-group-heading">Your Shared Properties</h3>
+                    <button type="button" class="btn-text-action" id="btn-open-share-from-list" style="font-weight: 700; color: #5452EC;">
+                      + Share Tenancy
+                    </button>
+                  </div>
+                  <div class="family-cards-stack" id="stack-outgoing-shares">
+                    <!-- Populated dynamically with live approval/denied statuses -->
+                  </div>
+                </div>
+
+                <!-- Empty State for Sharing -->
+                <div class="family-empty-box hidden" id="empty-sharing">
+                  <div class="family-empty-icon">🏡</div>
+                  <strong class="family-empty-title">You Haven't Shared Any Tenancies</strong>
+                  <p class="family-empty-desc">Selectively share specific properties with family members or property managers.</p>
+                  <button type="button" class="btn btn-primary btn-pill" id="btn-empty-start-share" style="margin-top: 14px; height: 44px; min-height: 44px;">
+                    + Share a Tenancy
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Sticky Bottom Bar -->
+            <footer class="bottom-bar">
+              <button class="btn btn-primary btn-pill" id="btn-footer-create-share">
+                + Share New Tenancy
+              </button>
+            </footer>
+
+            <!-- MODAL: Selective Share Tenancy Bottom Sheet -->
+            <div class="modal-overlay hidden" id="modal-selective-share" role="dialog" aria-modal="true" aria-labelledby="modalShareTenancyTitle">
+              <div class="modal-sheet">
+                <div class="modal-handle"></div>
+                <div class="modal-header">
+                  <h3 class="modal-title" id="modalShareTenancyTitle">Share Tenancies</h3>
+                  <button class="modal-close-btn" id="btn-close-selective-share" aria-label="Close modal">✕</button>
+                </div>
+                <form class="form-stack" id="form-selective-share" onsubmit="return false;">
+                  <p class="modal-instruction-text" style="font-size: 13.5px; color: #52586E; margin-bottom: 12px; line-height: 1.4;">
+                    Invite a co-host or family member. They must approve the invite before shared properties appear on their dashboard.
+                  </p>
+
+                  <!-- 1. Recipient Email -->
+                  <div class="form-group">
+                    <label class="form-label" for="input-share-member-email">Recipient Email Address</label>
+                    <input type="email" id="input-share-member-email" class="form-input" placeholder="family@example.com" required />
+                  </div>
+
+                  <!-- 2. Role Selector (Manager vs Viewer) -->
+                  <div class="form-group">
+                    <label class="form-label">Access Permission</label>
+                    <div class="split-radio-grid share-role-grid">
+                      <label class="radio-card share-role-card selected" id="card-share-role-manager">
+                        <input type="radio" name="selective-share-role" value="manager" checked />
+                        <div class="role-card-content">
+                          <strong class="role-title">🛠️ Manager</strong>
+                          <span class="role-desc">Can record payments, generate bills & share receipts. Cannot delete property.</span>
+                        </div>
+                        <span class="custom-radio mini"></span>
+                      </label>
+                      <label class="radio-card share-role-card" id="card-share-role-viewer">
+                        <input type="radio" name="selective-share-role" value="viewer" />
+                        <div class="role-card-content">
+                          <strong class="role-title">👁️ Viewer</strong>
+                          <span class="role-desc">Strictly read-only. Can view property details, bills and receipts.</span>
+                        </div>
+                        <span class="custom-radio mini"></span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- 3. Selective Tenancies Checklist -->
+                  <div class="form-group">
+                    <div class="field-label-row">
+                      <label class="form-label" style="margin-bottom: 0;">Select Tenancies to Share</label>
+                      <button type="button" class="btn-text-action" id="btn-toggle-select-all-tenancies" style="font-size: 12px; font-weight: 700;">Select All</button>
+                    </div>
+                    <div class="share-tenancies-checklist" id="checklist-share-tenancies" style="margin-top: 6px;">
+                      <!-- Dynamically populated from owner's tenancies -->
+                    </div>
+                  </div>
+
+                  <!-- Action Button -->
+                  <button type="submit" class="btn btn-primary btn-pill" id="btn-submit-share-invite" style="margin-top: 14px; width: 100%;">
+                    Send Share Invitation
+                  </button>
+                </form>
               </div>
             </div>
           </section>

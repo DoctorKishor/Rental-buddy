@@ -4580,4 +4580,430 @@ select.form-input:disabled {
   }
 }
 
+/* ==========================================================================
+   Screen 22: Dedicated Family Sharing & Selective Access Control
+   ========================================================================== */
+.incoming-shares-alert-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  border: 1.5px solid #F59E0B;
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+  transition: transform 0.15s ease;
+}
+
+.incoming-shares-alert-banner:hover {
+  transform: translateY(-1px);
+}
+
+.share-alert-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.share-alert-text {
+  flex: 1;
+  font-size: 13px;
+  color: #92400E;
+  line-height: 1.35;
+}
+
+.share-alert-cta {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #B45309;
+  white-space: nowrap;
+}
+
+.family-screen-content {
+  padding-bottom: 90px;
+}
+
+.family-tab-segmented-bar {
+  display: flex;
+  background-color: #E2E4F2;
+  border-radius: 9999px;
+  padding: 4px;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.family-tab-btn {
+  flex: 1;
+  height: 44px;
+  min-height: 44px;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-body);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.family-tab-btn.active {
+  background-color: #FFFFFF;
+  color: var(--color-primary);
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(14, 19, 38, 0.08);
+}
+
+.family-tab-count-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background-color: var(--bg-accent-subtle);
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.family-tab-btn.active .family-tab-count-badge {
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+}
+
+.family-section-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.family-group-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.family-group-heading {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.family-group-sub {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.family-cards-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.family-request-card,
+.family-outgoing-card {
+  background-color: var(--bg-surface);
+  border-radius: 20px;
+  border: 1.5px solid #E2E4F2;
+  padding: 16px;
+  box-shadow: 0 4px 16px rgba(28, 33, 66, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.family-card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.family-card-user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.family-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #E8E7FB;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.family-user-texts {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.family-user-email {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-heading);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.family-user-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.family-role-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.family-role-badge.manager {
+  background-color: #EDE9FE;
+  color: #6D28D9;
+  border: 1px solid #DDD6FE;
+}
+
+.family-role-badge.viewer {
+  background-color: #E0F2FE;
+  color: #0284C7;
+  border: 1px solid #BAE6FD;
+}
+
+.family-properties-box {
+  background-color: #F8F9FE;
+  border-radius: 12px;
+  padding: 10px 12px;
+  border: 1px solid #EAEBF6;
+}
+
+.family-prop-heading {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.family-prop-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.family-prop-chip {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-heading);
+  background-color: #FFFFFF;
+  border: 1px solid #E2E4F2;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.family-card-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.btn-share-approve {
+  flex: 1.4;
+  height: 42px;
+  min-height: 42px;
+  background-color: #16A34A;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+  transition: transform 0.12s ease;
+}
+
+.btn-share-approve:hover {
+  background-color: #15803D;
+  transform: translateY(-1px);
+}
+
+.btn-share-deny {
+  flex: 1;
+  height: 42px;
+  min-height: 42px;
+  background-color: #FFFFFF;
+  color: #DC2626;
+  border: 1.5px solid #FECACA;
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.btn-share-deny:hover {
+  background-color: #FEF2F2;
+  border-color: #DC2626;
+}
+
+.btn-share-revoke {
+  height: 38px;
+  min-height: 38px;
+  padding: 0 16px;
+  background-color: #FFFFFF;
+  color: #DC2626;
+  border: 1.5px solid #E2E4F2;
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  align-self: flex-end;
+}
+
+.btn-share-revoke:hover {
+  border-color: #DC2626;
+  background-color: #FEF2F2;
+}
+
+.family-status-pill {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.family-status-pill.pending {
+  background-color: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+}
+
+.family-status-pill.approved {
+  background-color: #DCFCE7;
+  color: #16A34A;
+  border: 1px solid #BBF7D0;
+}
+
+.family-status-pill.denied {
+  background-color: #FEE2E2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+}
+
+.family-empty-box {
+  background-color: #FFFFFF;
+  border: 1.5px dashed #D6D9EE;
+  border-radius: 20px;
+  padding: 32px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.family-empty-icon {
+  font-size: 36px;
+  margin-bottom: 10px;
+}
+
+.family-empty-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-heading);
+  margin-bottom: 4px;
+}
+
+.family-empty-desc {
+  font-size: 13px;
+  color: var(--text-body);
+  max-width: 280px;
+  line-height: 1.4;
+}
+
+.share-tenancies-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.share-check-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background-color: #FFFFFF;
+  border: 1.5px solid #E2E4F2;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.share-check-item.selected {
+  border-color: var(--color-primary);
+  background-color: rgba(84, 82, 236, 0.04);
+}
+
+.share-role-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.share-role-card {
+  padding: 12px 10px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.role-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.role-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.role-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
 
