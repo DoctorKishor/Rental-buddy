@@ -4985,27 +4985,127 @@ select.form-input:disabled {
 .share-tenancies-checklist {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  max-height: 220px;
+  gap: 10px;
+  max-height: 240px;
   overflow-y: auto;
-  padding-right: 2px;
+  padding: 4px 2px;
 }
 
 .share-check-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  background-color: #FFFFFF;
+  padding: 12px 14px;
+  background-color: var(--bg-surface);
   border: 1.5px solid #E2E4F2;
-  border-radius: 12px;
+  border-radius: 16px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(28, 33, 66, 0.03);
+  user-select: none;
+}
+
+.share-check-item input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.share-check-item:hover {
+  border-color: #D2D5EE;
+  box-shadow: 0 4px 12px rgba(28, 33, 66, 0.06);
 }
 
 .share-check-item.selected {
   border-color: var(--color-primary);
-  background-color: rgba(84, 82, 236, 0.04);
+  background-color: #F7F7FE;
+  box-shadow: 0 4px 14px rgba(84, 82, 236, 0.12);
+}
+
+.share-card-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.share-prop-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #E8E7FB;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.share-check-item.selected .share-prop-icon {
+  background: var(--color-primary);
+  color: #FFFFFF;
+}
+
+.share-prop-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.share-prop-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.share-prop-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text-heading);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.share-prop-rent {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.share-card-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid #D6D8EC;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.share-card-check svg {
+  width: 13px;
+  height: 13px;
+  stroke: #FFFFFF;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: all 0.15s ease;
+}
+
+.share-check-item.selected .share-card-check {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.share-check-item.selected .share-card-check svg {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .share-role-grid {

@@ -4818,21 +4818,48 @@ function initFamilySharingPage() {
       } else {
         ownedTenancies.forEach((t) => {
           const item = document.createElement('label');
-          item.className = 'share-tenancy-check-item';
+          item.className = 'share-check-item selected';
           item.innerHTML = `
             <input type="checkbox" name="share-tenancy-select" value="${t.id}" checked />
-            <div class="share-tenancy-info">
-              <strong class="share-tenancy-name">${t.property_name}</strong>
-              <span class="share-tenancy-rent">₹${parseFloat(t.base_rent || 0).toLocaleString('en-IN')} • Monthly</span>
+            <div class="share-card-left">
+              <div class="share-prop-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9.5z" />
+                  <path d="M9 21V12h6v9" />
+                </svg>
+              </div>
+              <div class="share-prop-info">
+                <strong class="share-prop-name">${t.property_name}</strong>
+                <span class="share-prop-rent">₹${parseFloat(t.base_rent || 0).toLocaleString('en-IN')} • Monthly</span>
+              </div>
             </div>
-            <span class="check-custom-box"></span>
+            <div class="share-card-check">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
           `;
+
+          const cb = item.querySelector('input[type="checkbox"]');
+          cb?.addEventListener('change', () => {
+            item.classList.toggle('selected', cb.checked);
+            updateSelectAllState();
+          });
+
           checklistTenancies.appendChild(item);
         });
       }
     }
 
     modalShare?.classList.remove('hidden');
+  }
+
+  function updateSelectAllState() {
+    if (!checklistTenancies || !btnToggleSelectAll) return;
+    const checkboxes = checklistTenancies.querySelectorAll('input[type="checkbox"]');
+    if (checkboxes.length === 0) return;
+    const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
+    btnToggleSelectAll.textContent = allChecked ? 'Deselect All' : 'Select All';
   }
 
   btnTopAdd?.addEventListener('click', openSelectiveShareModal);
@@ -4851,7 +4878,11 @@ function initFamilySharingPage() {
     if (!checklistTenancies) return;
     const checkboxes = checklistTenancies.querySelectorAll('input[type="checkbox"]');
     const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
-    checkboxes.forEach((cb) => (cb.checked = !allChecked));
+    checkboxes.forEach((cb) => {
+      cb.checked = !allChecked;
+      const card = cb.closest('.share-check-item');
+      if (card) card.classList.toggle('selected', !allChecked);
+    });
     btnToggleSelectAll.textContent = allChecked ? 'Select All' : 'Deselect All';
   });
 
