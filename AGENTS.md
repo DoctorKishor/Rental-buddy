@@ -1347,6 +1347,21 @@
     - `🚫 Denied by Recipient` (rose pill)
   - Owners can revoke access at any time via `🗑️ Revoke Access`.
 
+### 5. Selective Share Tenancy Stacked Cards Architecture
+- **Vertical Stack Layout**:
+  - Replaces raw browser checkboxes with elevated card components (`.share-check-item`) stacked vertically with `10px` gap inside `.share-tenancies-checklist`.
+  - Geometry: `border-radius: 16px`, padding `12px 14px`, border `1.5px solid #E2E4F2`.
+  - Visual Depth:
+    - Default: White surface with subtle elevation shadow `0 2px 6px rgba(28, 33, 66, 0.03)`.
+    - Active / Selected: Vibrant primary border `#5452EC`, soft lavender canvas background `#F7F7FE`, elevated glow `0 4px 14px rgba(84, 82, 236, 0.12)`.
+  - Icon & Typography:
+    - Left: Circular/rounded property icon container (`40px × 40px`, `#E8E7FB` background, switching to `#5452EC` when selected) with house SVG.
+    - Information: Bold property name (`14.5px`, bold `#0E1326`) and rent subtitle (`12px`, `#7D849B`).
+  - Interactive Custom Checkbox:
+    - Right: `22px × 22px` rounded `6px` custom box with animated checkmark `✓` in `#5452EC`.
+    - Entire card is an interactive label; tapping anywhere toggles selection and synchronizes the "Select All / Deselect All" trigger.
+
+
 
 
 
