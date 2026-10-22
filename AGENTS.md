@@ -1427,7 +1427,7 @@ To eliminate dead placeholders and provide a production-ready user experience, a
   - Opens GitHub's issue creation portal directly in a new browser tab.
 - **About The App**:
   - Triggers a rich, responsive bottom-sheet modal (`#modal-about-app`).
-  - Displays product branding, current app version (`v1.2.0`), author attribution (Dr. Kishor / Vroxal design), core value pillars (Offline-first, Zero data lock-in, WhatsApp invoice sync), and direct GitHub repository links.
+  - Displays product branding, current app version (`v1.0.0 Production`), author attribution (Dr. Kishor - `@DoctorKishor`), cloud backend provider (Supabase Cloud & Auth), core value summary, and direct GitHub repository links.
 - **Contact Support**:
   - Triggers a dedicated support modal (`#modal-contact-support`).
   - Provides a 1-tap direct email mailto action to `kishoranbazhakan@gmail.com` pre-populated with subject and device metadata, alongside an alternate link to GitHub Community Discussions.
