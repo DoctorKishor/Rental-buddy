@@ -1099,10 +1099,6 @@ function initDashboard() {
   });
   settingsBtn?.addEventListener('click', () => navigateToScreen(16));
 
-  // Live Cloud Status Banner -> Screen 20
-  document.getElementById('cloud-status-banner')?.addEventListener('click', () => {
-    navigateToScreen(20);
-  });
 
   // Segmented Ledger Switcher (Payments vs Bills)
   const tabPayments = document.getElementById('tab-recent-payments');
@@ -1408,10 +1404,6 @@ export function computeTenancyStatusBadge(tenancy, allBills = [], allPayments = 
 export async function syncDashboardFromCloud() {
   try {
     const user = await ensureAuthenticated();
-    const cloudEmail = document.getElementById('cloud-banner-user-email');
-    if (cloudEmail) {
-      cloudEmail.textContent = user ? user.email : 'Not Signed In';
-    }
 
     const wrapper = document.getElementById('tenancies-list-wrapper');
     const emptyState = document.getElementById('dashboard-empty-tenancies');
@@ -5201,26 +5193,17 @@ function initBackupRestoreScreen() {
 export let currentUserSession = null;
 
 export function updateAuthUI(user) {
-  const bannerEmail = document.getElementById('cloud-banner-user-email');
-  const bannerText = document.getElementById('cloud-status-banner-text');
-  const bannerDot = document.querySelector('.cloud-pulse-dot');
   const emailDisplay = document.getElementById('current-user-email-display');
   const roleBadge = document.getElementById('current-user-role-badge');
-  const ownerEmail = document.getElementById('display-owner-email');
-
   const authNav = document.getElementById('auth-nav-header');
   const btnAuthBack = document.getElementById('btn-auth-back');
 
   if (!user) {
-    if (bannerEmail) bannerEmail.textContent = 'Not Signed In';
-    if (bannerText) bannerText.textContent = 'Supabase Cloud • Offline';
-    if (bannerDot) bannerDot.style.background = '#9FA5BC';
     if (emailDisplay) emailDisplay.textContent = 'Not Signed In';
     if (roleBadge) {
       roleBadge.textContent = 'Sign in to view account';
       roleBadge.style.color = '#7D849B';
     }
-    if (ownerEmail) ownerEmail.textContent = 'Owner';
     authNav?.classList.add('hidden');
     btnAuthBack?.classList.add('hidden');
     currentUserSession = null;
@@ -5239,15 +5222,11 @@ export function updateAuthUI(user) {
     name: fullName,
   };
 
-  if (bannerEmail) bannerEmail.textContent = email;
-  if (bannerText) bannerText.textContent = 'Supabase Cloud • Live';
-  if (bannerDot) bannerDot.style.background = '#10B981';
   if (emailDisplay) emailDisplay.textContent = email;
   if (roleBadge) {
     roleBadge.textContent = isAdmin ? '👑 Admin (Owner)' : '👨‍👩‍👧 Family Member (Viewer)';
     roleBadge.style.color = isAdmin ? '#16A34A' : '#0284C7';
   }
-  if (ownerEmail) ownerEmail.textContent = email;
   authNav?.classList.remove('hidden');
   btnAuthBack?.classList.remove('hidden');
 }
@@ -6112,8 +6091,6 @@ export function openPaymentReceipt(payment, tenancy = null) {
   const propTitle = document.getElementById('receipt-prop-title');
   const tenantText = document.getElementById('receipt-tenant-text');
   const rentText = document.getElementById('receipt-rent-text');
-  const statusPill = document.getElementById('receipt-status-pill');
-  const stampPill = document.getElementById('receipt-stamp-pill');
   const paymentDate = document.getElementById('receipt-payment-date');
   const billingCycle = document.getElementById('receipt-billing-cycle');
   const paymentMode = document.getElementById('receipt-payment-mode');
@@ -6498,7 +6475,11 @@ function initReceiptPage() {
   const btnShareImage = document.getElementById('btn-share-as-image');
 
   btnBack?.addEventListener('click', () => {
-    if (state.previousScreen === 10 && currentActiveTenancy) {
+    if (state.previousScreen === 18) {
+      navigateToScreen(18);
+    } else if (state.previousScreen === 19) {
+      navigateToScreen(19);
+    } else if (state.previousScreen === 10 && currentActiveTenancy) {
       navigateToScreen(10);
     } else {
       navigateToScreen(6);
@@ -6506,7 +6487,11 @@ function initReceiptPage() {
   });
 
   btnDone?.addEventListener('click', () => {
-    if (currentActiveTenancy) {
+    if (state.previousScreen === 18) {
+      navigateToScreen(18);
+    } else if (state.previousScreen === 19) {
+      navigateToScreen(19);
+    } else if (currentActiveTenancy) {
       navigateToScreen(10);
     } else {
       navigateToScreen(6);
