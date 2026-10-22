@@ -2288,51 +2288,6 @@
                 </p>
               </div>
 
-              <!-- Family Sharing Bottom Sheet Modal -->
-              <div class="modal-overlay hidden" id="modal-family-sharing" role="dialog" aria-modal="true" aria-labelledby="familyModalTitle">
-                <div class="modal-sheet">
-                  <div class="modal-handle"></div>
-                  <div class="modal-header">
-                    <h3 class="modal-title" id="familyModalTitle">Family Members &amp; Sharing</h3>
-                    <button class="modal-close-btn" id="btnCloseFamilyModal" aria-label="Close modal">✕</button>
-                  </div>
-                  <p class="hero-subtitle" style="margin-bottom: 16px; font-size: 13.5px;">
-                    Grant your family members access so they can log in with their own email to view rental ledgers.
-                  </p>
-
-                  <!-- Active Family Members List -->
-                  <div class="family-members-stack" id="family-members-list">
-                    <!-- Owner (You) -->
-                    <div class="family-member-row">
-                      <div class="member-avatar owner">👑</div>
-                      <div class="member-info">
-                        <strong class="member-email" id="display-owner-email">Owner</strong>
-                        <span class="member-role-tag owner-tag">Owner / Primary Admin</span>
-                      </div>
-                      <span class="badge-pill" style="background: #DCFCE7; color: #16A34A; font-size: 11.5px;">Full Access</span>
-                    </div>
-                  </div>
-
-                  <!-- Invite Form -->
-                  <div class="invite-family-card" style="margin-top: 18px; padding: 16px; background: #F8F9FE; border-radius: 16px; border: 1px solid #E2E4F2;">
-                    <h4 style="font-size: 14.5px; font-weight: 700; color: #0E1326; margin-bottom: 10px;">Invite New Family Member</h4>
-                    <div class="form-group">
-                      <label class="form-label mini" for="input-family-email">Member’s Email Address</label>
-                      <input type="email" id="input-family-email" class="form-input mini" placeholder="spouse@example.com" />
-                    </div>
-                    <div class="form-group" style="margin-top: 10px;">
-                      <label class="form-label mini" for="select-family-role">Access Permission</label>
-                      <select id="select-family-role" class="form-input mini">
-                        <option value="viewer" selected>Viewer (Can view bills, ledgers &amp; download receipts)</option>
-                        <option value="editor">Manager (Can also record payments &amp; generate bills)</option>
-                      </select>
-                    </div>
-                    <button class="btn btn-primary btn-pill" id="btn-send-family-invite" style="margin-top: 12px; width: 100%; height: 46px; min-height: 46px;">
-                      Grant Family Access
-                    </button>
-                  </div>
-                </div>
-              </div>
 
               <!-- Delete Account & Data Confirmation Modal -->
               <div class="modal-overlay hidden" id="modal-delete-account" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">

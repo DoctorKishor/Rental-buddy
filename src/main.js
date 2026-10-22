@@ -237,6 +237,18 @@ export function initNumericAndPhoneInputs() {
       input.setAttribute('min', '0');
     }
   });
+
+  // 3. Form submit protection (prevents unintended page reloads when pressing Enter in inputs)
+  document.querySelectorAll('form').forEach((form) => {
+    if (!form.dataset.submitGuarded) {
+      form.dataset.submitGuarded = 'true';
+      form.addEventListener('submit', (e) => {
+        if (form.id !== 'auth-login-form') {
+          e.preventDefault();
+        }
+      });
+    }
+  });
 }
 
 // Currency Selector Logic
@@ -1708,47 +1720,6 @@ export async function syncDashboardFromCloud() {
 
     // Refresh mutually exclusive recent activity view
     renderRecentActivityView();
-
-    // 4. Update Family sharing list
-    const members = await fetchCloudFamilyMembers();
-    const membersList = document.getElementById('family-members-list');
-    const badgeCount = document.getElementById('badge-family-count');
-    if (membersList) {
-      membersList.querySelectorAll('.dynamic-cloud-member').forEach((m) => m.remove());
-      if (members && members.length > 0) {
-        members.forEach((m) => {
-          const row = document.createElement('div');
-          row.className = 'family-member-row dynamic-cloud-member';
-          row.innerHTML = `
-            <div class="member-avatar">👨‍👩‍👧</div>
-            <div class="member-info">
-              <strong class="member-email">${m.member_email}</strong>
-              <span class="member-role-tag">${m.role === 'manager' ? 'Manager • Can edit & record' : 'Viewer • Can view bills & payments'}</span>
-            </div>
-            <button type="button" class="btn-remove-member" title="Revoke access">✕</button>
-          `;
-          row.querySelector('.btn-remove-member')?.addEventListener('click', async () => {
-            try {
-              await revokeCloudFamilyMember(m.id);
-              row.remove();
-              const remaining = membersList.querySelectorAll('.dynamic-cloud-member').length;
-              if (badgeCount) badgeCount.textContent = `${remaining} Shared`;
-              showToast(`🗑️ Revoked access for ${m.member_email}`);
-            } catch (revErr) {
-              showToast(`❌ Error revoking access: ${revErr.message}`);
-            }
-          });
-          membersList.appendChild(row);
-        });
-        if (badgeCount) {
-          badgeCount.textContent = `${members.length} Shared`;
-        }
-      } else {
-        if (badgeCount) {
-          badgeCount.textContent = `0 Shared`;
-        }
-      }
-    }
   } catch (err) {
     console.warn('Sync Dashboard Notice:', err);
   }
