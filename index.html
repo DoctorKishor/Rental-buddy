@@ -1128,6 +1128,11 @@
                 <div class="summary-card-meta-line" id="details-rent-rate">
                   --
                 </div>
+                <div class="scheduled-badge-row hidden" id="details-scheduled-badge-row" style="margin-top: 6px;">
+                  <span class="status-chip chip-upcoming" id="details-scheduled-chip" style="font-size: 11.5px; padding: 4px 10px; border-radius: 9999px; background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; font-weight: 600;">
+                    --
+                  </span>
+                </div>
 
                 <div class="tenancy-card-divider"></div>
 
@@ -1401,11 +1406,11 @@
                   </div>
                 </div>
 
-                <!-- Utilities Accordion (Electricity, Water, Garbage) -->
+                <!-- Utilities Accordion (Electricity, Water, Garbage, Internet) -->
                 <div class="form-group" style="margin-top: 6px;">
                   <label class="form-label">Included Utilities</label>
                   <div class="utilities-stack">
-                    <!-- Electricity -->
+                    <!-- 1. Electricity -->
                     <div class="utility-card expanded" id="edit-util-electricity">
                       <div class="utility-header">
                         <span class="utility-name">Electricity</span>
@@ -1417,13 +1422,40 @@
                       <div class="utility-details" id="edit-details-elec">
                         <div class="utility-divider"></div>
                         <div class="form-group">
-                          <label class="form-label mini">Price Per Unit (₹)</label>
-                          <input type="number" inputmode="decimal" step="0.01" min="0" id="edit-elec-price" class="form-input mini" value="" placeholder="e.g. 12" />
+                          <label class="form-label mini">Bill Type</label>
+                          <div class="inline-radios">
+                            <label class="radio-inline" id="edit-label-elec-flat">
+                              <input type="radio" name="edit-billType-electricity" value="Flat" />
+                              <span class="custom-radio mini"></span>
+                              <span>Flat</span>
+                            </label>
+                            <label class="radio-inline selected" id="edit-label-elec-meter">
+                              <input type="radio" name="edit-billType-electricity" value="Meter Reading" checked />
+                              <span class="custom-radio mini"></span>
+                              <span>Meter Reading</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        <!-- Meter Reading fields -->
+                        <div class="util-subfields" id="edit-subfields-elec-meter">
+                          <div class="form-group">
+                            <label class="form-label mini" for="edit-elec-price">Price Per Unit (₹)</label>
+                            <input type="number" inputmode="decimal" step="0.01" min="0" id="edit-elec-price" class="form-input mini" value="" placeholder="e.g. 12" />
+                          </div>
+                        </div>
+
+                        <!-- Flat fields -->
+                        <div class="util-subfields hidden" id="edit-subfields-elec-flat">
+                          <div class="form-group">
+                            <label class="form-label mini" for="edit-elec-flat-amount">Electricity Bill Amount (₹)</label>
+                            <input type="number" inputmode="numeric" min="0" id="edit-elec-flat-amount" class="form-input mini" value="" placeholder="e.g. 500" />
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    <!-- Water -->
+                    <!-- 2. Water -->
                     <div class="utility-card expanded" id="edit-util-water">
                       <div class="utility-header">
                         <span class="utility-name">Water</span>
@@ -1435,11 +1467,75 @@
                       <div class="utility-details" id="edit-details-water">
                         <div class="utility-divider"></div>
                         <div class="form-group">
-                          <label class="form-label mini">Water Bill Amount (₹)</label>
-                          <input type="number" inputmode="numeric" min="0" id="edit-water-amount" class="form-input mini" value="" placeholder="e.g. 500" />
+                          <label class="form-label mini">Bill Type</label>
+                          <div class="inline-radios">
+                            <label class="radio-inline selected" id="edit-label-water-flat">
+                              <input type="radio" name="edit-billType-water" value="Flat" checked />
+                              <span class="custom-radio mini"></span>
+                              <span>Flat</span>
+                            </label>
+                            <label class="radio-inline" id="edit-label-water-meter">
+                              <input type="radio" name="edit-billType-water" value="Meter Reading" />
+                              <span class="custom-radio mini"></span>
+                              <span>Meter Reading</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        <!-- Flat fields -->
+                        <div class="util-subfields" id="edit-subfields-water-flat">
+                          <div class="form-group">
+                            <label class="form-label mini" for="edit-water-amount">Water Bill Amount (₹)</label>
+                            <input type="number" inputmode="numeric" min="0" id="edit-water-amount" class="form-input mini" value="" placeholder="e.g. 300" />
+                          </div>
+                        </div>
+
+                        <!-- Meter Reading fields -->
+                        <div class="util-subfields hidden" id="edit-subfields-water-meter">
+                          <div class="form-group">
+                            <label class="form-label mini" for="edit-water-price">Water Price Per Unit (₹)</label>
+                            <input type="number" inputmode="decimal" step="0.01" min="0" id="edit-water-price" class="form-input mini" value="" placeholder="e.g. 25" />
+                          </div>
                         </div>
                       </div>
                     </div>
+
+                    <!-- 3. Garbage -->
+                    <div class="utility-card" id="edit-util-garbage">
+                      <div class="utility-header">
+                        <span class="utility-name">Garbage</span>
+                        <label class="toggle-switch">
+                          <input type="checkbox" id="edit-toggle-garbage" />
+                          <span class="toggle-slider"></span>
+                        </label>
+                      </div>
+                      <div class="utility-details hidden" id="edit-details-garbage">
+                        <div class="utility-divider"></div>
+                        <div class="form-group">
+                          <label class="form-label mini" for="edit-garbage-amount">Garbage Bill Amount (₹)</label>
+                          <input type="number" inputmode="numeric" min="0" id="edit-garbage-amount" class="form-input mini" value="" placeholder="e.g. 200" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- 4. Internet -->
+                    <div class="utility-card" id="edit-util-internet">
+                      <div class="utility-header">
+                        <span class="utility-name">Internet</span>
+                        <label class="toggle-switch">
+                          <input type="checkbox" id="edit-toggle-internet" />
+                          <span class="toggle-slider"></span>
+                        </label>
+                      </div>
+                      <div class="utility-details hidden" id="edit-details-internet">
+                        <div class="utility-divider"></div>
+                        <div class="form-group">
+                          <label class="form-label mini" for="edit-internet-amount">Internet Bill Amount (₹)</label>
+                          <input type="number" inputmode="numeric" min="0" id="edit-internet-amount" class="form-input mini" value="" placeholder="e.g. 1000" />
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
 

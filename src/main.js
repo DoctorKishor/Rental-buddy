@@ -1824,30 +1824,100 @@ export async function bindTenancyToDetails(t, targetYear = null) {
 
   const elecUtil = t.tenancy_utilities?.find((u) => u.utility_type === 'electricity');
   const waterUtil = t.tenancy_utilities?.find((u) => u.utility_type === 'water');
+  const garbageUtil = t.tenancy_utilities?.find((u) => u.utility_type === 'garbage');
+  const internetUtil = t.tenancy_utilities?.find((u) => u.utility_type === 'internet');
 
-  const editElecPrice = document.getElementById('edit-elec-price');
-  if (editElecPrice) editElecPrice.value = elecUtil ? (elecUtil.price_per_unit || '') : '';
+  // 1. Electricity
   const editToggleElec = document.getElementById('edit-toggle-elec');
   if (editToggleElec) editToggleElec.checked = elecUtil ? elecUtil.is_enabled !== false : false;
   document.getElementById('edit-util-electricity')?.classList.toggle('expanded', editToggleElec?.checked ?? false);
   document.getElementById('edit-details-elec')?.classList.toggle('hidden', !(editToggleElec?.checked ?? false));
 
-  const editWaterAmount = document.getElementById('edit-water-amount');
-  if (editWaterAmount) editWaterAmount.value = waterUtil ? (waterUtil.flat_amount || '') : '';
+  const elecIsFlat = elecUtil?.bill_type === 'flat';
+  const elecFlatRadio = document.querySelector('input[name="edit-billType-electricity"][value="Flat"]');
+  const elecMeterRadio = document.querySelector('input[name="edit-billType-electricity"][value="Meter Reading"]');
+  if (elecIsFlat && elecFlatRadio) {
+    elecFlatRadio.checked = true;
+    document.getElementById('edit-label-elec-flat')?.classList.add('selected');
+    document.getElementById('edit-label-elec-meter')?.classList.remove('selected');
+    document.getElementById('edit-subfields-elec-flat')?.classList.remove('hidden');
+    document.getElementById('edit-subfields-elec-meter')?.classList.add('hidden');
+  } else if (elecMeterRadio) {
+    elecMeterRadio.checked = true;
+    document.getElementById('edit-label-elec-meter')?.classList.add('selected');
+    document.getElementById('edit-label-elec-flat')?.classList.remove('selected');
+    document.getElementById('edit-subfields-elec-meter')?.classList.remove('hidden');
+    document.getElementById('edit-subfields-elec-flat')?.classList.add('hidden');
+  }
+  const editElecPrice = document.getElementById('edit-elec-price');
+  if (editElecPrice) editElecPrice.value = elecUtil && elecUtil.bill_type !== 'flat' ? (elecUtil.price_per_unit || '') : '';
+  const editElecFlat = document.getElementById('edit-elec-flat-amount');
+  if (editElecFlat) editElecFlat.value = elecUtil && elecUtil.bill_type === 'flat' ? (elecUtil.flat_amount || '') : '';
+
+  // 2. Water
   const editToggleWater = document.getElementById('edit-toggle-water');
   if (editToggleWater) editToggleWater.checked = waterUtil ? waterUtil.is_enabled !== false : false;
   document.getElementById('edit-util-water')?.classList.toggle('expanded', editToggleWater?.checked ?? false);
   document.getElementById('edit-details-water')?.classList.toggle('hidden', !(editToggleWater?.checked ?? false));
 
-  // Restore active scheduled revision banner if present
+  const waterIsMeter = waterUtil?.bill_type === 'meter_reading';
+  const waterFlatRadio = document.querySelector('input[name="edit-billType-water"][value="Flat"]');
+  const waterMeterRadio = document.querySelector('input[name="edit-billType-water"][value="Meter Reading"]');
+  if (waterIsMeter && waterMeterRadio) {
+    waterMeterRadio.checked = true;
+    document.getElementById('edit-label-water-meter')?.classList.add('selected');
+    document.getElementById('edit-label-water-flat')?.classList.remove('selected');
+    document.getElementById('edit-subfields-water-meter')?.classList.remove('hidden');
+    document.getElementById('edit-subfields-water-flat')?.classList.add('hidden');
+  } else if (waterFlatRadio) {
+    waterFlatRadio.checked = true;
+    document.getElementById('edit-label-water-flat')?.classList.add('selected');
+    document.getElementById('edit-label-water-meter')?.classList.remove('selected');
+    document.getElementById('edit-subfields-water-flat')?.classList.remove('hidden');
+    document.getElementById('edit-subfields-water-meter')?.classList.add('hidden');
+  }
+  const editWaterAmount = document.getElementById('edit-water-amount');
+  if (editWaterAmount) editWaterAmount.value = waterUtil && waterUtil.bill_type !== 'meter_reading' ? (waterUtil.flat_amount || '') : '';
+  const editWaterPrice = document.getElementById('edit-water-price');
+  if (editWaterPrice) editWaterPrice.value = waterUtil && waterUtil.bill_type === 'meter_reading' ? (waterUtil.price_per_unit || '') : '';
+
+  // 3. Garbage
+  const editToggleGarbage = document.getElementById('edit-toggle-garbage');
+  if (editToggleGarbage) editToggleGarbage.checked = garbageUtil ? garbageUtil.is_enabled !== false : false;
+  document.getElementById('edit-util-garbage')?.classList.toggle('expanded', editToggleGarbage?.checked ?? false);
+  document.getElementById('edit-details-garbage')?.classList.toggle('hidden', !(editToggleGarbage?.checked ?? false));
+  const editGarbageAmount = document.getElementById('edit-garbage-amount');
+  if (editGarbageAmount) editGarbageAmount.value = garbageUtil ? (garbageUtil.flat_amount || '') : '';
+
+  // 4. Internet
+  const editToggleInternet = document.getElementById('edit-toggle-internet');
+  if (editToggleInternet) editToggleInternet.checked = internetUtil ? internetUtil.is_enabled !== false : false;
+  document.getElementById('edit-util-internet')?.classList.toggle('expanded', editToggleInternet?.checked ?? false);
+  document.getElementById('edit-details-internet')?.classList.toggle('hidden', !(editToggleInternet?.checked ?? false));
+  const editInternetAmount = document.getElementById('edit-internet-amount');
+  if (editInternetAmount) editInternetAmount.value = internetUtil ? (internetUtil.flat_amount || '') : '';
+
+  // Restore active scheduled revision banner if present (Screen 11 & Screen 10)
   const bannerRevision = document.getElementById('scheduled-revision-banner');
   const bannerRevisionText = document.getElementById('banner-revision-text');
+  const detailsScheduledRow = document.getElementById('details-scheduled-badge-row');
+  const detailsScheduledChip = document.getElementById('details-scheduled-chip');
   const activeRevision = t.rent_revisions?.find((r) => r.status === 'scheduled');
-  if (activeRevision && bannerRevision && bannerRevisionText) {
-    bannerRevisionText.textContent = `₹${parseFloat(activeRevision.new_rent).toLocaleString('en-IN')} scheduled (${activeRevision.note || 'Next Cycle'})`;
-    bannerRevision.classList.remove('hidden');
-  } else if (bannerRevision) {
-    bannerRevision.classList.add('hidden');
+  if (activeRevision) {
+    const revRent = parseFloat(activeRevision.new_rent).toLocaleString('en-IN');
+    const revDate = activeRevision.effective_date ? new Date(activeRevision.effective_date + 'T00:00:00') : null;
+    const dateStr = revDate && !isNaN(revDate.getTime()) ? revDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : (activeRevision.note || 'Next Cycle');
+    if (bannerRevision && bannerRevisionText) {
+      bannerRevisionText.textContent = `₹${revRent} scheduled (${activeRevision.note || 'Next Cycle'})`;
+      bannerRevision.classList.remove('hidden');
+    }
+    if (detailsScheduledRow && detailsScheduledChip) {
+      detailsScheduledChip.textContent = `📈 ₹${revRent} scheduled (${dateStr})`;
+      detailsScheduledRow.classList.remove('hidden');
+    }
+  } else {
+    if (bannerRevision) bannerRevision.classList.add('hidden');
+    if (detailsScheduledRow) detailsScheduledRow.classList.add('hidden');
   }
 
   // Fetch tenancy payments & bills dynamically from Supabase
@@ -2745,6 +2815,14 @@ function initEditTenancy() {
         bannerRevisionText.textContent = `₹${parseFloat(newRent).toLocaleString('en-IN')} scheduled (${cycleLabel})`;
       }
       bannerRevision?.classList.remove('hidden');
+      const detailsScheduledRow = document.getElementById('details-scheduled-badge-row');
+      const detailsScheduledChip = document.getElementById('details-scheduled-chip');
+      if (detailsScheduledRow && detailsScheduledChip) {
+        const revDate = effectiveDateStr ? new Date(effectiveDateStr + 'T00:00:00') : null;
+        const dateStr = revDate && !isNaN(revDate.getTime()) ? revDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : cycleLabel;
+        detailsScheduledChip.textContent = `📈 ₹${parseFloat(newRent).toLocaleString('en-IN')} scheduled (${dateStr})`;
+        detailsScheduledRow.classList.remove('hidden');
+      }
       modalRevise?.classList.add('hidden');
       loadRentRevisionHistory(currentActiveTenancy);
 
@@ -2769,6 +2847,8 @@ function initEditTenancy() {
         });
       }
       bannerRevision?.classList.add('hidden');
+      const detailsScheduledRow = document.getElementById('details-scheduled-badge-row');
+      if (detailsScheduledRow) detailsScheduledRow.classList.add('hidden');
       loadRentRevisionHistory(currentActiveTenancy);
       showToast('Scheduled rent revision cancelled in Supabase Cloud');
     } catch (e) {
@@ -2824,28 +2904,59 @@ function initEditTenancy() {
         start_date: updatedStartDate,
       });
 
-      // Synchronize utilities updates (Electricity & Water)
-      const elecEnabled = document.getElementById('edit-toggle-elec')?.checked ?? true;
+      // Synchronize utilities updates (Electricity, Water, Garbage, Internet)
+      const elecEnabled = document.getElementById('edit-toggle-elec')?.checked ?? false;
+      const elecTypeRadio = document.querySelector('input[name="edit-billType-electricity"]:checked')?.value || 'Meter Reading';
+      const elecBillType = elecTypeRadio === 'Flat' ? 'flat' : 'meter_reading';
       const elecPrice = parseFloat(document.getElementById('edit-elec-price')?.value) || 0;
-      const waterEnabled = document.getElementById('edit-toggle-water')?.checked ?? true;
-      const waterAmount = parseFloat(document.getElementById('edit-water-amount')?.value) || 0;
+      const elecFlat = parseFloat(document.getElementById('edit-elec-flat-amount')?.value) || 0;
+
+      const waterEnabled = document.getElementById('edit-toggle-water')?.checked ?? false;
+      const waterTypeRadio = document.querySelector('input[name="edit-billType-water"]:checked')?.value || 'Flat';
+      const waterBillType = waterTypeRadio === 'Meter Reading' ? 'meter_reading' : 'flat';
+      const waterPrice = parseFloat(document.getElementById('edit-water-price')?.value) || 0;
+      const waterFlat = parseFloat(document.getElementById('edit-water-amount')?.value) || 0;
+
+      const garbageEnabled = document.getElementById('edit-toggle-garbage')?.checked ?? false;
+      const garbageAmount = parseFloat(document.getElementById('edit-garbage-amount')?.value) || 0;
+
+      const internetEnabled = document.getElementById('edit-toggle-internet')?.checked ?? false;
+      const internetAmount = parseFloat(document.getElementById('edit-internet-amount')?.value) || 0;
 
       const existingElec = currentActiveTenancy.tenancy_utilities?.find((u) => u.utility_type === 'electricity');
+      const existingWater = currentActiveTenancy.tenancy_utilities?.find((u) => u.utility_type === 'water');
+
       const updatedUtils = [
         {
           utility_type: 'electricity',
           is_enabled: elecEnabled,
-          bill_type: 'meter_reading',
-          price_per_unit: elecPrice,
-          flat_amount: 0,
+          bill_type: elecBillType,
+          price_per_unit: elecBillType === 'meter_reading' ? elecPrice : 0,
+          flat_amount: elecBillType === 'flat' ? elecFlat : 0,
           last_meter_reading: existingElec?.last_meter_reading || 0,
         },
         {
           utility_type: 'water',
           is_enabled: waterEnabled,
+          bill_type: waterBillType,
+          price_per_unit: waterBillType === 'meter_reading' ? waterPrice : 0,
+          flat_amount: waterBillType === 'flat' ? waterFlat : 0,
+          last_meter_reading: existingWater?.last_meter_reading || 0,
+        },
+        {
+          utility_type: 'garbage',
+          is_enabled: garbageEnabled,
           bill_type: 'flat',
           price_per_unit: 0,
-          flat_amount: waterAmount,
+          flat_amount: garbageAmount,
+          last_meter_reading: 0,
+        },
+        {
+          utility_type: 'internet',
+          is_enabled: internetEnabled,
+          bill_type: 'flat',
+          price_per_unit: 0,
+          flat_amount: internetAmount,
           last_meter_reading: 0,
         },
       ];
@@ -2967,7 +3078,7 @@ function initEditTenancy() {
     });
   });
 
-  // Utility toggles
+  // Utility toggles & Bill Type dynamic field swapping
   const toggleElec = document.getElementById('edit-toggle-elec');
   const detailsElec = document.getElementById('edit-details-elec');
   toggleElec?.addEventListener('change', () => {
@@ -2980,6 +3091,42 @@ function initEditTenancy() {
   toggleWater?.addEventListener('change', () => {
     detailsWater?.classList.toggle('hidden', !toggleWater.checked);
     document.getElementById('edit-util-water')?.classList.toggle('expanded', toggleWater.checked);
+  });
+
+  const toggleGarbage = document.getElementById('edit-toggle-garbage');
+  const detailsGarbage = document.getElementById('edit-details-garbage');
+  toggleGarbage?.addEventListener('change', () => {
+    detailsGarbage?.classList.toggle('hidden', !toggleGarbage.checked);
+    document.getElementById('edit-util-garbage')?.classList.toggle('expanded', toggleGarbage.checked);
+  });
+
+  const toggleInternet = document.getElementById('edit-toggle-internet');
+  const detailsInternet = document.getElementById('edit-details-internet');
+  toggleInternet?.addEventListener('change', () => {
+    detailsInternet?.classList.toggle('hidden', !toggleInternet.checked);
+    document.getElementById('edit-util-internet')?.classList.toggle('expanded', toggleInternet.checked);
+  });
+
+  document.querySelectorAll('input[name="edit-billType-electricity"]').forEach((radio) => {
+    radio.parentElement?.addEventListener('click', () => {
+      document.querySelectorAll('#edit-details-elec .radio-inline').forEach((lbl) => lbl.classList.remove('selected'));
+      radio.parentElement?.classList.add('selected');
+      radio.checked = true;
+      const isMeter = radio.value === 'Meter Reading';
+      document.getElementById('edit-subfields-elec-meter')?.classList.toggle('hidden', !isMeter);
+      document.getElementById('edit-subfields-elec-flat')?.classList.toggle('hidden', isMeter);
+    });
+  });
+
+  document.querySelectorAll('input[name="edit-billType-water"]').forEach((radio) => {
+    radio.parentElement?.addEventListener('click', () => {
+      document.querySelectorAll('#edit-details-water .radio-inline').forEach((lbl) => lbl.classList.remove('selected'));
+      radio.parentElement?.classList.add('selected');
+      radio.checked = true;
+      const isMeter = radio.value === 'Meter Reading';
+      document.getElementById('edit-subfields-water-meter')?.classList.toggle('hidden', !isMeter);
+      document.getElementById('edit-subfields-water-flat')?.classList.toggle('hidden', isMeter);
+    });
   });
 }
 

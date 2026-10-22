@@ -1538,6 +1538,16 @@ To eliminate dead placeholders and provide a production-ready user experience, a
 - **Active Revision Pre-Fill & Cancellation Guard**:
   - Opening the revision modal with an already-scheduled revision automatically pre-fills the new rent and note fields.
   - Cancelling a revision prompts a confirmation dialogue (`confirm(...)`) to prevent accidental taps.
-- **Accordion Visual Sync**:
-  - Toggling utility checkboxes on Screen 11 synchronizes the `.utility-card.expanded` CSS class alongside the inner `.utility-details.hidden` container.
-
+### 7. Edit Tenancy Full Utility Stack & Screen 10 Scheduled Chip Audit
+- **Full 4-Utility Stack in Edit Tenancy (Screen 11)**:
+  - Previously, Screen 11 only provided partial controls for Electricity (hardcoded meter reading) and Water (hardcoded flat rate).
+  - Screen 11 now provides full parity with Screen 8 (Tenancy Creation Wizard):
+    - **Electricity**: Toggle (`#edit-toggle-elec`), Bill Type selector (`Flat` vs `Meter Reading`), Price Per Unit (`#edit-elec-price`), and Flat Amount (`#edit-elec-flat-amount`).
+    - **Water**: Toggle (`#edit-toggle-water`), Bill Type selector (`Flat` vs `Meter Reading`), Flat Amount (`#edit-water-amount`), and Price Per Unit (`#edit-water-price`).
+    - **Garbage**: Toggle (`#edit-toggle-garbage`) and Flat Amount (`#edit-garbage-amount`).
+    - **Internet**: Toggle (`#edit-toggle-internet`) and Flat Amount (`#edit-internet-amount`).
+  - Swapping between `Flat` and `Meter Reading` dynamically toggles the subfield containers without page reload.
+  - Saving on Screen 11 constructs all 4 utility objects with accurate `bill_type`, `price_per_unit`, and `flat_amount`, preserving Garbage and Internet configurations in Supabase Cloud without data loss.
+- **Screen 10 Summary Card Scheduled Revision Indicator (`#details-scheduled-chip`)**:
+  - Tying the rent revision loop directly into the main Tenancy Details card: when a scheduled revision is active, a prominent blue indicator (`📈 ₹{rent} scheduled ({date})`) is rendered beneath the rent rate line.
+  - Dynamically updates upon scheduling a revision or cancelling via Screen 11's revision banner.
