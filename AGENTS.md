@@ -1703,5 +1703,21 @@ To eliminate dead placeholders and provide a production-ready user experience, a
 - **Outgoing Shares**:
   - Displays recipient's full name (`share.member_name || share.member_email`) with secondary email label.
 
+---
+
+## 48. Payment Receipt Ticket Voucher — WhatsApp Brand Button Architecture
+
+### 1. Dedicated WhatsApp Action Button (`.btn-whatsapp`)
+- **Problem Resolved**: The voucher screen's secondary action button previously displayed `"WhatsApp Receipt"` with standard muted gray-lavender styling. This was redundant and lacked the recognizable instant-share affordance of WhatsApp.
+- **Button Styling & Visual Identity**:
+  - **Label**: Simplified cleanly to `"WhatsApp"`.
+  - **Background**: Authentic WhatsApp emerald green gradient (`linear-gradient(180deg, #25D366 0%, #1EBE5D 100%)`).
+  - **Typography & Icon**: Crisp pure white text (`#FFFFFF`, weight `700`) with matching white stroke WhatsApp icon (`19px × 19px`).
+  - **Tactile Elevation**: Soft green ambient shadow (`0 6px 20px rgba(37, 211, 102, 0.38), 0 2px 4px rgba(30, 190, 93, 0.25)`), elevating on hover/focus.
+- **Responsive Sizing in Two-Button Action Bar**:
+  - Proportional flex ratio (`flex: 1.1; min-width: 115px; padding: 0 14px;`).
+  - Narrow 360px viewport: `min-width: 100px; padding: 0 10px; font-size: 13.5px;` ensuring zero wrap next to the `Done` button.
+
+
 
 
