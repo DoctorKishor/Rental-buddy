@@ -412,9 +412,16 @@ export async function createCloudTenancy(tenancyData) {
 
 export async function updateCloudTenancy(tenancyId, updates) {
   try {
+    const cleanUpdates = { ...updates };
+    // Guard against non-schema columns or relation arrays from UI state
+    delete cleanUpdates.billing_cycle;
+    delete cleanUpdates.utilities;
+    delete cleanUpdates.tenancy_utilities;
+    delete cleanUpdates.rent_revisions;
+
     const { data, error } = await supabase
       .from('tenancies')
-      .update(updates)
+      .update(cleanUpdates)
       .eq('id', tenancyId)
       .select()
       .single();

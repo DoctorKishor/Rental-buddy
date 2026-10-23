@@ -2324,7 +2324,8 @@ export async function bindTenancyToDetails(t, targetYear = null) {
   if (editPhone) editPhone.value = t.tenant_phone || '';
   if (editAdvance) editAdvance.value = t.advance_amount || '';
 
-  const isYearlyCycle = (t.billing_cycle || '').toLowerCase() === 'yearly';
+  const storedCycle = (typeof localStorage !== 'undefined' && t?.id) ? localStorage.getItem(`rb_tenancy_cycle_${t.id}`) : null;
+  const isYearlyCycle = (t.billing_cycle || storedCycle || '').toLowerCase() === 'yearly';
   const editLabelBillingDate = document.getElementById('label-edit-billing-date');
   if (editLabelBillingDate) {
     editLabelBillingDate.textContent = isYearlyCycle ? 'Recurring Billing Date (day & month of every year)' : 'Recurring Billing Date (date of the month)';
@@ -3648,7 +3649,6 @@ function initEditTenancy() {
         tenant_phone: updatedPhone || null,
         advance_amount: parseFloat(updatedAdvance) || 0,
         billing_day: updatedDay,
-        billing_cycle: updatedCycle,
         start_date: updatedStartDate,
         paid_up_to_date: updatedPaidUpTo,
       });
@@ -3704,12 +3704,18 @@ function initEditTenancy() {
       if (updatedAdvance) currentActiveTenancy.advance_amount = parseFloat(updatedAdvance);
       currentActiveTenancy.billing_day = updatedDay;
       currentActiveTenancy.billing_cycle = updatedCycle;
+      try {
+        localStorage.setItem(`rb_tenancy_cycle_${currentActiveTenancy.id}`, updatedCycle);
+      } catch (e) {}
       currentActiveTenancy.start_date = updatedStartDate;
       currentActiveTenancy.paid_up_to_date = updatedPaidUpTo;
 
       await syncDashboardFromCloud();
       const fresh = cloudTenanciesList.find((t) => t.id === currentActiveTenancy.id);
-      if (fresh) currentActiveTenancy = fresh;
+      if (fresh) {
+        fresh.billing_cycle = updatedCycle;
+        currentActiveTenancy = fresh;
+      }
 
       showToast('✅ Tenancy details updated & saved to Supabase Cloud!', 3000);
       setTimeout(() => {
