@@ -979,7 +979,7 @@ function initEventListeners() {
 
   // Screen 2: Preferences
   document.getElementById('btn-screen2-back')?.addEventListener('click', () => {
-    navigateToScreen(1);
+    navigateBack();
   });
   document.getElementById('btn-screen2-continue')?.addEventListener('click', () => {
     navigateToScreen(3);
@@ -987,7 +987,7 @@ function initEventListeners() {
 
   // Screen 3: Set You Up
   document.getElementById('btn-screen3-back')?.addEventListener('click', () => {
-    navigateToScreen(2);
+    navigateBack();
   });
 
   document.getElementById('btn-create-tenancy')?.addEventListener('click', () => {
@@ -1015,7 +1015,7 @@ function initEventListeners() {
 
   // Screen 4: Notifications
   document.getElementById('btn-screen4-back')?.addEventListener('click', () => {
-    navigateToScreen(3);
+    navigateBack();
   });
 
   document.getElementById('btn-notify-notnow')?.addEventListener('click', () => {
@@ -1048,21 +1048,32 @@ function initEventListeners() {
     navigateToScreen(1);
   });
 
-  document.getElementById('btn-goto-dashboard')?.addEventListener('click', async () => {
+  const handleCompleteToDashboard = async () => {
+    await completeUserOnboarding();
     if (cloudSession.user) {
-      try {
-        await updateUserProfile({ onboarding_completed: true });
-        localStorage.setItem(`rb_onboarding_completed_${cloudSession.user.id}`, 'true');
-      } catch (err) {
-        console.warn('Save onboarding error:', err);
-      }
-      showToast('🎉 Onboarding completed! Welcome to Rental Buddy.', 3000);
+      showToast('🎉 Welcome to your Rental Buddy dashboard!', 3000);
       navigateToScreen(6);
     } else {
       showToast('🎉 Setup complete! Please sign in or create an account to start.', 3500);
       navigateToScreen(20);
     }
-  });
+  };
+
+  const handleCompleteToCreateTenancy = async () => {
+    await completeUserOnboarding();
+    if (cloudSession.user) {
+      resetCreateTenancyForm();
+      showToast("🚀 Great! Let's set up your first tenancy.", 3000);
+      navigateToScreen(7);
+    } else {
+      showToast('🎉 Setup complete! Please sign in or create an account to start.', 3500);
+      navigateToScreen(20);
+    }
+  };
+
+  document.getElementById('btn-onboarding-skip-dashboard')?.addEventListener('click', handleCompleteToDashboard);
+  document.getElementById('btn-goto-dashboard')?.addEventListener('click', handleCompleteToDashboard);
+  document.getElementById('btn-onboarding-create-tenancy')?.addEventListener('click', handleCompleteToCreateTenancy);
 
   // Screen 6: Dashboard Controller & State Presets
   initDashboard();
@@ -5603,13 +5614,28 @@ export function setAuthMode(isSignUp) {
   if (btnToggleMode) btnToggleMode.textContent = isSignUp ? 'Sign In' : 'Create Account';
 }
 
+export async function completeUserOnboarding() {
+  const userId = cloudSession.user?.id;
+  if (userId) {
+    localStorage.setItem(`rb_onboarding_completed_${userId}`, 'true');
+  }
+  localStorage.setItem('rb_onboarding_completed', 'true');
+  try {
+    await updateUserProfile({ onboarding_completed: true });
+  } catch (err) {
+    console.warn('Save onboarding completion error:', err);
+  }
+}
+
 export function userHasExistingData(userId) {
   const hasTenancies = Array.isArray(cloudTenanciesList) && cloudTenanciesList.length > 0;
   const hasBills = Array.isArray(cloudBillsList) && cloudBillsList.length > 0;
   const hasPayments = Array.isArray(cloudPaymentsList) && cloudPaymentsList.length > 0;
   const isMarkedCompleted = Boolean(
     cloudSession.profile?.onboarding_completed ||
-    (userId && localStorage.getItem(`rb_onboarding_completed_${userId}`) === 'true')
+    cloudSession.user?.user_metadata?.onboarding_completed ||
+    (userId && localStorage.getItem(`rb_onboarding_completed_${userId}`) === 'true') ||
+    localStorage.getItem('rb_onboarding_completed') === 'true'
   );
   return hasTenancies || hasBills || hasPayments || isMarkedCompleted;
 }
@@ -5715,21 +5741,24 @@ function initAuthScreen() {
       await syncDashboardFromCloud();
 
       const hasData = userHasExistingData(user.id);
-      if (hasData) {
-        localStorage.setItem(`rb_onboarding_completed_${user.id}`, 'true');
-        try {
-          updateUserProfile({ onboarding_completed: true });
-        } catch (e) {
-          // ignore
-        }
+      const isOnboardingDone = Boolean(
+        hasData ||
+        cloudSession.profile?.onboarding_completed ||
+        user.user_metadata?.onboarding_completed ||
+        localStorage.getItem(`rb_onboarding_completed_${user.id}`) === 'true' ||
+        localStorage.getItem('rb_onboarding_completed') === 'true'
+      );
+
+      if (isOnboardingDone) {
+        completeUserOnboarding();
       }
 
       setTimeout(() => {
-        if (!hasData) {
+        if (!isOnboardingDone) {
           window.rbFirstTimeOnboarding = true;
-          navigateToScreen(2); // Start functional onboarding ONLY for brand-new users with zero data
+          navigateToScreen(2); // Start functional onboarding ONLY for brand-new users who haven't completed setup
         } else {
-          navigateToScreen(6); // Existing user with data always goes straight to Dashboard
+          navigateToScreen(6); // User who completed onboarding always goes straight to Dashboard
         }
       }, 500);
     } catch (err) {
@@ -7152,13 +7181,16 @@ async function bootApplication() {
     }
 
     const hasData = userHasExistingData(session.user.id);
-    if (hasData) {
-      localStorage.setItem(`rb_onboarding_completed_${session.user.id}`, 'true');
-      try {
-        updateUserProfile({ onboarding_completed: true });
-      } catch (e) {
-        // ignore
-      }
+    const isOnboardingDone = Boolean(
+      hasData ||
+      cloudSession.profile?.onboarding_completed ||
+      session.user?.user_metadata?.onboarding_completed ||
+      localStorage.getItem(`rb_onboarding_completed_${session.user.id}`) === 'true' ||
+      localStorage.getItem('rb_onboarding_completed') === 'true'
+    );
+
+    if (isOnboardingDone) {
+      completeUserOnboarding();
 
       let targetScreen = 6;
       if (initialScreenFromPath && initialScreenFromPath !== 20) {
@@ -7175,7 +7207,7 @@ async function bootApplication() {
       navigateToScreen(targetScreen, { replace: true });
     } else {
       window.rbFirstTimeOnboarding = true;
-      navigateToScreen(2, { replace: true }); // Direct first-time user to functional onboarding ONLY if no data exists
+      navigateToScreen(2, { replace: true }); // Direct first-time user to functional onboarding ONLY if not completed
     }
   }
 }

@@ -155,6 +155,13 @@ export async function updateUserProfile(updates) {
       .single();
     if (error) throw error;
     cloudSession.profile = data;
+
+    // Dual-write to auth user_metadata as fallback resilience
+    if (updates.onboarding_completed !== undefined) {
+      await supabase.auth.updateUser({
+        data: { onboarding_completed: updates.onboarding_completed }
+      }).catch((e) => console.warn('Auth metadata update notice:', e));
+    }
     return data;
   } catch (err) {
     console.warn('Update Profile Error:', err);
@@ -255,6 +262,15 @@ export async function syncUserProfile() {
           .update({ full_name: metaFullName })
           .eq('id', user.id);
         data.full_name = metaFullName;
+      }
+      // Sync onboarding_completed from user_metadata if marked completed
+      if (user.user_metadata?.onboarding_completed && !data.onboarding_completed) {
+        data.onboarding_completed = true;
+        await supabase
+          .from('profiles')
+          .update({ onboarding_completed: true })
+          .eq('id', user.id)
+          .catch(() => {});
       }
       cloudSession.profile = data;
       return data;

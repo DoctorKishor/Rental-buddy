@@ -1846,5 +1846,29 @@ To eliminate dead placeholders and provide a production-ready user experience, a
 - **Favicon Vector & Bitmap (`favicon.svg`, `favicon.png`)**:
   - Rendered with enhanced stroke weight (`2.5`) for crystal-clear visibility at 16px/32px/48px tab dimensions.
 
+---
+
+## 54. Onboarding Completion Persistence & Screen 5 Dual Action Architecture
+
+### 1. Root Cause of Repetitive Onboarding Prompt
+- **Database Schema Absence**: The Supabase table `profiles` lacked the column `onboarding_completed`. Calls to `updateUserProfile({ onboarding_completed: true })` were silently failing on the database layer.
+- **Flawed Launch Heuristic**: The boot check in `bootApplication()` and `initAuthScreen()` evaluated `const hasData = userHasExistingData()`. If a user had completed setup but had not yet created any tenancies (`hasTenancies = 0`), `hasData` returned `false`, blindly forcing the user into the Screen 2 onboarding loop on every launch.
+- **Resolution**:
+  - Added `onboarding_completed boolean DEFAULT false` column to `public.profiles` in Supabase.
+  - Updated all existing user records in Supabase to `onboarding_completed = true`.
+  - Implemented multi-tier persistence in `completeUserOnboarding()`:
+    1. Local storage per user ID: `rb_onboarding_completed_${userId}`.
+    2. Global local storage: `rb_onboarding_completed`.
+    3. Remote database row: `profiles.onboarding_completed = true`.
+    4. Auth metadata fallback: `supabase.auth.updateUser({ data: { onboarding_completed: true } })`.
+  - In `bootApplication()` and `initAuthScreen()`, the app checks `isOnboardingDone`: if any of the above flags is true or if existing property data is found, the user immediately lands on their Dashboard (`Screen 6` / `/home`), never repeating onboarding.
+
+### 2. Screen 5 Dual Action Buttons ("You're All Set!")
+- **Requirement**: Replace single "Go to Dashboard" button with intuitive dual actions:
+  - Left (`.btn-secondary`): `"Skip to Dashboard"` (`#btn-onboarding-skip-dashboard`) — marks onboarding complete and routes directly to the empty/active Dashboard (Screen 6).
+  - Right (`.btn-primary`): `"Create First Tenancy"` (`#btn-onboarding-create-tenancy`) — marks onboarding complete, resets form inputs, and opens the Step 1 creation wizard (Screen 7).
+- **Responsive Guarantee**: Uses `.bottom-bar.two-buttons` architecture with full `54px` min-height, flexible widths (`1:1.5` ratio), and zero text wrapping on mobile viewports down to 360px.
+
+
 
 
