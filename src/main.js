@@ -761,12 +761,14 @@ function initStep1Form() {
   datePickerTrigger?.addEventListener('click', openDatePicker);
   textDateInput?.addEventListener('click', openDatePicker);
 
-  // Default initial date calculation (Current billing cycle)
-  const todayIso = new Date().toISOString().split('T')[0];
+  // Default initial date calculation (Recurring billing day defaults to 1st of month if unset)
+  const nowForInit = new Date();
+  const defaultBillingDayIso = `${nowForInit.getFullYear()}-${(nowForInit.getMonth() + 1).toString().padStart(2, '0')}-01`;
+  const todayIso = nowForInit.toISOString().split('T')[0];
   if (nativeDateInput && !nativeDateInput.value) {
-    nativeDateInput.value = todayIso;
+    nativeDateInput.value = defaultBillingDayIso;
   }
-  updateFromDate(todayIso);
+  updateFromDate(nativeDateInput?.value || defaultBillingDayIso);
 
   // Tenancy Start Date Picker Logic
   const startTrigger = document.getElementById('tenancyStartDateTrigger');
@@ -839,6 +841,10 @@ function initStep1Form() {
         nativePaidUpInput.value = defaultCutOffIso;
         updatePaidUpToDisplay(defaultCutOffIso);
       }
+      if (nativePaidUpInput?.value && nativeStartInput?.value && nativeStartInput.value > nativePaidUpInput.value) {
+        nativeStartInput.value = nativePaidUpInput.value;
+        updateStartDateDisplay(nativePaidUpInput.value);
+      }
     } else {
       subfieldsPaidUpTo?.classList.add('hidden');
       if (nativePaidUpInput) nativePaidUpInput.value = '';
@@ -848,6 +854,10 @@ function initStep1Form() {
 
   nativePaidUpInput?.addEventListener('change', (e) => {
     updatePaidUpToDisplay(e.target.value);
+    if (e.target.value && nativeStartInput?.value && nativeStartInput.value > e.target.value) {
+      nativeStartInput.value = e.target.value;
+      updateStartDateDisplay(e.target.value);
+    }
   });
 
   const openPaidUpPicker = () => {
@@ -1390,6 +1400,13 @@ function initEventListeners() {
     }
 
     try {
+      let effectiveStartDate = nativeStartDate || new Date().toISOString().split('T')[0];
+      if (isPastSettled && nativePaidUpDate) {
+        if (!nativeStartDate || effectiveStartDate > nativePaidUpDate) {
+          effectiveStartDate = nativePaidUpDate;
+        }
+      }
+
       const created = await createCloudTenancy({
         propertyName: nameVal,
         tenantName: 'Tenant',
@@ -1397,13 +1414,14 @@ function initEventListeners() {
         baseRent: rentVal,
         advanceAmount: advanceVal,
         billingDay: billingDay,
-        startDate: nativeStartDate || new Date().toISOString().split('T')[0],
+        startDate: effectiveStartDate,
         paidUpToDate: nativePaidUpDate,
         utilities: utilities,
       });
       if (created) {
         created.tenancy_utilities = utilities;
         created.paid_up_to_date = nativePaidUpDate;
+        created.start_date = effectiveStartDate;
       }
       currentActiveTenancy = created;
       resetCreateTenancyForm();
@@ -1757,6 +1775,72 @@ export function getTenancyUserRole(tenancy) {
   return 'viewer';
 }
 
+/**
+ * Returns the exact due date for a tenancy's billing cycle in a given year & month.
+ * Automatically clamps day to the maximum days in that month (e.g. Feb 28/29, Apr 30).
+ */
+export function getCycleDueDate(year, monthIdx, billingDay = 1) {
+  const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
+  const clampedDay = Math.min(Math.max(1, parseInt(billingDay, 10) || 1), daysInMonth);
+  return new Date(year, monthIdx, clampedDay, 0, 0, 0, 0);
+}
+
+/**
+ * Checks whether a specific billing cycle (year, monthIdx) is settled by historical paid_up_to_date.
+ * A cycle is settled if and only if its cycle due date is on or before paid_up_to_date.
+ * E.g., if billing day is 13th, paid_up_to August 11 only settles cycles up to July 13th, NOT August 13th!
+ */
+export function isCycleSettledByPaidUpTo(year, monthIdx, billingDay, paidUpToDateStr) {
+  if (!paidUpToDateStr) return false;
+  const paidUpTo = new Date(paidUpToDateStr + 'T00:00:00');
+  if (isNaN(paidUpTo.getTime())) return false;
+  const cycleDueDate = getCycleDueDate(year, monthIdx, billingDay);
+  return cycleDueDate <= paidUpTo;
+}
+
+/**
+ * Resolves the effective financial start date for a tenancy.
+ * Ensures tracking begins on or before paid_up_to_date so historical settled/arrears cycles are never truncated.
+ */
+export function getTenancyEffectiveStartDate(tenancy) {
+  const now = new Date();
+  const bDay = parseInt(tenancy?.billing_day, 10) || 1;
+  const paidUpStr = tenancy?.paid_up_to_date;
+  const startStr = tenancy?.start_date;
+
+  let startDate = null;
+  if (startStr) {
+    const parsed = new Date(startStr + (startStr.includes('T') ? '' : 'T00:00:00'));
+    if (!isNaN(parsed.getTime())) startDate = parsed;
+  }
+
+  // If paid_up_to_date is specified, the tenancy existed at least up to that date
+  if (paidUpStr) {
+    const paidUp = new Date(paidUpStr + 'T00:00:00');
+    if (!isNaN(paidUp.getTime())) {
+      // If start date is missing or set to after paid_up_to_date (e.g. defaulted to today),
+      // we must start from at least paid_up_to_date so past cycles aren't missed
+      if (!startDate || startDate > paidUp) {
+        startDate = paidUp;
+      }
+    }
+  }
+
+  if (!startDate && tenancy?.created_at) {
+    const parsed = new Date(tenancy.created_at);
+    if (!isNaN(parsed.getTime())) startDate = parsed;
+  }
+
+  if (!startDate) {
+    startDate = new Date(now.getFullYear(), now.getMonth(), bDay);
+    if (now.getDate() < bDay) {
+      startDate = new Date(now.getFullYear(), now.getMonth() - 1, bDay);
+    }
+  }
+
+  return startDate;
+}
+
 export function computeTenancyStatusBadge(tenancy, allBills = [], allPayments = []) {
   const now = new Date();
   const todayDate = now.getDate();
@@ -1780,8 +1864,7 @@ export function computeTenancyStatusBadge(tenancy, allBills = [], allPayments = 
     if (b.status !== 'unpaid') return false;
     if (paidUpToDate && b.duration_start) {
       const bd = new Date(b.duration_start + 'T00:00:00');
-      if (bd.getFullYear() < paidUpToDate.getFullYear() ||
-         (bd.getFullYear() === paidUpToDate.getFullYear() && bd.getMonth() <= paidUpToDate.getMonth())) {
+      if (isCycleSettledByPaidUpTo(bd.getFullYear(), bd.getMonth(), billingDay, paidUpToDateStr)) {
         return false; // Settled by baseline cut-off
       }
     }
@@ -1834,22 +1917,25 @@ export function computeTenancyStatusBadge(tenancy, allBills = [], allPayments = 
   });
 
   // 3. Tenancy start boundary
-  const startDateStr = tenancy.start_date || tenancy.created_at;
-  const startDate = startDateStr ? new Date(startDateStr + (startDateStr.includes('T') ? '' : 'T00:00:00')) : new Date(todayYear, todayMonth, 1);
+  const startDate = getTenancyEffectiveStartDate(tenancy);
   const startYear = startDate.getFullYear();
   const startMonth = startDate.getMonth();
 
   // Populate baseline settled cycles into paidMap up to paid_up_to_date
   if (paidUpToDate) {
     let baselineIter = new Date(startYear, startMonth, 1);
-    const cutOffFirst = new Date(paidUpToDate.getFullYear(), paidUpToDate.getMonth(), 1);
-    while (baselineIter <= cutOffFirst) {
-      const bKey = `${MONTH_NAMES[baselineIter.getMonth()]} ${baselineIter.getFullYear()}`;
-      if (!paidMap[bKey]) {
-        paidMap[bKey] = { totalPaid: baseRent, isBaselineSettled: true };
-      } else {
-        paidMap[bKey].totalPaid = Math.max(paidMap[bKey].totalPaid, baseRent);
-        paidMap[bKey].isBaselineSettled = true;
+    const cutOffLimit = new Date(paidUpToDate.getFullYear(), paidUpToDate.getMonth() + 1, 1);
+    while (baselineIter <= cutOffLimit) {
+      const bYr = baselineIter.getFullYear();
+      const bM = baselineIter.getMonth();
+      if (isCycleSettledByPaidUpTo(bYr, bM, billingDay, paidUpToDateStr)) {
+        const bKey = `${MONTH_NAMES[bM]} ${bYr}`;
+        if (!paidMap[bKey]) {
+          paidMap[bKey] = { totalPaid: baseRent, isBaselineSettled: true };
+        } else {
+          paidMap[bKey].totalPaid = Math.max(paidMap[bKey].totalPaid, baseRent);
+          paidMap[bKey].isBaselineSettled = true;
+        }
       }
       baselineIter.setMonth(baselineIter.getMonth() + 1);
     }
@@ -1862,8 +1948,11 @@ export function computeTenancyStatusBadge(tenancy, allBills = [], allPayments = 
   const currentFirst = new Date(todayYear, todayMonth, 1);
 
   while (iter < currentFirst) {
-    const mLabel = `${MONTH_NAMES[iter.getMonth()]} ${iter.getFullYear()}`;
-    const paid = paidMap[mLabel]?.totalPaid || 0;
+    const mYr = iter.getFullYear();
+    const mM = iter.getMonth();
+    const mLabel = `${MONTH_NAMES[mM]} ${mYr}`;
+    const isBaseline = isCycleSettledByPaidUpTo(mYr, mM, billingDay, paidUpToDateStr);
+    const paid = isBaseline ? Math.max(baseRent, paidMap[mLabel]?.totalPaid || 0) : (paidMap[mLabel]?.totalPaid || 0);
     if (paid < baseRent) {
       pastArrearsCount++;
       pastArrearsAmount += (baseRent - paid);
@@ -1873,12 +1962,14 @@ export function computeTenancyStatusBadge(tenancy, allBills = [], allPayments = 
 
   // 5. Check Current Month
   const currMonthLabel = `${MONTH_NAMES[todayMonth]} ${todayYear}`;
-  const currPaid = paidMap[currMonthLabel]?.totalPaid || 0;
+  const isCurrentBaselineSettled = isCycleSettledByPaidUpTo(todayYear, todayMonth, billingDay, paidUpToDateStr);
+  const currPaid = isCurrentBaselineSettled ? Math.max(baseRent, paidMap[currMonthLabel]?.totalPaid || 0) : (paidMap[currMonthLabel]?.totalPaid || 0);
   const currNetDue = Math.max(0, baseRent - currPaid);
+  const isCurrentMonthPastBilling = todayDate > billingDay;
 
   if (pastArrearsCount > 0) {
     let totalOverdueMonths = pastArrearsCount;
-    if (todayDate > billingDay && currNetDue > 0) {
+    if (isCurrentMonthPastBilling && currNetDue > 0) {
       totalOverdueMonths += 1;
     }
     if (totalOverdueMonths >= 2) {
@@ -2511,27 +2602,30 @@ export async function bindTenancyToDetails(t, targetYear = null) {
     let baselineSettledCount = 0;
     let baselineSettledAmount = 0;
     if (t.paid_up_to_date) {
+      const sStart = getTenancyEffectiveStartDate(t);
       const pCut = new Date(t.paid_up_to_date + 'T00:00:00');
-      const sStart = t.start_date ? new Date(t.start_date + 'T00:00:00') : (t.created_at ? new Date(t.created_at) : pCut);
       let bIter = new Date(sStart.getFullYear(), sStart.getMonth(), 1);
-      const cEnd = new Date(pCut.getFullYear(), pCut.getMonth(), 1);
+      const cEnd = new Date(pCut.getFullYear(), pCut.getMonth() + 1, 1);
       const ALL_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
       while (bIter <= cEnd) {
-        const mName = ALL_MONTHS[bIter.getMonth()];
+        const mIdx = bIter.getMonth();
         const yVal = bIter.getFullYear();
-        const hasPayment = (tenancyPayments || []).some((p) => {
-          if (Array.isArray(p.settled_months)) {
-            return p.settled_months.some((sm) => sm && sm.toLowerCase().includes(mName.toLowerCase()) && sm.includes(yVal.toString()));
+        if (isCycleSettledByPaidUpTo(yVal, mIdx, bDay, t.paid_up_to_date)) {
+          const mName = ALL_MONTHS[mIdx];
+          const hasPayment = (tenancyPayments || []).some((p) => {
+            if (Array.isArray(p.settled_months)) {
+              return p.settled_months.some((sm) => sm && sm.toLowerCase().includes(mName.toLowerCase()) && sm.includes(yVal.toString()));
+            }
+            if (p.payment_date) {
+              const pd = new Date(p.payment_date);
+              return pd.getFullYear() === yVal && pd.getMonth() === mIdx;
+            }
+            return false;
+          });
+          if (!hasPayment) {
+            baselineSettledCount++;
+            baselineSettledAmount += rentNum;
           }
-          if (p.payment_date) {
-            const pd = new Date(p.payment_date);
-            return pd.getFullYear() === yVal && pd.getMonth() === bIter.getMonth();
-          }
-          return false;
-        });
-        if (!hasPayment) {
-          baselineSettledCount++;
-          baselineSettledAmount += rentNum;
         }
         bIter.setMonth(bIter.getMonth() + 1);
       }
@@ -2672,9 +2766,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
       monthStack.innerHTML = '';
       MONTHS.forEach((monthName, idx) => {
         // 1. Tenancy Start Boundary Check: strictly only show from start of tenancy
-        const tenancyStart = t.start_date
-          ? new Date(t.start_date + 'T00:00:00')
-          : (t.created_at ? new Date(t.created_at) : new Date(activeYear, 0, 1));
+        const tenancyStart = getTenancyEffectiveStartDate(t);
 
         const isBeforeTenancyStart = (activeYear < tenancyStart.getFullYear()) ||
           (activeYear === tenancyStart.getFullYear() && idx < tenancyStart.getMonth());
@@ -2731,10 +2823,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
         }
 
         const paidUpToDate = t.paid_up_to_date ? new Date(t.paid_up_to_date + 'T00:00:00') : null;
-        const isBaselineSettled = paidUpToDate && (
-          activeYear < paidUpToDate.getFullYear() ||
-          (activeYear === paidUpToDate.getFullYear() && idx <= paidUpToDate.getMonth())
-        );
+        const isBaselineSettled = isCycleSettledByPaidUpTo(activeYear, idx, bDay, t.paid_up_to_date);
 
         // 3. Check if unpaid bill exists for activeYear
         const matchedBill = tenancyBills.find((b) => {
@@ -2857,49 +2946,101 @@ export async function bindTenancyToDetails(t, targetYear = null) {
             </div>
           `;
         } else if (activeYear === currentYear && idx === currentMonthIdx) {
-          upcomingCount++;
-          card.className = 'month-card month-upcoming';
-          card.style.cursor = 'pointer';
           const clickedMonthLabel = `${monthName} ${activeYear}`;
-          if (hasUtils) {
-            card.title = 'Click to generate bill for this cycle';
-            card.addEventListener('click', () => {
-              currentActiveTenancy = t;
-              setupGenerateBillScreen(t);
-              navigateToScreen(13);
-            });
-            card.innerHTML = `
-              <div class="month-card-left">
-                <div class="month-badge upcoming">⏳</div>
-                <div class="month-details-col">
-                  <strong class="month-name">${monthName} ${activeYear}</strong>
-                  <span class="month-subtext">Next billing • Click to generate</span>
-                </div>
-              </div>
-              <div class="month-card-right">
-                <span class="month-amount">${getCurrencySymbol()}${rentNum.toLocaleString('en-IN')}</span>
-                <span class="month-status-pill upcoming">⏳ Next</span>
-              </div>
-            `;
-          } else {
-            card.title = 'Click to record payment for this month';
+          const isOverdueNow = now.getDate() > bDay;
+          const isDueToday = now.getDate() === bDay;
+
+          if (isOverdueNow) {
+            dueCount++;
+            const daysOverdue = now.getDate() - bDay;
+            card.className = 'month-card month-due';
+            card.style.cursor = 'pointer';
+            card.title = 'Click to record overdue rent payment';
             card.addEventListener('click', () => {
               currentActiveTenancy = t;
               openRecordPaymentPage(t, clickedMonthLabel);
             });
             card.innerHTML = `
               <div class="month-card-left">
-                <div class="month-badge upcoming">⏳</div>
+                <div class="month-badge due">⚠️</div>
                 <div class="month-details-col">
                   <strong class="month-name">${monthName} ${activeYear}</strong>
-                  <span class="month-subtext">Rent due • Click to pay</span>
+                  <span class="month-subtext">Overdue by ${daysOverdue} day${daysOverdue > 1 ? 's' : ''} (Due ${getOrdinal(bDay)}) • Click to pay</span>
                 </div>
               </div>
               <div class="month-card-right">
-                <span class="month-amount">${getCurrencySymbol()}${rentNum.toLocaleString('en-IN')}</span>
-                <span class="month-status-pill upcoming">⏳ Due</span>
+                <span class="month-amount" style="color: #DC2626;">${getCurrencySymbol()}${rentNum.toLocaleString('en-IN')}</span>
+                <span class="month-status-pill due">⚠️ Overdue</span>
               </div>
             `;
+          } else if (isDueToday) {
+            dueCount++;
+            card.className = 'month-card month-due';
+            card.style.cursor = 'pointer';
+            card.title = 'Click to record payment due today';
+            card.addEventListener('click', () => {
+              currentActiveTenancy = t;
+              openRecordPaymentPage(t, clickedMonthLabel);
+            });
+            card.innerHTML = `
+              <div class="month-card-left">
+                <div class="month-badge due" style="background: #FEF3C7; color: #B45309;">⏳</div>
+                <div class="month-details-col">
+                  <strong class="month-name">${monthName} ${activeYear}</strong>
+                  <span class="month-subtext">Due today • Click to pay</span>
+                </div>
+              </div>
+              <div class="month-card-right">
+                <span class="month-amount" style="color: #B45309;">${getCurrencySymbol()}${rentNum.toLocaleString('en-IN')}</span>
+                <span class="month-status-pill" style="background: #FEF3C7; color: #B45309; border: 1px solid #FDE68A;">⏳ Due Today</span>
+              </div>
+            `;
+          } else {
+            // Future day in the current month (Upcoming)
+            upcomingCount++;
+            const daysUntil = bDay - now.getDate();
+            card.className = 'month-card month-upcoming';
+            card.style.cursor = 'pointer';
+            if (hasUtils) {
+              card.title = 'Click to generate bill for this cycle';
+              card.addEventListener('click', () => {
+                currentActiveTenancy = t;
+                setupGenerateBillScreen(t);
+                navigateToScreen(13);
+              });
+              card.innerHTML = `
+                <div class="month-card-left">
+                  <div class="month-badge upcoming">⏳</div>
+                  <div class="month-details-col">
+                    <strong class="month-name">${monthName} ${activeYear}</strong>
+                    <span class="month-subtext">Billing in ${daysUntil} day${daysUntil > 1 ? 's' : ''} • Click to generate</span>
+                  </div>
+                </div>
+                <div class="month-card-right">
+                  <span class="month-amount">${getCurrencySymbol()}${rentNum.toLocaleString('en-IN')}</span>
+                  <span class="month-status-pill upcoming">⏳ Next</span>
+                </div>
+              `;
+            } else {
+              card.title = 'Click to record payment for this month';
+              card.addEventListener('click', () => {
+                currentActiveTenancy = t;
+                openRecordPaymentPage(t, clickedMonthLabel);
+              });
+              card.innerHTML = `
+                <div class="month-card-left">
+                  <div class="month-badge upcoming">⏳</div>
+                  <div class="month-details-col">
+                    <strong class="month-name">${monthName} ${activeYear}</strong>
+                    <span class="month-subtext">Due in ${daysUntil} day${daysUntil > 1 ? 's' : ''} (${getOrdinal(bDay)}) • Click to pay</span>
+                  </div>
+                </div>
+                <div class="month-card-right">
+                  <span class="month-amount">${getCurrencySymbol()}${rentNum.toLocaleString('en-IN')}</span>
+                  <span class="month-status-pill upcoming">⏳ Due Soon</span>
+                </div>
+              `;
+            }
           }
         } else if ((activeYear > currentYear) || (activeYear === currentYear && idx > currentMonthIdx)) {
           card.className = 'month-card month-future';
@@ -2947,7 +3088,19 @@ export async function bindTenancyToDetails(t, targetYear = null) {
 
     if (chipPaid) chipPaid.textContent = `✔ ${paidCount} Paid`;
     if (chipDue) chipDue.textContent = `⚠️ ${dueCount} Due`;
-    if (chipUpcoming) chipUpcoming.textContent = `⏳ ${upcomingCount || 1} Next`;
+    if (chipUpcoming) chipUpcoming.textContent = `⏳ ${upcomingCount} Next`;
+
+    if (nextBilling && nextBillLabel) {
+      if (dueCount > 0) {
+        nextBillLabel.textContent = dueCount === 1 ? 'Rent Overdue' : 'Overdue Arrears';
+        nextBilling.textContent = `${dueCount} month${dueCount > 1 ? 's' : ''} due`;
+        nextBilling.style.color = '#DC2626';
+      } else {
+        nextBillLabel.textContent = hasUtils ? 'Next Billing' : 'Next Rent Due';
+        nextBilling.textContent = `${getOrdinal(bDay)} ${nextMonthName}`;
+        nextBilling.style.color = '';
+      }
+    }
 
     // 2. Populate History list
     if (historyList) {
@@ -3641,6 +3794,12 @@ function initEditTenancy() {
 
     const isPastSettled = document.getElementById('edit-check-mark-past-paid')?.checked;
     const updatedPaidUpTo = isPastSettled ? (document.getElementById('edit-native-paid-up-to-date')?.value || null) : null;
+    let finalStartDate = updatedStartDate;
+    if (isPastSettled && updatedPaidUpTo) {
+      if (!finalStartDate || finalStartDate > updatedPaidUpTo) {
+        finalStartDate = updatedPaidUpTo;
+      }
+    }
 
     try {
       await updateCloudTenancy(currentActiveTenancy.id, {
@@ -3649,7 +3808,7 @@ function initEditTenancy() {
         tenant_phone: updatedPhone || null,
         advance_amount: parseFloat(updatedAdvance) || 0,
         billing_day: updatedDay,
-        start_date: updatedStartDate,
+        start_date: finalStartDate,
         paid_up_to_date: updatedPaidUpTo,
       });
 
@@ -3792,6 +3951,15 @@ function initEditTenancy() {
         editNativePaidUpInput.value = defaultCutOffIso;
         updateEditPaidUpToDisplay(defaultCutOffIso);
       }
+      const editNativeStart = document.getElementById('edit-native-start-date');
+      const editStartDisplay = document.getElementById('edit-start-date-display');
+      if (editNativePaidUpInput?.value && editNativeStart?.value && editNativeStart.value > editNativePaidUpInput.value) {
+        editNativeStart.value = editNativePaidUpInput.value;
+        if (editStartDisplay) {
+          const sd = new Date(editNativePaidUpInput.value + 'T00:00:00');
+          editStartDisplay.value = sd.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+      }
     } else {
       editSubfieldsPaidUpTo?.classList.add('hidden');
       if (editNativePaidUpInput) editNativePaidUpInput.value = '';
@@ -3801,6 +3969,15 @@ function initEditTenancy() {
 
   editNativePaidUpInput?.addEventListener('change', (e) => {
     updateEditPaidUpToDisplay(e.target.value);
+    const editNativeStart = document.getElementById('edit-native-start-date');
+    const editStartDisplay = document.getElementById('edit-start-date-display');
+    if (e.target.value && editNativeStart?.value && editNativeStart.value > e.target.value) {
+      editNativeStart.value = e.target.value;
+      if (editStartDisplay) {
+        const sd = new Date(e.target.value + 'T00:00:00');
+        editStartDisplay.value = sd.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+      }
+    }
   });
 
   const openEditPaidUpPicker = () => {
@@ -4048,20 +4225,24 @@ export function getTenancyPaidSummaryByMonth(tenancy) {
 
   // Populate baseline settled cycles into paidMap up to tenancy.paid_up_to_date
   const paidUpToDateStr = tenancy.paid_up_to_date;
+  const bDay = parseInt(tenancy.billing_day, 10) || 1;
   if (paidUpToDateStr) {
     const paidUpToDate = new Date(paidUpToDateStr + 'T00:00:00');
-    const startStr = tenancy.start_date || tenancy.created_at;
-    const tenancyStart = startStr ? new Date(startStr + (startStr.includes('T') ? '' : 'T00:00:00')) : new Date(paidUpToDate.getFullYear(), 0, 1);
+    const tenancyStart = getTenancyEffectiveStartDate(tenancy);
     let baselineIter = new Date(tenancyStart.getFullYear(), tenancyStart.getMonth(), 1);
-    const cutOffFirst = new Date(paidUpToDate.getFullYear(), paidUpToDate.getMonth(), 1);
+    const cutOffLimit = new Date(paidUpToDate.getFullYear(), paidUpToDate.getMonth() + 1, 1);
 
-    while (baselineIter <= cutOffFirst) {
-      const bKey = `${MONTH_NAMES[baselineIter.getMonth()]} ${baselineIter.getFullYear()}`;
-      if (!paidMap[bKey]) {
-        paidMap[bKey] = { totalPaid: baseRent, hasAdvanceCredit: false, isBaselineSettled: true };
-      } else {
-        paidMap[bKey].totalPaid = Math.max(paidMap[bKey].totalPaid, baseRent);
-        paidMap[bKey].isBaselineSettled = true;
+    while (baselineIter <= cutOffLimit) {
+      const yr = baselineIter.getFullYear();
+      const mIdx = baselineIter.getMonth();
+      if (isCycleSettledByPaidUpTo(yr, mIdx, bDay, paidUpToDateStr)) {
+        const bKey = `${MONTH_NAMES[mIdx]} ${yr}`;
+        if (!paidMap[bKey]) {
+          paidMap[bKey] = { totalPaid: baseRent, hasAdvanceCredit: false, isBaselineSettled: true };
+        } else {
+          paidMap[bKey].totalPaid = Math.max(paidMap[bKey].totalPaid, baseRent);
+          paidMap[bKey].isBaselineSettled = true;
+        }
       }
       baselineIter.setMonth(baselineIter.getMonth() + 1);
     }
@@ -4085,19 +4266,13 @@ export function getAllUnsettledCycles(tenancy) {
   const currMonthLabel = `${MONTH_NAMES[currentMonthIdx]} ${currentYear}`;
 
   const paidUpToDateStr = tenancy.paid_up_to_date;
-  const paidUpToDate = paidUpToDateStr ? new Date(paidUpToDateStr + 'T00:00:00') : null;
+  const bDay = parseInt(tenancy.billing_day, 10) || 1;
 
   const tenancyBills = (cloudBillsList || []).filter((b) => b.tenancy_id === tenancy.id);
   const cycles = [];
 
-  // Determine tenancy start date
-  const startStr = tenancy.start_date || tenancy.created_at;
-  let tenancyStart = startStr
-    ? new Date(startStr + (startStr.includes('T') ? '' : 'T00:00:00'))
-    : new Date(currentYear, currentMonthIdx, 1);
-  if (isNaN(tenancyStart.getTime())) {
-    tenancyStart = new Date(currentYear, currentMonthIdx, 1);
-  }
+  // Determine effective tenancy start date (ensures past cycles up to paid_up_to_date aren't truncated)
+  let tenancyStart = getTenancyEffectiveStartDate(tenancy);
 
   // 1. Scan past months chronologically from tenancyStart up to previous calendar month
   let iterDate = new Date(tenancyStart.getFullYear(), tenancyStart.getMonth(), 1);
@@ -4109,10 +4284,7 @@ export function getAllUnsettledCycles(tenancy) {
     const mLabel = `${MONTH_NAMES[mIdx]} ${yr}`;
 
     // Check if settled by historical baseline cut-off
-    const isBaselineSettled = paidUpToDate && (
-      yr < paidUpToDate.getFullYear() ||
-      (yr === paidUpToDate.getFullYear() && mIdx <= paidUpToDate.getMonth())
-    );
+    const isBaselineSettled = isCycleSettledByPaidUpTo(yr, mIdx, bDay, paidUpToDateStr);
 
     if (!isBaselineSettled) {
       // Check if an unpaid bill exists for this month
@@ -4149,10 +4321,7 @@ export function getAllUnsettledCycles(tenancy) {
   }
 
   // 2. Current Month
-  const isCurrentMonthBaselineSettled = paidUpToDate && (
-    currentYear < paidUpToDate.getFullYear() ||
-    (currentYear === paidUpToDate.getFullYear() && currentMonthIdx <= paidUpToDate.getMonth())
-  );
+  const isCurrentMonthBaselineSettled = isCycleSettledByPaidUpTo(currentYear, currentMonthIdx, bDay, paidUpToDateStr);
 
   if (!isCurrentMonthBaselineSettled) {
     const matchedCurrBill = tenancyBills.find((b) => {
@@ -4169,6 +4338,7 @@ export function getAllUnsettledCycles(tenancy) {
     const currNetDue = Math.max(0, currDue - currPaid);
 
     if (currNetDue > 0) {
+      const isPastBillingDay = now.getDate() > bDay;
       cycles.push({
         monthLabel: currMonthLabel,
         year: currentYear,
@@ -4176,8 +4346,8 @@ export function getAllUnsettledCycles(tenancy) {
         due: currDue,
         alreadyPaid: currPaid,
         netDue: currNetDue,
-        isPastDue: false,
-        isCurrent: true,
+        isPastDue: isPastBillingDay,
+        isCurrent: !isPastBillingDay,
         isAdvance: false,
         billId: currBillId,
       });

@@ -2003,6 +2003,43 @@ To eliminate dead placeholders and provide a production-ready user experience, a
   - Remapped `SCREEN_PARENT_MAP[15] = 10` and `SCREEN_PARENT_MAP[21] = 10`.
   - Added dedicated screen exits in `navigateBack()` for both `Screen 21` and `Screen 15` to return smoothly to `Screen 10` (if an active tenancy is selected) or `Screen 6` (Dashboard).
 
+---
+
+## 59. Precise Cycle Due Date Cut-Off, Baseline Paid-Up-To & Overdue Classification Architecture
+
+### 1. Root Cause Analysis
+- **Problem A: False Baseline Settlement**:
+  - Previously, checking if a month was settled by `paid_up_to_date` used `monthIndex <= paidUpToDate.getMonth()`.
+  - For example, if recurring rent was due on the 13th of each month, and `paid_up_to_date` was entered as August 11, the app treated August as fully settled because August is Month 7 and August 11 is in Month 7.
+  - In reality, the August 13th cycle was never paid because August 13th is strictly *after* August 11th. The last settled cycle was July 13th.
+- **Problem B: Premature "Due Today" / Upcoming Classification on Creation Day**:
+  - When creating a tenancy on the 24th with a recurring billing day of the 13th, the app defaulted `start_date` to today (`2026-10-24`), cutting off past cycles.
+  - Furthermore, the current month in the 12-month stack was hardcoded to increment `upcomingCount` and show `⏳ Due` / `⏳ Next` regardless of whether the billing day had already passed.
+
+### 2. Architectural Resolution
+1. **Precise Cycle Due Date Resolution (`getCycleDueDate(year, monthIdx, billingDay)`)**:
+   - Computes the exact calendar due date for any billing cycle, automatically clamping to month length (e.g. Feb 28/29, Apr 30).
+2. **Cycle Baseline Settlement (`isCycleSettledByPaidUpTo(year, monthIdx, billingDay, paidUpToDateStr)`)**:
+   - A cycle is settled by `paid_up_to_date` IF AND ONLY IF `cycleDueDate <= paidUpToDate`.
+   - E.g., for billing day 13 and `paid_up_to_date` August 11:
+     - July 13 <= August 11 -> **Settled**.
+     - August 13 > August 11 -> **Unsettled / Overdue**.
+     - September 13 > August 11 -> **Unsettled / Overdue**.
+     - October 13 > August 11 -> **Unsettled / Overdue**.
+     - Result: Exactly 3 overdue months identified.
+3. **Effective Start Date Protection (`getTenancyEffectiveStartDate(tenancy)`)**:
+   - Ensures that when `paid_up_to_date` is specified, tracking starts from or before `paid_up_to_date` so historical active cycles are never cut off by a defaulted creation date.
+4. **Current Month Overdue Classification**:
+   - When the current day is past the billing day (`todayDate > billingDay`) and rent remains unpaid:
+     - Card receives `.month-card.month-due` styling.
+     - Status pill displays `⚠️ Overdue`.
+     - Subtext displays `Overdue by X days (Due Yth) • Click to pay`.
+     - Increments `dueCount` (never `upcomingCount`).
+     - In `getAllUnsettledCycles`, `isPastDue` is set to `true` and `isCurrent` to `false`.
+5. **Start Date Synchronization**:
+   - In both creation (Screen 8) and edit (Screen 11) wizards, when a user sets a `paid_up_to_date`, the `start_date` field automatically aligns to be on or before the cut-off date.
+
+
 
 
 
