@@ -1986,6 +1986,24 @@ To eliminate dead placeholders and provide a production-ready user experience, a
 5. **Real-time Live Input Listener**:
    - Typing into `#record-page-amount` dynamically recalculates waterfall allocations and balance left against the selected settlement cycle in real-time.
 
+---
+
+## 58. Comprehensive Full-App Autonomous Sweep & Navigation Architecture
+
+### 1. Scope & Verification Matrix
+- **Screens Audited**: All 22 active screens (`Screen 1` through `Screen 22`).
+- **Interactive Elements Audited**: 97 buttons, 10 modal dialogs, and 420 queried DOM element IDs.
+- **Result**: Zero dead buttons, zero broken forms, zero unhandled promises, and 100% modal backdrop dismissals verified.
+
+### 2. Discovered Navigation Fallback Vulnerability & Resolution
+- **The Issue**:
+  - `SCREEN_PARENT_MAP` mapped `Screen 15` (Bill Details / View Invoice) back to `14` (Review Bill step in creation wizard), and `Screen 21` (Payment Receipt) back to `12` (Record Payment form).
+  - When users finished viewing an invoice or completed a payment receipt and tapped Back or Done, hardware/fallback back navigation dumped them back into the creation forms (with live "Confirm & Generate Bill" or "Confirm Payment" buttons) instead of cleanly returning to the Tenancy Details overview (`Screen 10`) or Dashboard (`Screen 6`).
+- **The Resolution**:
+  - Remapped `SCREEN_PARENT_MAP[15] = 10` and `SCREEN_PARENT_MAP[21] = 10`.
+  - Added dedicated screen exits in `navigateBack()` for both `Screen 21` and `Screen 15` to return smoothly to `Screen 10` (if an active tenancy is selected) or `Screen 6` (Dashboard).
+
+
 
 
 

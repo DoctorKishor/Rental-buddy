@@ -227,13 +227,13 @@ export const SCREEN_PARENT_MAP = {
   12: 10,
   13: 10,
   14: 13,
-  15: 14,
+  15: 10,
   16: 6,
   17: 16,
   18: 17,
   19: 16,
   20: 6,
-  21: 12,
+  21: 10,
   22: 16,
 };
 
@@ -289,6 +289,15 @@ export function navigateBack() {
   if (state.currentScreen === 6 || (state.currentScreen === 20 && !cloudSession.user)) {
     const exitModal = document.getElementById('modal-exit-app');
     if (exitModal) exitModal.classList.remove('hidden');
+    return;
+  }
+  // From Payment Receipt (Screen 21) or Bill Details (Screen 15), return to Tenancy Details or Dashboard
+  if (state.currentScreen === 21 || state.currentScreen === 15) {
+    if (currentActiveTenancy) {
+      navigateToScreen(10);
+    } else {
+      navigateToScreen(6);
+    }
     return;
   }
   if (window.history.length > 1 && window.history.state && window.history.state.screen && window.history.state.screen !== 6 && window.history.state.screen !== 20) {
