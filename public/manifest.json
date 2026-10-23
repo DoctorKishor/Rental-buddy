@@ -41,5 +41,37 @@
       "type": "image/svg+xml",
       "purpose": "any"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Record Payment",
+      "short_name": "Payment",
+      "description": "Quickly record a rent or utility settlement",
+      "url": "/payment",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Generate Bill",
+      "short_name": "Bill",
+      "description": "Generate an invoice and share via WhatsApp",
+      "url": "/generate-bill",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Rental Buddy Dashboard"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Rental Buddy Mobile Ledger"
+    }
   ]
 }

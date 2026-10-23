@@ -152,8 +152,154 @@ function showToast(message, duration = 3000) {
   }, duration);
 }
 
-// Screen Transition Navigator with Strict Auth Guard
-function navigateToScreen(targetScreenNumber) {
+// ==========================================================================
+// SUBPAGE URL ROUTING & SCREEN HIERARCHY MAP
+// ==========================================================================
+
+export const ROUTE_MAP = {
+  1: '/onboarding',
+  2: '/preferences',
+  3: '/currency',
+  4: '/notifications',
+  5: '/review',
+  6: '/home',
+  7: '/create',
+  8: '/create/utilities',
+  9: '/create/confirm',
+  10: '/details',
+  11: '/edit',
+  12: '/payment',
+  13: '/generate-bill',
+  14: '/bill-breakdown',
+  15: '/bill-created',
+  16: '/settings',
+  17: '/archived',
+  18: '/archived-details',
+  19: '/backup',
+  20: '/login',
+  21: '/receipt',
+  22: '/family',
+};
+
+export const PATH_TO_SCREEN = {
+  '/': 1,
+  '/onboarding': 1,
+  '/preferences': 2,
+  '/currency': 3,
+  '/notifications': 4,
+  '/review': 5,
+  '/home': 6,
+  '/dashboard': 6,
+  '/create': 7,
+  '/create/utilities': 8,
+  '/create/confirm': 9,
+  '/details': 10,
+  '/edit': 11,
+  '/payment': 12,
+  '/record-payment': 12,
+  '/generate-bill': 13,
+  '/bill': 13,
+  '/bill-breakdown': 14,
+  '/bill-created': 15,
+  '/settings': 16,
+  '/archived': 17,
+  '/archived-details': 18,
+  '/backup': 19,
+  '/restore': 19,
+  '/login': 20,
+  '/auth': 20,
+  '/signin': 20,
+  '/signup': 20,
+  '/receipt': 21,
+  '/family': 22,
+};
+
+export const SCREEN_PARENT_MAP = {
+  2: 1,
+  3: 2,
+  4: 3,
+  5: 4,
+  7: 6,
+  8: 7,
+  9: 8,
+  10: 6,
+  11: 10,
+  12: 10,
+  13: 10,
+  14: 13,
+  15: 14,
+  16: 6,
+  17: 16,
+  18: 17,
+  19: 16,
+  20: 1,
+  21: 12,
+  22: 16,
+};
+
+export function getPathForScreen(screenNum) {
+  return ROUTE_MAP[screenNum] || '/home';
+}
+
+export function getScreenFromPath(pathname) {
+  if (!pathname) return null;
+  const cleanPath = pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+  if (typeof PATH_TO_SCREEN[cleanPath] === 'number') {
+    return PATH_TO_SCREEN[cleanPath];
+  }
+  const hash = window.location.hash;
+  if (hash && hash.startsWith('#screen-')) {
+    const n = parseInt(hash.replace('#screen-', ''), 10);
+    if (!isNaN(n) && n >= 1 && n <= 22) return n;
+  }
+  return null;
+}
+
+export function hasOpenModals() {
+  const openModals = document.querySelectorAll('.modal-overlay:not(.hidden)');
+  return openModals.length > 0;
+}
+
+export function closeAllModals() {
+  const openModals = document.querySelectorAll('.modal-overlay:not(.hidden)');
+  openModals.forEach((m) => m.classList.add('hidden'));
+  document.getElementById('details-menu-dropdown')?.classList.add('hidden');
+  return openModals.length > 0;
+}
+
+export function pushModalHistory(modalId) {
+  try {
+    const currentPath = getPathForScreen(state.currentScreen);
+    window.history.pushState(
+      { isModal: true, modalId: modalId, screen: state.currentScreen, path: currentPath },
+      '',
+      currentPath
+    );
+  } catch (e) {
+    // ignore
+  }
+}
+
+export function navigateBack() {
+  if (hasOpenModals()) {
+    closeAllModals();
+    return;
+  }
+  if (window.history.length > 1 && window.history.state && window.history.state.screen && window.history.state.screen !== 6) {
+    window.history.back();
+  } else {
+    const parent = SCREEN_PARENT_MAP[state.currentScreen] || 6;
+    if (state.currentScreen === 6) {
+      const exitModal = document.getElementById('modal-exit-app');
+      if (exitModal) exitModal.classList.remove('hidden');
+    } else {
+      navigateToScreen(parent);
+    }
+  }
+}
+
+// Screen Transition Navigator with Strict Auth Guard & Clean History Routing
+export function navigateToScreen(targetScreenNumber, options = {}) {
   // Offline Guard: Transaction creation/editing screens strictly require active internet
   if ([7, 8, 9, 11, 12, 13, 14].includes(targetScreenNumber) && !isAppOnline()) {
     showToast('📡 You are offline. Recording transactions or modifying tenancies requires an active connection.', 4500);
@@ -193,16 +339,29 @@ function navigateToScreen(targetScreenNumber) {
     targetScreenNumber = 20;
   }
 
+  // Auto-close any open modals and floating dropdown menus when transitioning screens
+  closeAllModals();
+
   state.previousScreen = state.currentScreen;
   state.currentScreen = targetScreenNumber;
 
-  // Auto-close any open modals and floating dropdown menus when transitioning screens
-  document.querySelectorAll('.modal-overlay').forEach((modal) => {
-    modal.classList.add('hidden');
-  });
-  document.querySelectorAll('.floating-action-menu').forEach((menu) => {
-    menu.classList.add('hidden');
-  });
+  const targetPath = getPathForScreen(targetScreenNumber);
+
+  // Synchronize browser URL & History API
+  if (!options.skipHistory) {
+    try {
+      if (options.replace) {
+        window.history.replaceState({ screen: targetScreenNumber, path: targetPath }, '', targetPath);
+      } else {
+        const currentState = window.history.state;
+        if (!currentState || currentState.screen !== targetScreenNumber) {
+          window.history.pushState({ screen: targetScreenNumber, path: targetPath }, '', targetPath);
+        }
+      }
+    } catch (e) {
+      console.warn('History navigation notice:', e);
+    }
+  }
 
   const allScreens = screens && screens.length > 0 ? screens : document.querySelectorAll('.screen');
   allScreens.forEach((screen) => {
@@ -910,7 +1069,7 @@ function initEventListeners() {
 
   // Screen 7: Step 1 (General Information)
   document.getElementById('btn-step1-back')?.addEventListener('click', () => {
-    navigateToScreen(6);
+    navigateBack();
   });
 
   document.getElementById('btn-step1-next')?.addEventListener('click', () => {
@@ -935,7 +1094,7 @@ function initEventListeners() {
 
   // Screen 8: Step 2 (Utilities)
   document.getElementById('btn-step2-back')?.addEventListener('click', () => {
-    navigateToScreen(7);
+    navigateBack();
   });
 
   document.getElementById('btn-step2-next')?.addEventListener('click', () => {
@@ -945,7 +1104,7 @@ function initEventListeners() {
 
   // Screen 9: Step 3 (Confirmation)
   document.getElementById('btn-step3-back')?.addEventListener('click', () => {
-    navigateToScreen(8);
+    navigateBack();
   });
 
   document.getElementById('btn-step3-confirm')?.addEventListener('click', async () => {
@@ -1060,7 +1219,7 @@ function initEventListeners() {
 
   // Screen 10 Details Navigation
   document.getElementById('btn-details-back')?.addEventListener('click', () => {
-    navigateToScreen(6);
+    navigateBack();
   });
 
   // Toggle 360px Viewport Simulation
@@ -1096,14 +1255,73 @@ function initEventListeners() {
     });
   });
 
-  // Global Escape key listener to close open modals & floating menus
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      document.querySelectorAll('.modal-overlay').forEach((modal) => {
-        modal.classList.add('hidden');
-      });
-      document.getElementById('details-menu-dropdown')?.classList.add('hidden');
+  // Device Hardware & Browser Back Button (popstate) Controller
+  window.addEventListener('popstate', (e) => {
+    // 1. If any modal is currently visible: Close the modal without leaving the screen!
+    if (hasOpenModals()) {
+      closeAllModals();
+      return;
     }
+
+    // 2. If the user is on the Home Screen (Screen 6): trigger exit app confirmation modal
+    if (state.currentScreen === 6) {
+      const exitModal = document.getElementById('modal-exit-app');
+      if (exitModal) {
+        exitModal.classList.remove('hidden');
+        try {
+          window.history.pushState({ screen: 6, path: '/home', isExitPrompt: true }, '', '/home');
+        } catch (err) {}
+        return;
+      }
+    }
+
+    // 3. If history state has a destination screen:
+    if (e.state && typeof e.state.screen === 'number') {
+      navigateToScreen(e.state.screen, { skipHistory: true });
+      return;
+    }
+
+    // 4. Otherwise, follow parent screen hierarchy:
+    const parentScreen = SCREEN_PARENT_MAP[state.currentScreen];
+    if (parentScreen) {
+      navigateToScreen(parentScreen, { replace: true });
+    } else if (state.currentScreen !== 6 && cloudSession.user) {
+      navigateToScreen(6, { replace: true });
+    }
+  });
+
+  // Modal History Observer: Whenever any modal opens, register history state
+  const modalObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+        const target = mutation.target;
+        if (!target.classList.contains('hidden') && target.id !== 'modal-exit-app') {
+          pushModalHistory(target.id);
+        }
+      }
+    });
+  });
+
+  document.querySelectorAll('.modal-overlay').forEach((modal) => {
+    modalObserver.observe(modal, { attributes: true });
+  });
+
+  // Exit App Modal Action Buttons
+  document.getElementById('btn-cancel-exit-app')?.addEventListener('click', () => {
+    const exitModal = document.getElementById('modal-exit-app');
+    if (exitModal) exitModal.classList.add('hidden');
+  });
+
+  document.getElementById('btn-confirm-exit-app')?.addEventListener('click', () => {
+    const exitModal = document.getElementById('modal-exit-app');
+    if (exitModal) exitModal.classList.add('hidden');
+    showToast('👋 Exiting Rental Buddy...', 1500);
+    setTimeout(() => {
+      try {
+        window.close();
+      } catch (e) {}
+      window.location.href = 'about:blank';
+    }, 300);
   });
 }
 
@@ -2611,7 +2829,7 @@ function initEditTenancy() {
   const bannerRevisionText = document.getElementById('banner-revision-text');
 
   btnEditBack?.addEventListener('click', () => {
-    navigateToScreen(10);
+    navigateBack();
   });
 
   document.getElementById('btn-edit-pick-contact')?.addEventListener('click', () => {
@@ -4016,11 +4234,7 @@ function initRecordPaymentPage() {
   });
 
   btnBack?.addEventListener('click', () => {
-    if (state.previousScreen === 10 && currentActiveTenancy) {
-      navigateToScreen(10);
-    } else {
-      navigateToScreen(6);
-    }
+    navigateBack();
   });
 
   const setPaymentMode = (mode) => {
@@ -4362,11 +4576,7 @@ function initBillGenerationFlow() {
   });
 
   btnGenBillBack?.addEventListener('click', () => {
-    if (state.previousScreen === 10 && currentActiveTenancy) {
-      navigateToScreen(10);
-    } else {
-      navigateToScreen(6);
-    }
+    navigateBack();
   });
 
   // Calculate & Preview Bill -> Screen 14
@@ -4493,7 +4703,7 @@ function initBillGenerationFlow() {
   });
 
   btnReviewBack?.addEventListener('click', () => {
-    navigateToScreen(13);
+    navigateBack();
   });
 
   // Screen 14 Confirm & Generate -> Screen 15
@@ -4574,13 +4784,7 @@ function initBillGenerationFlow() {
   });
 
   btnBillDetailsBack?.addEventListener('click', () => {
-    if (state.previousScreen === 18 && activeArchivedTenancy) {
-      navigateToScreen(18);
-    } else if (state.previousScreen === 10 && currentActiveTenancy) {
-      navigateToScreen(10);
-    } else {
-      navigateToScreen(6);
-    }
+    navigateBack();
   });
 
   const handleShareInvoice = () => {
@@ -4630,7 +4834,7 @@ function initSettingsScreen() {
   const itemRequest = document.getElementById('item-request-feature');
 
   btnSettingsBack?.addEventListener('click', () => {
-    navigateToScreen(6);
+    navigateBack();
   });
 
   itemArchived?.addEventListener('click', () => {
@@ -4967,11 +5171,11 @@ function initArchivedTenanciesFlow() {
   const menuArchDelete = document.getElementById('menu-action-arch-delete');
 
   btnArchivedBack?.addEventListener('click', () => {
-    navigateToScreen(16);
+    navigateBack();
   });
 
   btnArchDetailsBack?.addEventListener('click', () => {
-    navigateToScreen(17);
+    navigateBack();
   });
 
   btnArchMenu?.addEventListener('click', (e) => {
@@ -5039,7 +5243,7 @@ function initBackupRestoreScreen() {
   const inputRhbFile = document.getElementById('input-rhb-file');
 
   btnBackupBack?.addEventListener('click', () => {
-    navigateToScreen(16);
+    navigateBack();
   });
 
   // 1. Create Comprehensive Backup (.rhb)
@@ -6003,7 +6207,7 @@ function initFamilySharingPage() {
 
   // Navigation handlers
   btnBack?.addEventListener('click', () => {
-    navigateToScreen(6);
+    navigateBack();
   });
 
   incomingBanner?.addEventListener('click', () => {
@@ -6633,27 +6837,11 @@ function initReceiptPage() {
   const btnShareImage = document.getElementById('btn-share-as-image');
 
   btnBack?.addEventListener('click', () => {
-    if (state.previousScreen === 18) {
-      navigateToScreen(18);
-    } else if (state.previousScreen === 19) {
-      navigateToScreen(19);
-    } else if (state.previousScreen === 10 && currentActiveTenancy) {
-      navigateToScreen(10);
-    } else {
-      navigateToScreen(6);
-    }
+    navigateBack();
   });
 
   btnDone?.addEventListener('click', () => {
-    if (state.previousScreen === 18) {
-      navigateToScreen(18);
-    } else if (state.previousScreen === 19) {
-      navigateToScreen(19);
-    } else if (currentActiveTenancy) {
-      navigateToScreen(10);
-    } else {
-      navigateToScreen(6);
-    }
+    navigateBack();
   });
 
   // Prompt the modal with two options (Text vs Image)
@@ -6674,10 +6862,37 @@ function initReceiptPage() {
 let deferredPwaInstallPrompt = null;
 
 export function initPwaInstallation() {
+  const badge = document.getElementById('badge-pwa-status');
+
+  const triggerInstall = async () => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (isStandalone) {
+      showToast('✅ Rental Buddy is already installed and running as a standalone app!', 3500);
+      return;
+    }
+    if (deferredPwaInstallPrompt) {
+      deferredPwaInstallPrompt.prompt();
+      const choiceResult = await deferredPwaInstallPrompt.userChoice;
+      if (choiceResult && choiceResult.outcome === 'accepted') {
+        showToast('🚀 Installing Rental Buddy...', 3000);
+      }
+      deferredPwaInstallPrompt = null;
+    } else {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      if (isIOS) {
+        showToast('📲 On iPhone/iPad: Tap the Share button (⎋) in Safari and tap "Add to Home Screen".', 5500);
+      } else {
+        showToast('📲 Tap browser menu (⋮) and select "Install App" or "Add to Home screen" to install Rental Buddy.', 5000);
+      }
+    }
+  };
+
+  badge?.addEventListener('click', triggerInstall);
+  if (badge) badge.style.cursor = 'pointer';
+
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPwaInstallPrompt = e;
-    const badge = document.getElementById('badge-pwa-status');
     if (badge) {
       badge.textContent = 'Install App';
       badge.style.background = '#DCFCE7';
@@ -6687,7 +6902,6 @@ export function initPwaInstallation() {
 
   window.addEventListener('appinstalled', () => {
     deferredPwaInstallPrompt = null;
-    const badge = document.getElementById('badge-pwa-status');
     if (badge) {
       badge.textContent = 'Installed ✔';
       badge.style.background = '#DCFCE7';
@@ -6698,22 +6912,27 @@ export function initPwaInstallation() {
 
   // Check if already running as standalone PWA
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-  const badge = document.getElementById('badge-pwa-status');
   if (badge && isStandalone) {
     badge.textContent = 'Installed ✔';
     badge.style.background = '#DCFCE7';
     badge.style.color = '#16A34A';
   }
 
-  // Register Service Worker
+  // Register Service Worker reliably whether DOM has loaded or is loading
   if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    window.addEventListener('load', () => {
+    const registerSW = () => {
       navigator.serviceWorker.register('/sw.js').then((reg) => {
         console.log('Rental Buddy PWA Service Worker registered:', reg.scope);
       }).catch((err) => {
         console.warn('PWA Service Worker registration warning:', err);
       });
-    });
+    };
+
+    if (document.readyState === 'complete') {
+      registerSW();
+    } else {
+      window.addEventListener('load', registerSW);
+    }
   }
 }
 
@@ -6905,10 +7124,17 @@ async function bootApplication() {
     console.warn('Auth state change subscription error:', authSubErr);
   }
 
+  const currentPath = window.location.pathname;
+  const initialScreenFromPath = getScreenFromPath(currentPath);
+
   if (!session || !session.user) {
     // STRICT PRODUCTION AUTH GUARD: User is not logged in!
     updateAuthUI(null);
-    navigateToScreen(20);
+    if (initialScreenFromPath === 1 || initialScreenFromPath === 2) {
+      navigateToScreen(initialScreenFromPath, { replace: true });
+    } else {
+      navigateToScreen(20, { replace: true });
+    }
   } else {
     // User is authenticated!
     try {
@@ -6934,20 +7160,22 @@ async function bootApplication() {
         // ignore
       }
 
-      const hash = window.location.hash;
-      if (hash && hash.startsWith('#screen-')) {
-        const screenNum = parseInt(hash.replace('#screen-', ''), 10);
-        if (!isNaN(screenNum) && screenNum >= 1 && screenNum <= 22 && screenNum !== 2 && screenNum !== 20) {
-          navigateToScreen(screenNum);
-        } else {
-          navigateToScreen(6);
-        }
+      let targetScreen = 6;
+      if (initialScreenFromPath && initialScreenFromPath !== 20) {
+        targetScreen = initialScreenFromPath;
       } else {
-        navigateToScreen(6);
+        const hash = window.location.hash;
+        if (hash && hash.startsWith('#screen-')) {
+          const screenNum = parseInt(hash.replace('#screen-', ''), 10);
+          if (!isNaN(screenNum) && screenNum >= 1 && screenNum <= 22 && screenNum !== 2 && screenNum !== 20) {
+            targetScreen = screenNum;
+          }
+        }
       }
+      navigateToScreen(targetScreen, { replace: true });
     } else {
       window.rbFirstTimeOnboarding = true;
-      navigateToScreen(2); // Direct first-time user to functional onboarding ONLY if no data exists
+      navigateToScreen(2, { replace: true }); // Direct first-time user to functional onboarding ONLY if no data exists
     }
   }
 }

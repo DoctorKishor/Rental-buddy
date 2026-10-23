@@ -1779,3 +1779,49 @@ To eliminate dead placeholders and provide a production-ready user experience, a
   - Added safety `.catch(() => {})` handlers around all `cache.put()` operations.
   - Bumped Service Worker cache version to `rental-buddy-v1.0.3`.
 
+---
+
+## 52. PWA Installability, Dynamic Auth Redirect, Tablet Responsive Architecture & Deep History Routing
+
+### 1. PWA Installability & Browser Menu Detection Protocol
+- **Install Criteria Compliance**:
+  - Chrome / Chromium browsers require `manifest.json` with `id`, `start_url`, `display: standalone`, high-res icons (192px and 512px with `any` and `maskable` purposes), rich `screenshots` (wide `form_factor: wide` and narrow), and explicit `shortcuts` (`/payment`, `/generate-bill`).
+  - Added `link rel="manifest" href="/manifest.json"` in `index.html`.
+  - Service Worker registration is executed unconditionally: if `document.readyState === 'complete'`, register immediately; otherwise on `window.addEventListener('load')`. This eliminates the missed `'load'` event bug where late scripts never registered the worker.
+  - Interactive `#badge-pwa-status` in top headers and `item-install-pwa` in Settings trigger `deferredPwaInstallPrompt.prompt()` on user tap.
+
+### 2. Remote Cloudflare vs Localhost Supabase Auth Redirects
+- **Dynamic Origin Resolution**:
+  - `getAuthRedirectUrl(subpath = '/login')`: Automatically checks `window.location.origin`. When running locally on `localhost` or `127.0.0.1`, redirects to `http://localhost:5173/login`. When running remotely, defaults to `https://rentalbuddy.pages.dev/login`.
+  - Configured `emailRedirectTo: redirectUrl` across `signUpUser()`, `resendVerificationEmail()`, and `resetUserPassword()` to guarantee email verification links never point to localhost when sent to real users.
+
+### 3. Native Tablet & Standalone Display Architecture (Zero Mockup Simulation on Tablets)
+- **Elimination of Phone Chassis on Tablets**:
+  - Previously, `.mobile-frame` imposed `max-width: 412px; border: 8px solid #1E2235; border-radius: 44px;` for all screens greater than 480px, causing tablets (768px - 1024px) to render a narrow phone simulation inside a large empty gray window.
+  - **Resolution**:
+    - Expanded media query: on screens `<= 1024px` and `@media (display-mode: standalone)`, `.mobile-frame` seamlessly expands to `width: 100%; max-width: 100%; border: none; border-radius: 0; box-shadow: none;` without phone bezels.
+    - Added comfortable reading constraints (`max-width: 680px; margin: 0 auto;`) for `.screen-content`, `.bottom-bar`, and screen headers on tablets so cards maintain optimal proportions and never stretch awkwardly.
+
+### 4. Device Hardware Back Button & Modal History Stack Protocol
+- **Multi-Tiered Back Navigation**:
+  - **Tier 1 (Modals First)**: If any modal overlay is active (detected via `hasOpenModals()`), pressing hardware/browser Back or clicking an in-app back button closes the top modal overlay without navigating away from the underlying screen.
+  - **Tier 2 (Exit App Confirmation on Home)**: When the user is on the Home Dashboard (Screen 6) and has no open modals, pressing Back displays `#modal-exit-app` asking: *"Exit Rental Buddy? Are you sure you want to exit the app? [Cancel] [Exit App]"*.
+  - **Tier 3 (Parent Screen Hierarchy)**: When navigating deeper into properties or settings (`SCREEN_PARENT_MAP`), each step steps backward to its immediate logical parent (e.g. `Step 3` -> `Step 2` -> `Step 1` -> `Home`; `Edit Tenancy` -> `Tenancy Details` -> `Home`).
+  - **MutationObserver Automation**: A global `MutationObserver` automatically pushes modal history state whenever any `.modal-overlay` has its `.hidden` class removed, ensuring physical back gestures on Android/iOS always close the modal naturally.
+
+### 5. Clean URL Subpages & History API Synchronization
+- **Direct Subpage Routes**:
+  - Defined `ROUTE_MAP` supporting clean URLs:
+    - `/home` -> Screen 6 (Tenancy Dashboard)
+    - `/payment` -> Screen 12 (Waterfall Record Payment)
+    - `/settings` -> Screen 16 (Preferences & Sharing)
+    - `/details` -> Screen 10 (Tenancy Overview & Month Ledger)
+    - `/create` -> Screen 7 (Create Tenancy Wizard)
+    - `/generate-bill` -> Screen 13 (Utility Meter Input)
+    - `/backup` -> Screen 19 (Backup & Restore)
+    - `/login` -> Screen 20 (Authentication & Cloud Sync)
+  - Every call to `navigateToScreen(screenNum)` synchronizes `window.history.pushState()` with the canonical path.
+  - On app launch, `bootApplication()` parses `window.location.pathname` via `getScreenFromPath()` so entering `/home`, `/payment`, or `/settings` directly deep-links to that view instantly.
+  - Protected with `public/_redirects` (`/* /index.html 200`) so Cloudflare Pages serves single-page client routing without 404 errors.
+
+

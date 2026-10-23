@@ -53,7 +53,7 @@ html, body {
   width: 100%;
   height: 100%;
   font-family: var(--font-family);
-  background-color: #DCE0F0;
+  background-color: var(--bg-canvas);
   color: var(--text-heading);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
@@ -61,7 +61,7 @@ html, body {
 }
 
 /* ==========================================================================
-   Layout & Mobile Frame Simulation
+   Layout & Responsive Viewport Controller (Native Tablet & Mobile)
    ========================================================================== */
 .app-viewport {
   width: 100%;
@@ -69,43 +69,79 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 0;
+  background-color: var(--bg-canvas);
 }
 
 .mobile-frame {
   position: relative;
   width: 100%;
-  max-width: 412px;
   height: 100%;
-  max-height: 875px;
+  max-width: 100%;
+  max-height: 100%;
   background-color: var(--bg-canvas);
-  border-radius: 44px;
+  border-radius: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 24px 60px -12px rgba(22, 28, 68, 0.25),
-              0 0 0 1px rgba(255, 255, 255, 0.6) inset,
-              0 0 0 8px #1E2235;
-  transition: max-width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: none;
+  border: none;
 }
 
-.mobile-frame.width-360 {
-  max-width: 360px;
-}
-
-/* Fullscreen on real mobile viewports */
-@media (max-width: 480px), (max-height: 800px) {
+/* Desktop Preview (Clean application container without simulated phone bezel) */
+@media (min-width: 1025px) and (min-height: 801px) and (hover: hover) {
+  body {
+    background-color: #DCE0F0;
+  }
   .app-viewport {
-    padding: 0;
+    padding: 20px;
+    background-color: #DCE0F0;
   }
   .mobile-frame {
-    max-width: 100%;
-    max-height: 100%;
-    border-radius: 0;
-    box-shadow: none;
+    max-width: 480px;
+    max-height: 920px;
+    border-radius: 28px;
+    box-shadow: 0 16px 48px -8px rgba(28, 33, 66, 0.12),
+                0 0 0 1px rgba(226, 228, 242, 0.8);
   }
-  .mobile-frame.width-360 {
-    max-width: 100%;
+}
+
+/* Standalone Installed PWA (Always 100% full screen) */
+@media (display-mode: standalone) {
+  body, .app-viewport {
+    padding: 0 !important;
+    background-color: var(--bg-canvas) !important;
+  }
+  .mobile-frame {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
+
+/* Tablet Layout Optimization: Full native tablet canvas with centered reading comfort */
+@media (min-width: 481px) and (max-width: 1024px) {
+  .screen-content {
+    max-width: 680px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .bottom-bar {
+    max-width: 680px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    left: 0;
+    right: 0;
+  }
+  .stepper-header, .brand-header, .nav-header {
+    max-width: 680px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
   }
 }
 

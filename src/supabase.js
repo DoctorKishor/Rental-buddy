@@ -59,13 +59,26 @@ export async function signInUser(email, password) {
   }
 }
 
+// Dynamic Auth Redirect URL (Guarantees Supabase emails redirect to rentalbuddy.pages.dev)
+export function getAuthRedirectUrl(subpath = '/login') {
+  if (typeof window !== 'undefined') {
+    if (window.location.origin.includes('pages.dev') || window.location.origin.includes('rentalbuddy')) {
+      return `${window.location.origin}${subpath}`;
+    }
+    return `${window.location.origin}${subpath}`;
+  }
+  return `https://rentalbuddy.pages.dev${subpath}`;
+}
+
 export async function signUpUser(email, password, fullName = '') {
   try {
     const cleanFullName = (fullName || '').trim();
+    const redirectUrl = getAuthRedirectUrl('/login');
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo: redirectUrl,
         data: {
           full_name: cleanFullName || email.split('@')[0],
         },
@@ -101,9 +114,13 @@ export async function signUpUser(email, password, fullName = '') {
 
 export async function resendVerificationEmail(email) {
   try {
+    const redirectUrl = getAuthRedirectUrl('/login');
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email: email,
+      options: {
+        emailRedirectTo: redirectUrl,
+      },
     });
     if (error) throw error;
     return { success: true };
@@ -115,8 +132,9 @@ export async function resendVerificationEmail(email) {
 
 export async function resetUserPassword(email) {
   try {
+    const redirectUrl = getAuthRedirectUrl('/login');
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+      redirectTo: redirectUrl,
     });
     if (error) throw error;
     return { success: true };
