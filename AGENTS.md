@@ -1915,6 +1915,48 @@ To eliminate dead placeholders and provide a production-ready user experience, a
   - Any cycles on or before `paid_up_to_date` are excluded from the `overdueQueue`.
   - Landlords recording payments are automatically presented with the first true unsettled cycle occurring after their baseline cut-off.
 
+---
+
+## 56. Login/Signup-First Initial Launch Screen & Signup-Only Onboarding Lifecycle Architecture
+
+### 1. Defect & Requirements Analysis
+- **The Problem**:
+  - When the app was opened fresh, it rendered the Onboarding intro screen (`Screen 1`) before switching to the Login screen (`Screen 20`), creating an awkward screen flicker.
+  - Furthermore, returning users who signed in into existing accounts without any tenancies yet (`hasData = false`) were repeatedly thrown into the onboarding flow on every launch and login, because completion flags were tied solely to local tenancy counts or wiped caches.
+- **The Core User Directives**:
+  1. The app MUST present the **Login / Signup screen (`Screen 20`) first** on fresh unauthenticated launch with zero flash of Screen 1.
+  2. The onboarding process MUST ONLY be shown after a brand-new user **signs up (creates an account)** for the first time.
+  3. The onboarding process MUST NEVER be shown upon user login/sign-in. Returning users signing into an existing account must always navigate directly to the Dashboard (`Screen 6`, `/home`).
+
+### 2. Architectural Root-Cause Resolution
+1. **Initial HTML DOM State (`index.html`)**:
+   - Removed the `active` class from `screen-1`: `<section class="screen" id="screen-1" data-screen="1">`.
+   - Set `active` class on `screen-20`: `<section class="screen active" id="screen-20" data-screen="20">`.
+   - Eliminates layout shift or screen flicker before JavaScript boots.
+2. **Path & Screen Mapping (`PATH_TO_SCREEN` in `src/main.js`)**:
+   - Remapped root path `'/'` to `6` (Dashboard) instead of `1` (Onboarding).
+   - In `SCREEN_PARENT_MAP`, mapped `20` (Login) to parent `6` instead of `1`.
+3. **Hardware & Popstate Back Navigation (`navigateBack()` in `src/main.js`)**:
+   - Added root exit check: `if (state.currentScreen === 6 || (state.currentScreen === 20 && !cloudSession.user))`.
+   - When on Screen 20 and unauthenticated, hardware back or back button triggers `#modal-exit-app` ("Exit Rental Buddy?") rather than cycling through onboarding screens.
+4. **Strict Unauthenticated Screen Guard (`navigateToScreen()` in `src/main.js`)**:
+   - If `!cloudSession.user && targetScreenNumber !== 20`, immediately redirects to `targetScreenNumber = 20`.
+   - Unauthenticated visitors can never access screens 1-5 without signing up.
+5. **Auth Submit Branching (`initAuthScreen()` in `src/main.js`)**:
+   - **On Sign In (`!isAuthSignUpMode`)**:
+     - Calls `completeUserOnboarding()`.
+     - Clears `sessionStorage.removeItem('rb_just_signed_up')`.
+     - Sets `window.rbFirstTimeOnboarding = false`.
+     - Navigates directly to `Screen 6` (Dashboard). Never routes to onboarding on login.
+   - **On Sign Up (`isAuthSignUpMode`)**:
+     - Sets `sessionStorage.setItem('rb_just_signed_up', 'true')`.
+     - Sets `window.rbFirstTimeOnboarding = true`.
+     - Navigates to `Screen 1` (Onboarding Welcome Screen), starting the guided preference setup.
+6. **Application Boot Routine (`bootApplication()` in `src/main.js`)**:
+   - If `!session || !session.user`: Unconditionally calls `navigateToScreen(20, { replace: true })`.
+   - If authenticated: Checks `sessionStorage.getItem('rb_just_signed_up') === 'true'`. Only routes to steps 1-5 if the user literally just signed up in this browser session. In all other cases, calls `completeUserOnboarding()` and routes straight to the Dashboard (`Screen 6`) or deep-linked target screen.
+
+
 
 
 

@@ -182,7 +182,7 @@ export const ROUTE_MAP = {
 };
 
 export const PATH_TO_SCREEN = {
-  '/': 1,
+  '/': 6,
   '/onboarding': 1,
   '/preferences': 2,
   '/currency': 3,
@@ -232,7 +232,7 @@ export const SCREEN_PARENT_MAP = {
   17: 16,
   18: 17,
   19: 16,
-  20: 1,
+  20: 6,
   21: 12,
   22: 16,
 };
@@ -285,16 +285,17 @@ export function navigateBack() {
     closeAllModals();
     return;
   }
-  if (window.history.length > 1 && window.history.state && window.history.state.screen && window.history.state.screen !== 6) {
+  // Root exit check: Dashboard (Screen 6) or Login screen when unauthenticated (Screen 20)
+  if (state.currentScreen === 6 || (state.currentScreen === 20 && !cloudSession.user)) {
+    const exitModal = document.getElementById('modal-exit-app');
+    if (exitModal) exitModal.classList.remove('hidden');
+    return;
+  }
+  if (window.history.length > 1 && window.history.state && window.history.state.screen && window.history.state.screen !== 6 && window.history.state.screen !== 20) {
     window.history.back();
   } else {
     const parent = SCREEN_PARENT_MAP[state.currentScreen] || 6;
-    if (state.currentScreen === 6) {
-      const exitModal = document.getElementById('modal-exit-app');
-      if (exitModal) exitModal.classList.remove('hidden');
-    } else {
-      navigateToScreen(parent);
-    }
+    navigateToScreen(parent);
   }
 }
 
@@ -333,8 +334,8 @@ export function navigateToScreen(targetScreenNumber, options = {}) {
   }
 
   // STRICT PRODUCTION AUTH GUARD:
-  // Disallow screens 6 through 22 if the user is not authenticated!
-  if (targetScreenNumber >= 6 && targetScreenNumber <= 22 && !cloudSession.user) {
+  // Disallow any screen except Screen 20 (Login/Signup) if the user is not authenticated!
+  if (!cloudSession.user && targetScreenNumber !== 20) {
     showToast('🔒 Please sign in or create an account to access Rental Buddy', 3000);
     targetScreenNumber = 20;
   }
@@ -5939,6 +5940,10 @@ export async function completeUserOnboarding() {
   }
   localStorage.setItem('rb_onboarding_completed', 'true');
   try {
+    sessionStorage.removeItem('rb_just_signed_up');
+  } catch (e) {}
+  window.rbFirstTimeOnboarding = false;
+  try {
     await updateUserProfile({ onboarding_completed: true });
   } catch (err) {
     console.warn('Save onboarding completion error:', err);
@@ -6058,27 +6063,24 @@ function initAuthScreen() {
       const user = authResult.user;
       await syncDashboardFromCloud();
 
-      const hasData = userHasExistingData(user.id);
-      const isOnboardingDone = Boolean(
-        hasData ||
-        cloudSession.profile?.onboarding_completed ||
-        user.user_metadata?.onboarding_completed ||
-        localStorage.getItem(`rb_onboarding_completed_${user.id}`) === 'true' ||
-        localStorage.getItem('rb_onboarding_completed') === 'true'
-      );
-
-      if (isOnboardingDone) {
+      if (isAuthSignUpMode) {
+        // Brand-new user account registration: show onboarding process for the first time
+        sessionStorage.setItem('rb_just_signed_up', 'true');
+        window.rbFirstTimeOnboarding = true;
+        setTimeout(() => {
+          navigateToScreen(1); // Welcome to Rental Buddy onboarding
+        }, 500);
+      } else {
+        // Standard user Sign In (Login): Always navigate straight to Dashboard! Never show onboarding with login.
+        try {
+          sessionStorage.removeItem('rb_just_signed_up');
+        } catch (e) {}
+        window.rbFirstTimeOnboarding = false;
         completeUserOnboarding();
+        setTimeout(() => {
+          navigateToScreen(6); // User who logs in always goes straight to Dashboard
+        }, 500);
       }
-
-      setTimeout(() => {
-        if (!isOnboardingDone) {
-          window.rbFirstTimeOnboarding = true;
-          navigateToScreen(2); // Start functional onboarding ONLY for brand-new users who haven't completed setup
-        } else {
-          navigateToScreen(6); // User who completed onboarding always goes straight to Dashboard
-        }
-      }, 500);
     } catch (err) {
       showToast(`❌ Auth error: ${err.message}`, 4000);
     } finally {
@@ -7475,13 +7477,9 @@ async function bootApplication() {
   const initialScreenFromPath = getScreenFromPath(currentPath);
 
   if (!session || !session.user) {
-    // STRICT PRODUCTION AUTH GUARD: User is not logged in!
+    // STRICT PRODUCTION AUTH GUARD: User is not logged in! Always show Login/Signup first!
     updateAuthUI(null);
-    if (initialScreenFromPath === 1 || initialScreenFromPath === 2) {
-      navigateToScreen(initialScreenFromPath, { replace: true });
-    } else {
-      navigateToScreen(20, { replace: true });
-    }
+    navigateToScreen(20, { replace: true });
   } else {
     // User is authenticated!
     try {
@@ -7498,34 +7496,30 @@ async function bootApplication() {
       console.warn('Boot dashboard sync notice:', bootErr);
     }
 
-    const hasData = userHasExistingData(session.user.id);
-    const isOnboardingDone = Boolean(
-      hasData ||
-      cloudSession.profile?.onboarding_completed ||
-      session.user?.user_metadata?.onboarding_completed ||
-      localStorage.getItem(`rb_onboarding_completed_${session.user.id}`) === 'true' ||
-      localStorage.getItem('rb_onboarding_completed') === 'true'
-    );
+    const isJustSignedUp = sessionStorage.getItem('rb_just_signed_up') === 'true';
 
-    if (isOnboardingDone) {
+    // Only route to onboarding if user literally just signed up in this browser session and is on steps 1-5
+    if (isJustSignedUp && initialScreenFromPath && initialScreenFromPath >= 1 && initialScreenFromPath <= 5) {
+      window.rbFirstTimeOnboarding = true;
+      navigateToScreen(initialScreenFromPath, { replace: true });
+    } else {
+      // For all returning logins, app launches, or completed users: go straight to dashboard or deep-link screen!
+      window.rbFirstTimeOnboarding = false;
       completeUserOnboarding();
 
       let targetScreen = 6;
-      if (initialScreenFromPath && initialScreenFromPath !== 20) {
+      if (initialScreenFromPath && initialScreenFromPath > 5 && initialScreenFromPath !== 20) {
         targetScreen = initialScreenFromPath;
       } else {
         const hash = window.location.hash;
         if (hash && hash.startsWith('#screen-')) {
           const screenNum = parseInt(hash.replace('#screen-', ''), 10);
-          if (!isNaN(screenNum) && screenNum >= 1 && screenNum <= 22 && screenNum !== 2 && screenNum !== 20) {
+          if (!isNaN(screenNum) && screenNum > 5 && screenNum <= 22 && screenNum !== 20) {
             targetScreen = screenNum;
           }
         }
       }
       navigateToScreen(targetScreen, { replace: true });
-    } else {
-      window.rbFirstTimeOnboarding = true;
-      navigateToScreen(2, { replace: true }); // Direct first-time user to functional onboarding ONLY if not completed
     }
   }
 }
