@@ -10,6 +10,14 @@ export function formatCurrencyAmount(val) {
   return n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
+export function getCurrencySymbol() {
+  return (typeof state !== 'undefined' && state.currencySymbol) ? state.currencySymbol : '₹';
+}
+
+export function formatMoney(val) {
+  return `${getCurrencySymbol()}${formatCurrencyAmount(val)}`;
+}
+
 // ==========================================================================
 
 import {
@@ -456,12 +464,97 @@ export function initNumericAndPhoneInputs() {
   });
 }
 
+// Currency Symbols & Preferences Persistence
+export const CURRENCY_SYMBOLS = {
+  INR: '₹',
+  USD: '$',
+  NPR: 'Rs. ',
+  EUR: '€',
+  GBP: '£',
+  CAD: 'C$',
+  AUD: 'A$',
+  SGD: 'S$',
+  AED: 'AED ',
+  SAR: 'SAR ',
+};
+
+export function resolveCurrencySymbol(code) {
+  if (!code) return '₹';
+  const upper = code.toUpperCase().trim();
+  if (CURRENCY_SYMBOLS[upper]) return CURRENCY_SYMBOLS[upper];
+  return upper + ' ';
+}
+
+export function saveCurrencyPreference() {
+  try {
+    localStorage.setItem(
+      'rb_currency_pref',
+      JSON.stringify({
+        currency: state.currency,
+        currencyLabel: state.currencyLabel,
+        currencySymbol: state.currencySymbol,
+      })
+    );
+  } catch (e) {
+    console.warn('Save currency pref warning:', e);
+  }
+}
+
+export function loadStoredPreferences() {
+  try {
+    const storedCurr = localStorage.getItem('rb_currency_pref');
+    if (storedCurr) {
+      const parsed = JSON.parse(storedCurr);
+      if (parsed.currency) state.currency = parsed.currency;
+      if (parsed.currencyLabel) state.currencyLabel = parsed.currencyLabel;
+      if (parsed.currencySymbol) state.currencySymbol = parsed.currencySymbol;
+    }
+    const storedHaptics = localStorage.getItem('rb_haptics_enabled');
+    if (storedHaptics !== null) {
+      const toggleHaptics = document.getElementById('toggle-haptics');
+      if (toggleHaptics) toggleHaptics.checked = storedHaptics === 'true';
+    }
+    const storedNotifs = localStorage.getItem('rb_notifications_enabled');
+    if (storedNotifs !== null) {
+      const toggleNotifs = document.getElementById('toggle-settings-notifications');
+      if (toggleNotifs) toggleNotifs.checked = storedNotifs === 'true';
+    }
+  } catch (e) {
+    console.warn('Load stored preferences notice:', e);
+  }
+}
+
 // Currency Selector Logic
 function initCurrencySelection() {
   const radioCards = document.querySelectorAll('.radio-card[for^="curr-"]');
   const customBox = document.getElementById('customCurrencyBox');
   const customSelect = document.getElementById('currencyCustomSelect');
   const othersLabel = document.getElementById('others-label');
+
+  // Reflect stored state on UI
+  if (state.currency === 'INR') {
+    radioCards.forEach((c) => c.classList.remove('selected'));
+    document.querySelector('.radio-card[for="curr-inr"]')?.classList.add('selected');
+    const input = document.getElementById('curr-inr');
+    if (input) input.checked = true;
+    customBox?.classList.add('hidden');
+  } else if (state.currency === 'USD') {
+    radioCards.forEach((c) => c.classList.remove('selected'));
+    document.querySelector('.radio-card[for="curr-usd"]')?.classList.add('selected');
+    const input = document.getElementById('curr-usd');
+    if (input) input.checked = true;
+    customBox?.classList.add('hidden');
+  } else if (state.currency) {
+    radioCards.forEach((c) => c.classList.remove('selected'));
+    document.querySelector('.radio-card[for="curr-others"]')?.classList.add('selected');
+    const input = document.getElementById('curr-others');
+    if (input) input.checked = true;
+    customBox?.classList.remove('hidden');
+    if (customSelect) {
+      customSelect.value = state.currency;
+      if (othersLabel) othersLabel.textContent = `Others (${state.currencyLabel})`;
+    }
+  }
 
   radioCards.forEach((card) => {
     const input = card.querySelector('input[type="radio"]');
@@ -477,18 +570,21 @@ function initCurrencySelection() {
         state.currencyLabel = 'Indian Rupee (₹)';
         state.currencySymbol = '₹';
         customBox?.classList.add('hidden');
+        saveCurrencyPreference();
       } else if (val === 'USD') {
         state.currency = 'USD';
         state.currencyLabel = 'USD ($)';
         state.currencySymbol = '$';
         customBox?.classList.add('hidden');
+        saveCurrencyPreference();
       } else if (val === 'OTHER') {
         customBox?.classList.remove('hidden');
         if (customSelect) {
           state.currency = customSelect.value;
           state.currencyLabel = customSelect.options[customSelect.selectedIndex].text;
-          state.currencySymbol = state.currency + ' ';
+          state.currencySymbol = resolveCurrencySymbol(state.currency);
           if (othersLabel) othersLabel.textContent = `Others (${state.currencyLabel})`;
+          saveCurrencyPreference();
         }
       }
     });
@@ -498,8 +594,9 @@ function initCurrencySelection() {
     customSelect.addEventListener('change', () => {
       state.currency = customSelect.value;
       state.currencyLabel = customSelect.options[customSelect.selectedIndex].text;
-      state.currencySymbol = state.currency + ' ';
+      state.currencySymbol = resolveCurrencySymbol(state.currency);
       if (othersLabel) othersLabel.textContent = `Others (${state.currencyLabel})`;
+      saveCurrencyPreference();
     });
   }
 }
@@ -1595,7 +1692,7 @@ function initDashboard() {
       }
       modalRecord?.classList.add('hidden');
       await syncDashboardFromCloud();
-      showToast(`✅ Payment of ₹${parseFloat(amount).toLocaleString('en-IN')} recorded & saved to Supabase!`, 3500);
+      showToast(`✅ Payment of ${getCurrencySymbol()}${parseFloat(amount).toLocaleString('en-IN')} recorded & saved to Supabase!`, 3500);
     } catch (err) {
       showToast(`❌ Error recording payment: ${err.message}`);
     }
@@ -1611,7 +1708,7 @@ function initDashboard() {
   function openBillModal(tenancy = 'Property', cycle = 'Monthly', total = '12,000') {
     if (billTargetTenancy) billTargetTenancy.textContent = tenancy;
     if (billTargetCycle) billTargetCycle.textContent = cycle;
-    if (billCalculatedTotal) billCalculatedTotal.textContent = `₹${total}`;
+    if (billCalculatedTotal) billCalculatedTotal.textContent = `${getCurrencySymbol()}${total}`;
     modalBill?.classList.remove('hidden');
   }
 
@@ -1695,7 +1792,7 @@ export function computeTenancyStatusBadge(tenancy, allBills = [], allPayments = 
       return { text: `Outstanding ${unpaidBills.length} bills`, category: 'overdue', icon: '⚠️' };
     }
     const netDue = parseFloat(unpaidBills[0].net_payable) || baseRent;
-    return { text: `Outstanding • ₹${formatCurrencyAmount(netDue)} bill`, category: 'overdue', icon: '⚠️' };
+    return { text: `Outstanding • ${getCurrencySymbol()}${formatCurrencyAmount(netDue)} bill`, category: 'overdue', icon: '⚠️' };
   }
 
   // 2. Build paid map
@@ -1812,9 +1909,9 @@ export function computeTenancyStatusBadge(tenancy, allBills = [], allPayments = 
   if (currPaid > 0 && currNetDue > 0) {
     // Partial payment made
     if (todayDate > billingDay) {
-      return { text: `Outstanding • ₹${formatCurrencyAmount(currNetDue)} due`, category: 'overdue', icon: '⚠️' };
+      return { text: `Outstanding • ${getCurrencySymbol()}${formatCurrencyAmount(currNetDue)} due`, category: 'overdue', icon: '⚠️' };
     } else if (todayDate === billingDay) {
-      return { text: `Due Today (₹${formatCurrencyAmount(currNetDue)})`, category: 'due-today', icon: '⏳' };
+      return { text: `Due Today (${getCurrencySymbol()}${formatCurrencyAmount(currNetDue)})`, category: 'due-today', icon: '⏳' };
     } else {
       const diff = billingDay - todayDate;
       if (diff === 1) return { text: 'Due tomorrow', category: 'due-today', icon: '⏳' };
@@ -2030,7 +2127,7 @@ export async function syncDashboardFromCloud() {
             <div class="tenancy-card-main-row" role="button" tabindex="0" aria-label="View ${t.property_name} tenancy details">
               <div class="tenancy-info">
                 <h2 class="tenancy-name">${t.property_name}</h2>
-                <span class="tenancy-meta-sub">₹${rentFormatted} • Monthly</span>
+                <span class="tenancy-meta-sub">${getCurrencySymbol()}${rentFormatted} • Monthly</span>
               </div>
               <div class="tenancy-row-chevron" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
@@ -2041,7 +2138,7 @@ export async function syncDashboardFromCloud() {
             <div class="tenancy-card-divider"></div>
             <div class="tenancy-metrics-grid">
               <div class="metric-col">
-                <span class="metric-title">₹${rentFormatted}</span>
+                <span class="metric-title">${getCurrencySymbol()}${rentFormatted}</span>
                 <span class="metric-label">Base Rent</span>
               </div>
               <div class="metric-col right-align">
@@ -2112,7 +2209,7 @@ export async function syncDashboardFromCloud() {
               <span class="recent-item-timestamp">Generated on ${b.generated_date} • ${b.status}</span>
             </div>
             <div class="recent-item-right">
-              <strong class="recent-item-amount">₹${formatCurrencyAmount(b.net_payable)}</strong>
+              <strong class="recent-item-amount">${getCurrencySymbol()}${formatCurrencyAmount(b.net_payable)}</strong>
               <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="9 18 15 12 9 6"></polyline>
               </svg>
@@ -2149,7 +2246,7 @@ export async function syncDashboardFromCloud() {
               <span class="recent-item-timestamp">Paid on ${p.payment_date} ${p.reference_no ? '• Ref: ' + p.reference_no : ''}</span>
             </div>
             <div class="recent-item-right">
-              <strong class="recent-item-amount">₹${formatCurrencyAmount(p.amount)}</strong>
+              <strong class="recent-item-amount">${getCurrencySymbol()}${formatCurrencyAmount(p.amount)}</strong>
               <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="9 18 15 12 9 6"></polyline>
               </svg>
@@ -2199,7 +2296,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
 
   if (propTitle) propTitle.textContent = t.property_name;
   const rentNum = parseFloat(t.base_rent || 0);
-  if (rentRate) rentRate.textContent = `₹${rentNum.toLocaleString('en-IN')} • Monthly`;
+  if (rentRate) rentRate.textContent = `${getCurrencySymbol()}${rentNum.toLocaleString('en-IN')} • Monthly`;
   const bDay = parseInt(t.billing_day, 10) || 1;
   const now = new Date();
   let nextDate = new Date(now.getFullYear(), now.getMonth(), bDay);
@@ -2295,7 +2392,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
     if (editInputPaidUp) editInputPaidUp.value = '';
   }
 
-  if (reviseCurrentRent) reviseCurrentRent.value = `₹${rentNum.toLocaleString('en-IN')}`;
+  if (reviseCurrentRent) reviseCurrentRent.value = `${getCurrencySymbol()}${rentNum.toLocaleString('en-IN')}`;
 
   const elecUtil = t.tenancy_utilities?.find((u) => u.utility_type === 'electricity');
   const waterUtil = t.tenancy_utilities?.find((u) => u.utility_type === 'water');
@@ -2383,11 +2480,11 @@ export async function bindTenancyToDetails(t, targetYear = null) {
     const revDate = activeRevision.effective_date ? new Date(activeRevision.effective_date + 'T00:00:00') : null;
     const dateStr = revDate && !isNaN(revDate.getTime()) ? revDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : (activeRevision.note || 'Next Cycle');
     if (bannerRevision && bannerRevisionText) {
-      bannerRevisionText.textContent = `₹${revRent} scheduled (${activeRevision.note || 'Next Cycle'})`;
+      bannerRevisionText.textContent = `${getCurrencySymbol()}${revRent} scheduled (${activeRevision.note || 'Next Cycle'})`;
       bannerRevision.classList.remove('hidden');
     }
     if (detailsScheduledRow && detailsScheduledChip) {
-      detailsScheduledChip.textContent = `📈 ₹${revRent} scheduled (${dateStr})`;
+      detailsScheduledChip.textContent = `📈 ${getCurrencySymbol()}${revRent} scheduled (${dateStr})`;
       detailsScheduledRow.classList.remove('hidden');
     }
   } else {
@@ -2442,11 +2539,11 @@ export async function bindTenancyToDetails(t, targetYear = null) {
     const totalPaid = tenancyPayments.reduce((acc, p) => acc + parseFloat(p.amount || 0), 0) + baselineSettledAmount;
     const totalCount = tenancyPayments.length + baselineSettledCount;
     if (billsCount) billsCount.textContent = hasUtils ? `${totalCount} paid` : `${totalCount} payments`;
-    if (totalAmount) totalAmount.textContent = `₹${formatCurrencyAmount(totalPaid)}`;
+    if (totalAmount) totalAmount.textContent = `${getCurrencySymbol()}${formatCurrencyAmount(totalPaid)}`;
 
     if (hasUtils && tenancyBills.length > 0 && lastBillCol && lastBillAmount) {
       lastBillCol.classList.remove('hidden');
-      lastBillAmount.textContent = `₹${parseFloat(tenancyBills[0].net_payable).toLocaleString('en-IN')}`;
+      lastBillAmount.textContent = `${getCurrencySymbol()}${parseFloat(tenancyBills[0].net_payable).toLocaleString('en-IN')}`;
     } else if (lastBillCol) {
       lastBillCol.classList.add('hidden');
     }
@@ -2667,7 +2764,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
                 </div>
               </div>
               <div class="month-card-right">
-                <span class="month-amount">₹${formatCurrencyAmount(monthAllocatedAmount)}</span>
+                <span class="month-amount">${getCurrencySymbol()}${formatCurrencyAmount(monthAllocatedAmount)}</span>
                 <span class="month-status-pill" style="background-color: #E0F2FE; color: #0284C7; border: 1px solid #BAE6FD;">⏩ Advance</span>
               </div>
             `;
@@ -2691,7 +2788,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
                 </div>
               </div>
               <div class="month-card-right">
-                <span class="month-amount" style="color: #B45309;">₹${formatCurrencyAmount(monthAllocatedAmount)}</span>
+                <span class="month-amount" style="color: #B45309;">${getCurrencySymbol()}${formatCurrencyAmount(monthAllocatedAmount)}</span>
                 <span class="month-status-pill" style="background-color: #FEF3C7; color: #B45309; border: 1px solid #FDE68A;">⚠️ Partial</span>
               </div>
             `;
@@ -2713,7 +2810,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
                 </div>
               </div>
               <div class="month-card-right">
-                <span class="month-amount">₹${formatCurrencyAmount(monthAllocatedAmount)}</span>
+                <span class="month-amount">${getCurrencySymbol()}${formatCurrencyAmount(monthAllocatedAmount)}</span>
                 <span class="month-status-pill paid">✔ Settled</span>
               </div>
             `;
@@ -2731,7 +2828,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
               </div>
             </div>
             <div class="month-card-right">
-              <span class="month-amount">₹${rentNum.toLocaleString('en-IN')}</span>
+              <span class="month-amount">${getCurrencySymbol()}${rentNum.toLocaleString('en-IN')}</span>
               <span class="month-status-pill paid">✔ Settled</span>
             </div>
           `;
@@ -2754,7 +2851,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
               </div>
             </div>
             <div class="month-card-right">
-              <span class="month-amount" style="color: #DC2626;">₹${formatCurrencyAmount(matchedBill.net_payable)}</span>
+              <span class="month-amount" style="color: #DC2626;">${getCurrencySymbol()}${formatCurrencyAmount(matchedBill.net_payable)}</span>
               <span class="month-status-pill due">⚠️ Due</span>
             </div>
           `;
@@ -2779,7 +2876,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
                 </div>
               </div>
               <div class="month-card-right">
-                <span class="month-amount">₹${rentNum.toLocaleString('en-IN')}</span>
+                <span class="month-amount">${getCurrencySymbol()}${rentNum.toLocaleString('en-IN')}</span>
                 <span class="month-status-pill upcoming">⏳ Next</span>
               </div>
             `;
@@ -2798,7 +2895,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
                 </div>
               </div>
               <div class="month-card-right">
-                <span class="month-amount">₹${rentNum.toLocaleString('en-IN')}</span>
+                <span class="month-amount">${getCurrencySymbol()}${rentNum.toLocaleString('en-IN')}</span>
                 <span class="month-status-pill upcoming">⏳ Due</span>
               </div>
             `;
@@ -2814,7 +2911,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
               </div>
             </div>
             <div class="month-card-right">
-              <span class="month-amount">₹${rentNum.toLocaleString('en-IN')}</span>
+              <span class="month-amount">${getCurrencySymbol()}${rentNum.toLocaleString('en-IN')}</span>
               <span class="month-status-pill future">Upcoming</span>
             </div>
           `;
@@ -2838,7 +2935,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
               </div>
             </div>
             <div class="month-card-right">
-              <span class="month-amount" style="color: #DC2626;">₹${rentNum.toLocaleString('en-IN')}</span>
+              <span class="month-amount" style="color: #DC2626;">${getCurrencySymbol()}${rentNum.toLocaleString('en-IN')}</span>
               <span class="month-status-pill due">⚠️ Due</span>
             </div>
           `;
@@ -2866,7 +2963,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
             <span class="recent-item-timestamp">Paid on ${p.payment_date} ${p.reference_no ? '• Ref: ' + p.reference_no : ''}</span>
           </div>
           <div class="recent-item-right">
-            <strong class="recent-item-amount">₹${formatCurrencyAmount(p.amount)}</strong>
+            <strong class="recent-item-amount">${getCurrencySymbol()}${formatCurrencyAmount(p.amount)}</strong>
             <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
@@ -3122,14 +3219,14 @@ function initEditTenancy() {
 
         if (indicatorTitle) indicatorTitle.textContent = `⏱️ Revision Scheduled${inDaysText}`;
         if (indicatorSub) {
-          indicatorSub.textContent = `₹${parseFloat(activeScheduled.old_rent || 0).toLocaleString('en-IN')} → ₹${parseFloat(activeScheduled.new_rent || 0).toLocaleString('en-IN')} on ${fmtDate}`;
+          indicatorSub.textContent = `${getCurrencySymbol()}${parseFloat(activeScheduled.old_rent || 0).toLocaleString('en-IN')} → ${getCurrencySymbol()}${parseFloat(activeScheduled.new_rent || 0).toLocaleString('en-IN')} on ${fmtDate}`;
         }
       } else if (lastApplied) {
         const revDate = new Date(lastApplied.effective_date || lastApplied.created_at);
         const diffDays = Math.max(0, Math.floor((now - revDate) / (1000 * 60 * 60 * 24)));
         const daysText = diffDays === 0 ? 'Today' : (diffDays === 1 ? '1 day ago' : `${diffDays} days ago`);
-        const formattedOld = `₹${parseFloat(lastApplied.old_rent || 0).toLocaleString('en-IN')}`;
-        const formattedNew = `₹${parseFloat(lastApplied.new_rent || 0).toLocaleString('en-IN')}`;
+        const formattedOld = `${getCurrencySymbol()}${parseFloat(lastApplied.old_rent || 0).toLocaleString('en-IN')}`;
+        const formattedNew = `${getCurrencySymbol()}${parseFloat(lastApplied.new_rent || 0).toLocaleString('en-IN')}`;
         const dateLabel = lastApplied.effective_date || (lastApplied.created_at ? lastApplied.created_at.split('T')[0] : '');
 
         if (indicatorTitle) indicatorTitle.textContent = `⏱️ Last revised: ${daysText}`;
@@ -3172,7 +3269,7 @@ function initEditTenancy() {
               </div>
               <div style="text-align: right;">
                 <strong style="color: #0E1326; font-size: 13px; display: block;">
-                  ₹${rNew.toLocaleString('en-IN')}
+                  ${getCurrencySymbol()}${rNew.toLocaleString('en-IN')}
                 </strong>
                 <span style="font-size: 11px; color: ${isUp ? '#16A34A' : '#DC2626'}; font-weight: 600;">
                   ${deltaSign}₹${Math.abs(delta).toLocaleString('en-IN')} (${deltaSign}${deltaPct}%)
@@ -3279,7 +3376,7 @@ function initEditTenancy() {
     }
     const curRentDisplay = document.getElementById('revise-current-rent-display');
     if (curRentDisplay) {
-      curRentDisplay.value = `₹${parseFloat(currentActiveTenancy.base_rent || 0).toLocaleString('en-IN')}`;
+      curRentDisplay.value = `${getCurrencySymbol()}${parseFloat(currentActiveTenancy.base_rent || 0).toLocaleString('en-IN')}`;
     }
 
     // Check if an active scheduled revision exists to prefill or clear inputs
@@ -3387,7 +3484,7 @@ function initEditTenancy() {
       }
 
       if (bannerRevisionText) {
-        bannerRevisionText.textContent = `₹${parseFloat(newRent).toLocaleString('en-IN')} scheduled (${cycleLabel})`;
+        bannerRevisionText.textContent = `${getCurrencySymbol()}${parseFloat(newRent).toLocaleString('en-IN')} scheduled (${cycleLabel})`;
       }
       bannerRevision?.classList.remove('hidden');
       const detailsScheduledRow = document.getElementById('details-scheduled-badge-row');
@@ -3395,7 +3492,7 @@ function initEditTenancy() {
       if (detailsScheduledRow && detailsScheduledChip) {
         const revDate = effectiveDateStr ? new Date(effectiveDateStr + 'T00:00:00') : null;
         const dateStr = revDate && !isNaN(revDate.getTime()) ? revDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : cycleLabel;
-        detailsScheduledChip.textContent = `📈 ₹${parseFloat(newRent).toLocaleString('en-IN')} scheduled (${dateStr})`;
+        detailsScheduledChip.textContent = `📈 ${getCurrencySymbol()}${parseFloat(newRent).toLocaleString('en-IN')} scheduled (${dateStr})`;
         detailsScheduledRow.classList.remove('hidden');
       }
       modalRevise?.classList.add('hidden');
@@ -3404,8 +3501,8 @@ function initEditTenancy() {
       if (notifyTenant) {
         const tenantPhone = currentActiveTenancy.tenant_phone;
         const propName = currentActiveTenancy.property_name || 'your rental property';
-        const oldRentFmt = `₹${parseFloat(currentActiveTenancy.base_rent || 0).toLocaleString('en-IN')}`;
-        const newRentFmt = `₹${parseFloat(newRent).toLocaleString('en-IN')}`;
+        const oldRentFmt = `${getCurrencySymbol()}${parseFloat(currentActiveTenancy.base_rent || 0).toLocaleString('en-IN')}`;
+        const newRentFmt = `${getCurrencySymbol()}${parseFloat(newRent).toLocaleString('en-IN')}`;
         const revMsg = `📢 *Notice of Rent Revision*\n\nDear Tenant,\nThis is to notify you that the monthly rent for *${propName}* will be revised from ${oldRentFmt} to *${newRentFmt}* effective *${cycleLabel}*.\n\nThank you,\nRental Buddy`;
         const phoneParam = tenantPhone ? `phone=${encodeURIComponent(formatWhatsAppPhone(tenantPhone))}&` : '';
         const waUrl = `https://api.whatsapp.com/send?${phoneParam}text=${encodeURIComponent(revMsg)}`;
@@ -3413,8 +3510,8 @@ function initEditTenancy() {
       }
 
       const msg = notifyTenant 
-        ? `📈 Rent revision scheduled to ₹${parseFloat(newRent).toLocaleString('en-IN')} (${cycleLabel}) • Tenant notified via WhatsApp`
-        : `📈 Rent revision scheduled to ₹${parseFloat(newRent).toLocaleString('en-IN')} (${cycleLabel}) • Cloud Synced`;
+        ? `📈 Rent revision scheduled to ${getCurrencySymbol()}${parseFloat(newRent).toLocaleString('en-IN')} (${cycleLabel}) • Tenant notified via WhatsApp`
+        : `📈 Rent revision scheduled to ${getCurrencySymbol()}${parseFloat(newRent).toLocaleString('en-IN')} (${cycleLabel}) • Cloud Synced`;
       showToast(msg, 3500);
     } catch (e) {
       showToast(`❌ Revision error: ${e.message}`);
@@ -4155,7 +4252,7 @@ export function setupRecordPaymentForm(tenancy, targetMonth = null) {
   if (selectMonth) {
     selectMonth.innerHTML = allCycles.map((c) => {
       let tag = c.isPastDue ? '⚠️ Overdue' : (c.isCurrent ? '📅 Current' : '⏳ Advance');
-      return `<option value="${c.monthLabel}">${c.monthLabel} • ${tag} (₹${formatCurrencyAmount(c.netDue)} due)</option>`;
+      return `<option value="${c.monthLabel}">${c.monthLabel} • ${tag} (${getCurrencySymbol()}${formatCurrencyAmount(c.netDue)} due)</option>`;
     }).join('');
   }
 
@@ -4196,21 +4293,21 @@ export function setupRecordPaymentForm(tenancy, targetMonth = null) {
 
   if (dueHint) {
     if (activeCycle.isPastDue) {
-      dueHint.textContent = `Past Due: ₹${formatCurrencyAmount(activeCycle.netDue)} (${activeCycle.monthLabel})`;
+      dueHint.textContent = `Past Due: ${getCurrencySymbol()}${formatCurrencyAmount(activeCycle.netDue)} (${activeCycle.monthLabel})`;
       dueHint.style.color = '#DC2626';
     } else if (activeCycle.isCurrent) {
       if (activeCycle.alreadyPaid > 0) {
-        dueHint.textContent = `Balance Due: ₹${formatCurrencyAmount(activeCycle.netDue)} (₹${formatCurrencyAmount(activeCycle.alreadyPaid)} prev. paid)`;
+        dueHint.textContent = `Balance Due: ${getCurrencySymbol()}${formatCurrencyAmount(activeCycle.netDue)} (${getCurrencySymbol()}${formatCurrencyAmount(activeCycle.alreadyPaid)} prev. paid)`;
         dueHint.style.color = '#B45309';
       } else {
-        dueHint.textContent = `Rent: ₹${formatCurrencyAmount(baseRent)}`;
+        dueHint.textContent = `Rent: ${getCurrencySymbol()}${formatCurrencyAmount(baseRent)}`;
         dueHint.style.color = '#5452EC';
       }
     } else {
       if (activeCycle.alreadyPaid > 0) {
-        dueHint.textContent = `Next Cycle: ₹${formatCurrencyAmount(activeCycle.netDue)} (₹${formatCurrencyAmount(activeCycle.alreadyPaid)} Adv. applied)`;
+        dueHint.textContent = `Next Cycle: ${getCurrencySymbol()}${formatCurrencyAmount(activeCycle.netDue)} (${getCurrencySymbol()}${formatCurrencyAmount(activeCycle.alreadyPaid)} Adv. applied)`;
       } else {
-        dueHint.textContent = `Next Cycle: ₹${formatCurrencyAmount(baseRent)} (${activeCycle.monthLabel})`;
+        dueHint.textContent = `Next Cycle: ${getCurrencySymbol()}${formatCurrencyAmount(baseRent)} (${activeCycle.monthLabel})`;
       }
       dueHint.style.color = '#5452EC';
     }
@@ -4291,7 +4388,7 @@ export function computeWaterfallAllocations(tenancy, amountVal, startMonthLabel 
           badgeClass: item.isPastDue ? 'badge-overdue' : 'badge-advance',
           icon: item.isPastDue ? '⚠️' : '📅',
           noteText: item.alreadyPaid > 0
-            ? `₹${formatCurrencyAmount(item.alreadyPaid)} paid • ₹${formatCurrencyAmount(item.netDue)} due`
+            ? `${getCurrencySymbol()}${formatCurrencyAmount(item.alreadyPaid)} paid • ${getCurrencySymbol()}${formatCurrencyAmount(item.netDue)} due`
             : (item.isPastDue ? 'Past due balance' : 'Billing cycle due'),
         });
       }
@@ -4312,7 +4409,7 @@ export function computeWaterfallAllocations(tenancy, amountVal, startMonthLabel 
         badgeClass: 'badge-settled',
         icon: '✓',
         noteText: item.alreadyPaid > 0
-          ? `₹${formatCurrencyAmount(item.alreadyPaid)} prev. • Balance cleared`
+          ? `${getCurrencySymbol()}${formatCurrencyAmount(item.alreadyPaid)} prev. • Balance cleared`
           : (item.isPastDue ? 'Past due cleared' : (item.isCurrent ? 'Current cycle cleared' : 'Advance cleared')),
       });
       remaining -= targetNeed;
@@ -4330,7 +4427,7 @@ export function computeWaterfallAllocations(tenancy, amountVal, startMonthLabel 
         badgeText: 'Partial',
         badgeClass: 'badge-partial',
         icon: '⚠️',
-        noteText: `₹${formatCurrencyAmount(bal)} due`,
+        noteText: `${getCurrencySymbol()}${formatCurrencyAmount(bal)} due`,
       });
       remaining = 0;
     }
@@ -4376,7 +4473,7 @@ export function computeWaterfallAllocations(tenancy, amountVal, startMonthLabel 
         badgeText: 'Advance',
         badgeClass: 'badge-advance',
         icon: '⏩',
-        noteText: `Advance credit • ₹${formatCurrencyAmount(advNeed - remaining)} remaining`,
+        noteText: `Advance credit • ${getCurrencySymbol()}${formatCurrencyAmount(advNeed - remaining)} remaining`,
       });
       remaining = 0;
     }
@@ -4417,7 +4514,7 @@ export function renderWaterfallBreakdown(tenancy, startMonthLabel = null) {
     notice.className = 'waterfall-settled-notice';
     notice.innerHTML = `
       <span class="notice-check">✓</span>
-      <span><strong>${currMonthLabel}</strong> is already fully settled (₹${formatCurrencyAmount(currPaid)} paid). Payment applies to upcoming cycle.</span>
+      <span><strong>${currMonthLabel}</strong> is already fully settled (${getCurrencySymbol()}${formatCurrencyAmount(currPaid)} paid). Payment applies to upcoming cycle.</span>
     `;
     listContainer.appendChild(notice);
   }
@@ -4445,7 +4542,7 @@ export function renderWaterfallBreakdown(tenancy, startMonthLabel = null) {
           <span class="waterfall-status-icon">${item.icon}</span>
           <strong class="waterfall-month-title">${item.monthLabel}</strong>
         </div>
-        <span class="waterfall-amount-applied">₹${formatCurrencyAmount(item.allocated || 0)}</span>
+        <span class="waterfall-amount-applied">${getCurrencySymbol()}${formatCurrencyAmount(item.allocated || 0)}</span>
       </div>
       <div class="waterfall-card-bottom-row">
         <span class="waterfall-month-note">${item.noteText}</span>
@@ -4456,13 +4553,13 @@ export function renderWaterfallBreakdown(tenancy, startMonthLabel = null) {
   });
 
   if (totalAllocatedEl) {
-    totalAllocatedEl.textContent = `₹${formatCurrencyAmount(amountVal)}`;
+    totalAllocatedEl.textContent = `${getCurrencySymbol()}${formatCurrencyAmount(amountVal)}`;
   }
 
   if (totalBalanceLeft > 0) {
     balanceRow?.classList.remove('hidden');
     if (remainingBalanceEl) {
-      remainingBalanceEl.textContent = `₹${formatCurrencyAmount(totalBalanceLeft)}`;
+      remainingBalanceEl.textContent = `${getCurrencySymbol()}${formatCurrencyAmount(totalBalanceLeft)}`;
     }
   } else {
     balanceRow?.classList.add('hidden');
@@ -4501,13 +4598,13 @@ function initRecordPaymentPage() {
       if (amountInput) amountInput.value = cycle.netDue > 0 ? cycle.netDue : baseRent;
       if (dueHint) {
         if (cycle.isPastDue) {
-          dueHint.textContent = `Past Due: ₹${formatCurrencyAmount(cycle.netDue)} (${cycle.monthLabel})`;
+          dueHint.textContent = `Past Due: ${getCurrencySymbol()}${formatCurrencyAmount(cycle.netDue)} (${cycle.monthLabel})`;
           dueHint.style.color = '#DC2626';
         } else if (cycle.isCurrent) {
-          dueHint.textContent = `Current Due: ₹${formatCurrencyAmount(cycle.netDue)} (${cycle.monthLabel})`;
+          dueHint.textContent = `Current Due: ${getCurrencySymbol()}${formatCurrencyAmount(cycle.netDue)} (${cycle.monthLabel})`;
           dueHint.style.color = '#5452EC';
         } else {
-          dueHint.textContent = `Advance: ₹${formatCurrencyAmount(cycle.netDue)} (${cycle.monthLabel})`;
+          dueHint.textContent = `Advance: ${getCurrencySymbol()}${formatCurrencyAmount(cycle.netDue)} (${cycle.monthLabel})`;
           dueHint.style.color = '#0284C7';
         }
       }
@@ -4614,14 +4711,14 @@ function initRecordPaymentPage() {
     let settledMonths = activeAllocations.map((a) => {
       if (a.type === 'advance') {
         if (a.balanceLeft === 0) {
-          return `${a.monthLabel} (₹${formatCurrencyAmount(a.allocated)})`;
+          return `${a.monthLabel} (${getCurrencySymbol()}${formatCurrencyAmount(a.allocated)})`;
         }
-        return `${a.monthLabel} (Advance: ₹${formatCurrencyAmount(a.allocated)})`;
+        return `${a.monthLabel} (Advance: ${getCurrencySymbol()}${formatCurrencyAmount(a.allocated)})`;
       }
       if (a.status === 'partial') {
-        return `${a.monthLabel} (Partial: ₹${formatCurrencyAmount(a.allocated)}/${formatCurrencyAmount(a.due)})`;
+        return `${a.monthLabel} (Partial: ${getCurrencySymbol()}${formatCurrencyAmount(a.allocated)}/${formatCurrencyAmount(a.due)})`;
       }
-      return `${a.monthLabel} (₹${formatCurrencyAmount(a.allocated)})`;
+      return `${a.monthLabel} (${getCurrencySymbol()}${formatCurrencyAmount(a.allocated)})`;
     });
     let settledBillIds = activeAllocations.filter((a) => a.status === 'settled' && a.billId).map((a) => a.billId);
 
@@ -4652,8 +4749,8 @@ function initRecordPaymentPage() {
       await syncDashboardFromCloud();
 
       const toastMsg = sendWhatsApp
-        ? `✅ ₹${parseFloat(amountVal).toLocaleString('en-IN')} recorded for ${selectedRecordTenancy.property_name}! Opening receipt...`
-        : `✅ ₹${parseFloat(amountVal).toLocaleString('en-IN')} recorded! Opening receipt...`;
+        ? `✅ ${getCurrencySymbol()}${parseFloat(amountVal).toLocaleString('en-IN')} recorded for ${selectedRecordTenancy.property_name}! Opening receipt...`
+        : `✅ ${getCurrencySymbol()}${parseFloat(amountVal).toLocaleString('en-IN')} recorded! Opening receipt...`;
 
       showToast(toastMsg, 2500);
 
@@ -4782,38 +4879,38 @@ export function renderBillDetails(b) {
   if (genDateEl) genDateEl.textContent = b.generatedDate || b.generated_date || new Date().toISOString().split('T')[0];
 
   const rentVal = document.getElementById('details-bill-rent-val');
-  if (rentVal) rentVal.textContent = `₹${formatCurrencyAmount(b.baseRent || b.base_rent || 0)}`;
+  if (rentVal) rentVal.textContent = `${getCurrencySymbol()}${formatCurrencyAmount(b.baseRent || b.base_rent || 0)}`;
 
   const elecUnits = b.electricityUnits ?? b.electricity_units ?? 0;
   const elecCost = b.electricityCost ?? b.electricity_cost ?? 0;
   const elecSub = document.getElementById('details-bill-elec-sub');
   if (elecSub) elecSub.textContent = `${elecUnits} units`;
   const elecVal = document.getElementById('details-bill-elec-val');
-  if (elecVal) elecVal.textContent = `₹${formatCurrencyAmount(elecCost)}`;
+  if (elecVal) elecVal.textContent = `${getCurrencySymbol()}${formatCurrencyAmount(elecCost)}`;
 
   const waterCost = b.waterCost ?? b.water_cost ?? 0;
   const waterVal = document.getElementById('details-bill-water-val');
-  if (waterVal) waterVal.textContent = `₹${formatCurrencyAmount(waterCost)}`;
+  if (waterVal) waterVal.textContent = `${getCurrencySymbol()}${formatCurrencyAmount(waterCost)}`;
 
   const internetCost = b.internetCost ?? b.internet_cost ?? 0;
   const internetVal = document.getElementById('details-bill-internet-val');
-  if (internetVal) internetVal.textContent = `₹${formatCurrencyAmount(internetCost)}`;
+  if (internetVal) internetVal.textContent = `${getCurrencySymbol()}${formatCurrencyAmount(internetCost)}`;
 
   const sewageCost = b.sewageCost ?? b.otherUtilitiesCost ?? b.other_utilities_cost ?? 0;
   const sewageVal = document.getElementById('details-bill-sewage-val');
-  if (sewageVal) sewageVal.textContent = `₹${formatCurrencyAmount(sewageCost)}`;
+  if (sewageVal) sewageVal.textContent = `${getCurrencySymbol()}${formatCurrencyAmount(sewageCost)}`;
 
   const subtotal = b.subtotal ?? (parseFloat(b.baseRent || b.base_rent || 0) + parseFloat(elecCost) + parseFloat(waterCost) + parseFloat(internetCost) + parseFloat(sewageCost));
   const subtotalVal = document.getElementById('details-bill-subtotal-val');
-  if (subtotalVal) subtotalVal.textContent = `₹${formatCurrencyAmount(subtotal)}`;
+  if (subtotalVal) subtotalVal.textContent = `${getCurrencySymbol()}${formatCurrencyAmount(subtotal)}`;
 
   const advance = b.advanceDeducted ?? b.advance_deducted ?? 0;
   const advVal = document.getElementById('details-bill-advance-val');
-  if (advVal) advVal.textContent = `– ₹${formatCurrencyAmount(advance)}`;
+  if (advVal) advVal.textContent = `– ${getCurrencySymbol()}${formatCurrencyAmount(advance)}`;
 
   const netPayable = b.netPayable ?? b.net_payable ?? subtotal;
   const netVal = document.getElementById('details-bill-net-val');
-  if (netVal) netVal.textContent = `₹${formatCurrencyAmount(netPayable)}`;
+  if (netVal) netVal.textContent = `${getCurrencySymbol()}${formatCurrencyAmount(netPayable)}`;
 
   const notesText = document.getElementById('details-bill-notes-text');
   if (notesText) notesText.textContent = b.notes || 'None';
@@ -4959,30 +5056,30 @@ function initBillGenerationFlow() {
     if (genDateEl) genDateEl.textContent = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 
     const rentEl = document.getElementById('review-rent-val');
-    if (rentEl) rentEl.textContent = `₹${rent.toLocaleString('en-IN')}`;
+    if (rentEl) rentEl.textContent = `${getCurrencySymbol()}${rent.toLocaleString('en-IN')}`;
 
     const elecSub = document.getElementById('review-elec-sub');
-    if (elecSub) elecSub.textContent = `${currElec} - ${prevElec} = ${units} units @ ₹${elecPricePerUnit}/unit`;
+    if (elecSub) elecSub.textContent = `${currElec} - ${prevElec} = ${units} units @ ${getCurrencySymbol()}${elecPricePerUnit}/unit`;
     const elecVal = document.getElementById('review-elec-val');
-    if (elecVal) elecVal.textContent = `₹${elecTotal.toLocaleString('en-IN')}`;
+    if (elecVal) elecVal.textContent = `${getCurrencySymbol()}${elecTotal.toLocaleString('en-IN')}`;
 
     const waterVal = document.getElementById('review-water-val');
-    if (waterVal) waterVal.textContent = `₹${waterTotal.toLocaleString('en-IN')}`;
+    if (waterVal) waterVal.textContent = `${getCurrencySymbol()}${waterTotal.toLocaleString('en-IN')}`;
 
     const internetEl = document.getElementById('review-internet-val');
-    if (internetEl) internetEl.textContent = `₹${internetTotal.toLocaleString('en-IN')}`;
+    if (internetEl) internetEl.textContent = `${getCurrencySymbol()}${internetTotal.toLocaleString('en-IN')}`;
 
     const sewageEl = document.getElementById('review-sewage-val');
-    if (sewageEl) sewageEl.textContent = `₹${garbageTotal.toLocaleString('en-IN')}`;
+    if (sewageEl) sewageEl.textContent = `${getCurrencySymbol()}${garbageTotal.toLocaleString('en-IN')}`;
 
     const subtotalVal = document.getElementById('review-subtotal-val');
-    if (subtotalVal) subtotalVal.textContent = `₹${subtotal.toLocaleString('en-IN')}`;
+    if (subtotalVal) subtotalVal.textContent = `${getCurrencySymbol()}${subtotal.toLocaleString('en-IN')}`;
 
     const advVal = document.getElementById('review-advance-val');
-    if (advVal) advVal.textContent = `– ₹${advance.toLocaleString('en-IN')}`;
+    if (advVal) advVal.textContent = `– ${getCurrencySymbol()}${advance.toLocaleString('en-IN')}`;
 
     const netVal = document.getElementById('review-net-val');
-    if (netVal) netVal.textContent = `₹${netPayable.toLocaleString('en-IN')}`;
+    if (netVal) netVal.textContent = `${getCurrencySymbol()}${netPayable.toLocaleString('en-IN')}`;
 
     const notesText = document.getElementById('review-notes-text');
     if (notesText) notesText.textContent = notesVal || 'No notes added.';
@@ -5060,7 +5157,7 @@ function initBillGenerationFlow() {
 
       await syncDashboardFromCloud();
 
-      showToast(`✅ Bill of ₹${activeBillDraft.netPayable.toLocaleString('en-IN')} generated & saved to Supabase!`, 3500);
+      showToast(`✅ Bill of ${getCurrencySymbol()}${activeBillDraft.netPayable.toLocaleString('en-IN')} generated & saved to Supabase!`, 3500);
 
       navigateToScreen(15);
     } catch (e) {
@@ -5087,10 +5184,10 @@ function initBillGenerationFlow() {
     const waste = activeBillDraft?.sewageCost ?? activeBillDraft?.otherUtilitiesCost ?? 0;
 
     let extraLines = '';
-    if (internet > 0) extraLines += `\n• Internet: ₹${parseFloat(internet).toLocaleString('en-IN')}`;
-    if (waste > 0) extraLines += `\n• Waste/Other: ₹${parseFloat(waste).toLocaleString('en-IN')}`;
+    if (internet > 0) extraLines += `\n• Internet: ${getCurrencySymbol()}${parseFloat(internet).toLocaleString('en-IN')}`;
+    if (waste > 0) extraLines += `\n• Waste/Other: ${getCurrencySymbol()}${parseFloat(waste).toLocaleString('en-IN')}`;
 
-    const summaryText = `🏠 *RENTAL BUDDY INVOICE*\nProperty: *${pName}*\nPeriod: ${sDate} to ${eDate}\n--------------------------\n• Base Rent: ₹${parseFloat(rent).toLocaleString('en-IN')}\n• Electricity: ₹${parseFloat(elec).toLocaleString('en-IN')}\n• Water: ₹${parseFloat(water).toLocaleString('en-IN')}${extraLines}\n--------------------------\n*Total Net Payable: ₹${parseFloat(net).toLocaleString('en-IN')}*\nStatus: Unpaid\n\nGenerated via Rental Buddy`;
+    const summaryText = `🏠 *RENTAL BUDDY INVOICE*\nProperty: *${pName}*\nPeriod: ${sDate} to ${eDate}\n--------------------------\n• Base Rent: ${getCurrencySymbol()}${parseFloat(rent).toLocaleString('en-IN')}\n• Electricity: ${getCurrencySymbol()}${parseFloat(elec).toLocaleString('en-IN')}\n• Water: ${getCurrencySymbol()}${parseFloat(water).toLocaleString('en-IN')}${extraLines}\n--------------------------\n*Total Net Payable: ${getCurrencySymbol()}${parseFloat(net).toLocaleString('en-IN')}*\nStatus: Unpaid\n\nGenerated via Rental Buddy`;
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(summaryText).catch(() => {});
@@ -5131,10 +5228,16 @@ function initSettingsScreen() {
   });
 
   toggleHaptics?.addEventListener('change', () => {
+    try {
+      localStorage.setItem('rb_haptics_enabled', String(toggleHaptics.checked));
+    } catch (e) {}
     showToast(toggleHaptics.checked ? '📳 Haptic vibration feedback enabled' : 'Haptic feedback disabled', 2000);
   });
 
   toggleNotifs?.addEventListener('change', () => {
+    try {
+      localStorage.setItem('rb_notifications_enabled', String(toggleNotifs.checked));
+    } catch (e) {}
     showToast(toggleNotifs.checked ? '🔔 Notification reminders enabled' : 'Notifications disabled', 2000);
   });
 
@@ -5294,7 +5397,7 @@ export async function loadArchivedTenancies() {
         <div class="tenancy-card-main-row">
           <div class="tenancy-info">
             <h2 class="tenancy-name">${t.property_name}</h2>
-            <span class="tenancy-meta-sub">₹${parseFloat(t.base_rent || 0).toLocaleString('en-IN')} • Monthly</span>
+            <span class="tenancy-meta-sub">${getCurrencySymbol()}${parseFloat(t.base_rent || 0).toLocaleString('en-IN')} • Monthly</span>
           </div>
           <div class="tenancy-row-chevron">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
@@ -5322,7 +5425,7 @@ async function openArchivedDetails(tenancy) {
   const nextBill = document.getElementById('archdetails-next-bill');
 
   if (propTitle) propTitle.textContent = tenancy.property_name;
-  if (rentRate) rentRate.textContent = `₹${parseFloat(tenancy.base_rent || 0).toLocaleString('en-IN')} • Monthly`;
+  if (rentRate) rentRate.textContent = `${getCurrencySymbol()}${parseFloat(tenancy.base_rent || 0).toLocaleString('en-IN')} • Monthly`;
 
   const userRole = getTenancyUserRole(tenancy);
   const isViewer = userRole === 'viewer';
@@ -5347,17 +5450,17 @@ async function openArchivedDetails(tenancy) {
     const totalPaidFromBills = bills.reduce((acc, b) => acc + parseFloat(b.net_payable || 0), 0);
     const total = totalPaidFromPayments > 0 ? totalPaidFromPayments : totalPaidFromBills;
 
-    if (totalAmount) totalAmount.textContent = `₹${formatCurrencyAmount(total)}`;
+    if (totalAmount) totalAmount.textContent = `${getCurrencySymbol()}${formatCurrencyAmount(total)}`;
 
     const lastMetricLabel = document.querySelector('#screen-18 .metric-col .metric-label');
     if (lastMetricLabel) lastMetricLabel.textContent = hasUtils ? 'Last Generated Bill' : 'Last Payment';
 
     if (hasUtils && bills.length > 0) {
-      if (lastBill) lastBill.textContent = `₹${parseFloat(bills[0].net_payable).toLocaleString('en-IN')}`;
+      if (lastBill) lastBill.textContent = `${getCurrencySymbol()}${parseFloat(bills[0].net_payable).toLocaleString('en-IN')}`;
     } else if (payments.length > 0) {
-      if (lastBill) lastBill.textContent = `₹${parseFloat(payments[0].amount).toLocaleString('en-IN')}`;
+      if (lastBill) lastBill.textContent = `${getCurrencySymbol()}${parseFloat(payments[0].amount).toLocaleString('en-IN')}`;
     } else {
-      if (lastBill) lastBill.textContent = '₹0';
+      if (lastBill) lastBill.textContent = `${getCurrencySymbol()}0`;
     }
 
     if (nextBill) nextBill.textContent = 'Archived';
@@ -5406,7 +5509,7 @@ async function openArchivedDetails(tenancy) {
                 <span class="recent-item-timestamp">Paid on ${p.payment_date || (p.created_at ? p.created_at.split('T')[0] : '')} ${p.reference_no ? '• Ref: ' + p.reference_no : ''}</span>
               </div>
               <div class="recent-item-right">
-                <strong class="recent-item-amount" style="color: #16A34A;">₹${formatCurrencyAmount(p.amount)}</strong>
+                <strong class="recent-item-amount" style="color: #16A34A;">${getCurrencySymbol()}${formatCurrencyAmount(p.amount)}</strong>
                 <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
@@ -5423,7 +5526,7 @@ async function openArchivedDetails(tenancy) {
                 <span class="recent-item-timestamp">Generated on ${b.generated_date} • ${b.status}</span>
               </div>
               <div class="recent-item-right">
-                <strong class="recent-item-amount">₹${parseFloat(b.net_payable).toLocaleString('en-IN')}</strong>
+                <strong class="recent-item-amount">${getCurrencySymbol()}${parseFloat(b.net_payable).toLocaleString('en-IN')}</strong>
                 <svg class="recent-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
@@ -5961,6 +6064,20 @@ function initAuthScreen() {
       showToast(`🔑 Password reset link dispatched to ${email}`, 4500);
     } else {
       showToast(`❌ Failed to send reset email: ${res?.error || 'Unknown error'}`, 4000);
+    }
+  });
+
+  btnSubmit?.addEventListener('click', (e) => {
+    if (formAuth && !btnSubmit.disabled) {
+      if (typeof formAuth.requestSubmit === 'function') {
+        try {
+          formAuth.requestSubmit();
+        } catch (err) {
+          formAuth.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        }
+      } else {
+        formAuth.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      }
     }
   });
 
@@ -6604,7 +6721,7 @@ function initFamilySharingPage() {
               </div>
               <div class="share-prop-info">
                 <strong class="share-prop-name">${t.property_name}</strong>
-                <span class="share-prop-rent">₹${parseFloat(t.base_rent || 0).toLocaleString('en-IN')} • Monthly</span>
+                <span class="share-prop-rent">${getCurrencySymbol()}${parseFloat(t.base_rent || 0).toLocaleString('en-IN')} • Monthly</span>
               </div>
             </div>
             <div class="share-card-check">
@@ -6788,7 +6905,7 @@ export function openPaymentReceipt(payment, tenancy = null) {
 
   const rentVal = tenancy?.base_rent ? parseFloat(tenancy.base_rent) : 0;
   if (rentText) {
-    rentText.textContent = rentVal > 0 ? `₹${rentVal.toLocaleString('en-IN')}/mo` : 'Monthly';
+    rentText.textContent = rentVal > 0 ? `${getCurrencySymbol()}${rentVal.toLocaleString('en-IN')}/mo` : 'Monthly';
   }
 
   // Format payment date
@@ -6839,7 +6956,7 @@ export function openPaymentReceipt(payment, tenancy = null) {
 
   const amtNum = parseFloat(payment.amount || 0);
   if (totalAmount) {
-    totalAmount.textContent = `₹${formatReceiptCurrency(amtNum)}`;
+    totalAmount.textContent = `${getCurrencySymbol()}${formatReceiptCurrency(amtNum)}`;
   }
 
   if (propAddress) {
@@ -6919,7 +7036,7 @@ export function openPaymentReceipt(payment, tenancy = null) {
           </div>
           <div class="receipt-alloc-row-right">
             <span class="receipt-alloc-tag ${tagClass}">${tagText}</span>
-            <strong class="receipt-alloc-row-amount">₹${formatReceiptCurrency(allocatedNum)}</strong>
+            <strong class="receipt-alloc-row-amount">${getCurrencySymbol()}${formatReceiptCurrency(allocatedNum)}</strong>
           </div>
         `;
         allocationsList.appendChild(row);
@@ -6934,7 +7051,7 @@ export function openPaymentReceipt(payment, tenancy = null) {
         </div>
         <div class="receipt-alloc-row-right">
           <span class="receipt-alloc-tag cleared">Cleared</span>
-          <strong class="receipt-alloc-row-amount">₹${formatReceiptCurrency(amtNum)}</strong>
+          <strong class="receipt-alloc-row-amount">${getCurrencySymbol()}${formatReceiptCurrency(amtNum)}</strong>
         </div>
       `;
       allocationsList.appendChild(row);
@@ -7021,7 +7138,7 @@ function generateReceiptTextMessage(p, t) {
     `💳 *Channel:* ${mode}${p?.reference_no ? ' (Ref: ' + p.reference_no + ')' : ''}\n` +
     `📋 *Covered Cycles:* ${months}\n` +
     `--------------------------------\n` +
-    `💰 *TOTAL RECEIVED: ₹${amtFormatted}*\n` +
+    `💰 *TOTAL RECEIVED: ${getCurrencySymbol()}${amtFormatted}*\n` +
     `✅ *Status:* Verified & Settled\n` +
     `--------------------------------\n` +
     `✨ Thank you! This digital voucher confirms payment receipt via Rental Buddy.`
@@ -7088,7 +7205,7 @@ async function handleShareReceiptImage() {
         try {
           await navigator.share({
             title: `Rental Buddy Receipt - ${pName}`,
-            text: `Payment Receipt: ₹${amtFormatted} for ${pName} (Receipt ID: RB-PAY-${cleanId})`,
+            text: `Payment Receipt: ${getCurrencySymbol()}${amtFormatted} for ${pName} (Receipt ID: RB-PAY-${cleanId})`,
             files: [file]
           });
           showToast('Voucher image shared successfully!', 3500);
@@ -7112,7 +7229,7 @@ async function handleShareReceiptImage() {
       const briefCaption = `🧾 *RENTAL BUDDY — PAYMENT RECEIPT*\n` +
         `Receipt ID: *RB-PAY-${cleanId}*\n` +
         `🏠 *Property:* ${pName}\n` +
-        `💰 *Amount:* ₹${amtFormatted} (Verified & Settled ✅)\n` +
+        `💰 *Amount:* ${getCurrencySymbol()}${amtFormatted} (Verified & Settled ✅)\n` +
         `📎 _Receipt voucher image downloaded to your device — attach PNG in WhatsApp chat._`;
 
       if (navigator.clipboard) {
@@ -7365,6 +7482,7 @@ export function dismissSplashScreen() {
 setTimeout(dismissSplashScreen, 1500);
 
 async function bootApplication() {
+  loadStoredPreferences();
   // Execute all UI init functions safely inside error boundaries
   const inits = [
     ['initClock', initClock],
