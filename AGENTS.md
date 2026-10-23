@@ -1824,4 +1824,27 @@ To eliminate dead placeholders and provide a production-ready user experience, a
   - On app launch, `bootApplication()` parses `window.location.pathname` via `getScreenFromPath()` so entering `/home`, `/payment`, or `/settings` directly deep-links to that view instantly.
   - Protected with `public/_redirects` (`/* /index.html 200`) so Cloudflare Pages serves single-page client routing without 404 errors.
 
+---
+
+## 53. App Icon Vector Geometry, Brand Alignment & Adaptive Safe-Zone Protocol
+
+### 1. Root Cause of Deformed & Cornered Icons
+- **Scale Factor Distortion**: In previous icon generation passes, coordinate translation applied `scale(${iconScale})` (where `iconScale = 0.58`) directly to a 24x24 coordinate path inside a 512x512 canvas. This shrunk the 24px house down to a tiny ~14px smudge placed at an offset of ~107px in the top-left quadrant rather than scaling the 24px coordinate system up to fill the 512px canvas.
+- **Missing Brand Identity**: The earlier script rendered a generic house glyph without the signature **Tenant/Buddy** figure inside.
+
+### 2. Geometric Centering & Safe-Zone Resolution
+- **Mathematical Centering Formula**:
+  - The Rental Buddy emblem (House contour `M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9.5z` + Buddy Head `circle cx="12" cy="11.5" r="2.1"` + Shoulders `M9 18a3 3 0 0 1 6 0`) is bounded within `[3, 21]` (18 x 18 coordinate units centered at `12, 12`).
+  - Target scale factor `s = targetHouseHeight / 18`.
+  - Translations: `tx = (size / 2) - (12 * s)` and `ty = (size / 2) - (12 * s)`.
+  - Ensures 100% mathematical centering across both X and Y axes with identical margins on all four sides.
+- **Android Adaptive Maskable Icons (`icon-maskable-192.png`, `icon-maskable-512.png`)**:
+  - Full bleed background (`rx="0"`, no transparent edges).
+  - Target house height calibrated to `46%` of canvas size, placing the emblem completely within the central 80% safe zone circle (furthest corner distance `157.5px < 204.8px` safe radius) to prevent clipping under any OS mask shape (circle, squircle, pebble).
+- **Apple Touch Icon (`apple-touch-icon.png`)**:
+  - Full bleed background (`rx="0"`) to prevent iOS Safari from rendering pitch-black corners where alpha transparency would otherwise exist.
+- **Favicon Vector & Bitmap (`favicon.svg`, `favicon.png`)**:
+  - Rendered with enhanced stroke weight (`2.5`) for crystal-clear visibility at 16px/32px/48px tab dimensions.
+
+
 

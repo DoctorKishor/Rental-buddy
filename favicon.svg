@@ -1,13 +1,31 @@
 <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="brandFaviconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#5B59F4" />
-      <stop offset="100%" stop-color="#4B49DF" />
+      <stop offset="100%" stop-color="#4340D8" />
     </linearGradient>
   </defs>
-  <rect x="0" y="0" width="64" height="64" rx="16" fill="url(#brandFaviconGrad)" />
-  <g transform="translate(14, 14) scale(1.5)" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-    <polyline points="9 22 9 12 15 12 15 22" />
+
+  <!-- Background surface with brand indigo gradient -->
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="url(#brandGrad)" />
+
+  <!-- Centered House + Buddy Emblem (Mathematically centered at size/2, size/2) -->
+  <g transform="translate(7.253, 7.253) scale(2.06222)">
+    <!-- House Contour -->
+    <path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9.5z"
+          fill="none"
+          stroke="#FFFFFF"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round" />
+    <!-- Tenant / Buddy Head (Solid white circular glyph) -->
+    <circle cx="12" cy="11.5" r="2.1" fill="#FFFFFF" stroke="none" />
+    <!-- Tenant / Buddy Shoulders -->
+    <path d="M9 18a3 3 0 0 1 6 0"
+          fill="none"
+          stroke="#FFFFFF"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round" />
   </g>
 </svg>
