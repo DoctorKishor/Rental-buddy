@@ -1956,6 +1956,36 @@ To eliminate dead placeholders and provide a production-ready user experience, a
    - If `!session || !session.user`: Unconditionally calls `navigateToScreen(20, { replace: true })`.
    - If authenticated: Checks `sessionStorage.getItem('rb_just_signed_up') === 'true'`. Only routes to steps 1-5 if the user literally just signed up in this browser session. In all other cases, calls `completeUserOnboarding()` and routes straight to the Dashboard (`Screen 6`) or deep-linked target screen.
 
+---
+
+## 57. Targeted Past Month Settlement & Universal Overdue Cycle Architecture (Screen 12 & Screen 10)
+
+### 1. Defect & Requirements Analysis
+- **The Problem**:
+  1. When recording a payment for a tenancy with past overdue months, the system was defaulting to the current month only (e.g. October) and marking October as paid, even though earlier past months (e.g. August, September) remained unpaid and had outstanding dues.
+  2. On Tenancy Details (Screen 10), clicking on an overdue or pending past month card opened the Record Payment page, but the payment month was stubbornly set to the current month instead of the clicked month.
+- **Root Cause Tracing**:
+  1. `getEarliestUnsettledCycle` contained a flawed conditional: `if (unpaidBills.length > 0) ... else if (!hasUtils)`. If `tenancyHasUtilities(tenancy)` was true (e.g. electricity or water toggled on) but the landlord had not generated digital invoices for prior months, `unpaidBills` was empty and `!hasUtils` was false, completely bypassing all past overdue rent cycles and defaulting straight to the current month (October).
+  2. On Screen 10 (Tenancy Details) month cards, the click event handlers for overdue and partial months were invoking `openRecordPaymentPage(t)` with no month parameter, causing the record payment page to always initialize without knowing which card the user clicked.
+  3. Screen 12 (Record Payment) lacked an interactive "Paying for Month" selector (`#record-page-settle-month`), leaving landlords unable to view or switch which billing cycle was being settled.
+
+### 2. Architectural Resolution
+1. **Universal Cycle Scanner (`getAllUnsettledCycles(tenancy)`)**:
+   - Scans all past cycles chronologically from the tenancy start date (after any `paid_up_to_date` baseline cut-off) up through the current calendar month and next 12 advance cycles.
+   - For each cycle, checks whether an unpaid bill exists (using billing dates) or computes standard base rent arrears regardless of whether utilities are enabled or not.
+   - Accurately tracks `monthLabel`, `year`, `monthIndex`, `due`, `alreadyPaid`, `netDue`, and status (`isPastDue`, `isCurrent`, `isAdvance`).
+2. **Targeted Month Context Passing (Screen 10 to Screen 12)**:
+   - On Tenancy Details month cards (pending, overdue, partial, or advance), clicking any card passes `clickedMonthLabel = `${monthName} ${activeYear}`` to `openRecordPaymentPage(t, clickedMonthLabel)`.
+3. **Interactive Settlement Month Dropdown (`#record-page-settle-month` on Screen 12)**:
+   - Added interactive `<select id="record-page-settle-month">` populated with all overdue, current, and advance cycles with badges (`⚠️ Overdue`, `📅 Current`, `⏳ Advance`).
+   - Automatically pre-selects the clicked target month (or earliest overdue cycle if navigated generically).
+   - Changing the dropdown updates the due hint, pre-fills the net due amount, and dynamically recomputes the waterfall queue starting at that chosen month.
+4. **Targeted Waterfall Allocation (`computeWaterfallAllocations(tenancy, amountVal, startMonthLabel)`)**:
+   - Begins allocation queue at the selected cycle and waterfalls funds forward to subsequent cycles.
+   - If a landlord settles August, funds clear August first; only surplus funds spill over into September and October. Earlier unpaid months are never bypassed, and October is never falsely credited when past months remain unpaid.
+5. **Real-time Live Input Listener**:
+   - Typing into `#record-page-amount` dynamically recalculates waterfall allocations and balance left against the selected settlement cycle in real-time.
+
 
 
 

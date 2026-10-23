@@ -1917,10 +1917,13 @@
 
                 <!-- 5. PAYING FOR WHICH MONTH (CORE LANDLORD LOGIC) -->
                 <div class="form-group">
-                  <div class="field-label-row">
-                    <label class="form-label" style="margin-bottom: 0;">Paying for Month</label>
-                    <span class="text-caption" style="color: #52586E; font-size: 12px;">Settlement Cycle</span>
+                  <div class="field-label-row" style="margin-bottom: 6px;">
+                    <label class="form-label" for="record-page-settle-month" style="margin-bottom: 0;">Paying for Month</label>
+                    <span class="text-caption" id="record-settle-month-hint" style="color: #52586E; font-size: 12px;">Settlement Cycle</span>
                   </div>
+                  <select id="record-page-settle-month" class="form-input" style="margin-bottom: 12px; font-weight: 600;">
+                    <option value="" disabled selected>Loading billing cycles...</option>
+                  </select>
 
                   <!-- Dynamic Smart Waterfall Settlement Card -->
                   <div class="month-settle-card" id="month-settle-container">

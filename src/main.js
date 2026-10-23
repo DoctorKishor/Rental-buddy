@@ -2668,9 +2668,10 @@ export async function bindTenancyToDetails(t, targetYear = null) {
             card.className = 'month-card month-due';
             card.style.cursor = 'pointer';
             card.title = 'Click to record remaining rent payment';
+            const clickedMonthLabel = `${monthName} ${activeYear}`;
             card.addEventListener('click', () => {
               currentActiveTenancy = t;
-              openRecordPaymentPage(t);
+              openRecordPaymentPage(t, clickedMonthLabel);
             });
             card.innerHTML = `
               <div class="month-card-left">
@@ -2730,9 +2731,10 @@ export async function bindTenancyToDetails(t, targetYear = null) {
           card.className = 'month-card month-due';
           card.style.cursor = 'pointer';
           card.title = 'Click to record payment for this due bill';
+          const clickedMonthLabel = `${monthName} ${activeYear}`;
           card.addEventListener('click', () => {
             currentActiveTenancy = t;
-            openRecordPaymentPage(t);
+            openRecordPaymentPage(t, clickedMonthLabel);
           });
           card.innerHTML = `
             <div class="month-card-left">
@@ -2751,6 +2753,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
           upcomingCount++;
           card.className = 'month-card month-upcoming';
           card.style.cursor = 'pointer';
+          const clickedMonthLabel = `${monthName} ${activeYear}`;
           if (hasUtils) {
             card.title = 'Click to generate bill for this cycle';
             card.addEventListener('click', () => {
@@ -2775,7 +2778,7 @@ export async function bindTenancyToDetails(t, targetYear = null) {
             card.title = 'Click to record payment for this month';
             card.addEventListener('click', () => {
               currentActiveTenancy = t;
-              openRecordPaymentPage(t);
+              openRecordPaymentPage(t, clickedMonthLabel);
             });
             card.innerHTML = `
               <div class="month-card-left">
@@ -2812,9 +2815,10 @@ export async function bindTenancyToDetails(t, targetYear = null) {
           card.className = 'month-card month-due';
           card.style.cursor = 'pointer';
           card.title = 'Click to record overdue rent payment';
+          const clickedMonthLabel = `${monthName} ${activeYear}`;
           card.addEventListener('click', () => {
             currentActiveTenancy = t;
-            openRecordPaymentPage(t);
+            openRecordPaymentPage(t, clickedMonthLabel);
           });
           card.innerHTML = `
             <div class="month-card-left">
@@ -3816,7 +3820,7 @@ function initEditTenancy() {
 
 export let selectedRecordTenancy = null;
 
-export function openRecordPaymentPage(tenancyOrId) {
+export function openRecordPaymentPage(tenancyOrId, targetMonth = null) {
   if (!isAppOnline()) {
     showToast('📡 You are offline. Recording payments requires an active internet connection to prevent duplicate entries.', 4500);
     showOfflineModal();
@@ -3840,7 +3844,7 @@ export function openRecordPaymentPage(tenancyOrId) {
     return;
   }
 
-  setupRecordPaymentForm(target);
+  setupRecordPaymentForm(target, targetMonth);
   navigateToScreen(12);
 }
 
@@ -3954,13 +3958,15 @@ export function getTenancyPaidSummaryByMonth(tenancy) {
   return paidMap;
 }
 
-export function getEarliestUnsettledCycle(tenancy) {
+export function getAllUnsettledCycles(tenancy) {
+  if (!tenancy) return [];
   const baseRent = parseFloat(tenancy.base_rent || 0);
   const paidMap = getTenancyPaidSummaryByMonth(tenancy);
   const MONTH_NAMES = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
+
   const now = new Date();
   const currentMonthIdx = now.getMonth();
   const currentYear = now.getFullYear();
@@ -3969,106 +3975,115 @@ export function getEarliestUnsettledCycle(tenancy) {
   const paidUpToDateStr = tenancy.paid_up_to_date;
   const paidUpToDate = paidUpToDateStr ? new Date(paidUpToDateStr + 'T00:00:00') : null;
 
-  const hasUtils = tenancyHasUtilities(tenancy);
-  const unpaidBills = hasUtils
-    ? (cloudBillsList || []).filter((b) => b.tenancy_id === tenancy.id && b.status === 'unpaid')
-    : [];
+  const tenancyBills = (cloudBillsList || []).filter((b) => b.tenancy_id === tenancy.id);
+  const cycles = [];
 
-  // 1. Check past unpaid bills (if utilities enabled)
-  if (unpaidBills.length > 0) {
-    const sortedBills = [...unpaidBills].sort((a, b) => (a.duration_start || '').localeCompare(b.duration_start || ''));
-    for (const b of sortedBills) {
-      if (paidUpToDate && b.duration_start) {
-        const bd = new Date(b.duration_start + 'T00:00:00');
-        if (bd.getFullYear() < paidUpToDate.getFullYear() ||
-           (bd.getFullYear() === paidUpToDate.getFullYear() && bd.getMonth() <= paidUpToDate.getMonth())) {
-          continue; // Settled by baseline
-        }
-      }
-      const mLabel = b.duration_start
-        ? new Date(b.duration_start + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-        : 'Billing Cycle';
-      const billPayable = parseFloat(b.net_payable) || baseRent;
+  // Determine tenancy start date
+  const startStr = tenancy.start_date || tenancy.created_at;
+  let tenancyStart = startStr
+    ? new Date(startStr + (startStr.includes('T') ? '' : 'T00:00:00'))
+    : new Date(currentYear, currentMonthIdx, 1);
+  if (isNaN(tenancyStart.getTime())) {
+    tenancyStart = new Date(currentYear, currentMonthIdx, 1);
+  }
+
+  // 1. Scan past months chronologically from tenancyStart up to previous calendar month
+  let iterDate = new Date(tenancyStart.getFullYear(), tenancyStart.getMonth(), 1);
+  const currentDateFirst = new Date(currentYear, currentMonthIdx, 1);
+
+  while (iterDate < currentDateFirst) {
+    const yr = iterDate.getFullYear();
+    const mIdx = iterDate.getMonth();
+    const mLabel = `${MONTH_NAMES[mIdx]} ${yr}`;
+
+    // Check if settled by historical baseline cut-off
+    const isBaselineSettled = paidUpToDate && (
+      yr < paidUpToDate.getFullYear() ||
+      (yr === paidUpToDate.getFullYear() && mIdx <= paidUpToDate.getMonth())
+    );
+
+    if (!isBaselineSettled) {
+      // Check if an unpaid bill exists for this month
+      const matchedBill = tenancyBills.find((b) => {
+        if (b.status !== 'unpaid') return false;
+        const sDate = b.duration_start ? new Date(b.duration_start + 'T00:00:00') : null;
+        const eDate = b.duration_end ? new Date(b.duration_end + 'T00:00:00') : null;
+        return (sDate && sDate.getFullYear() === yr && sDate.getMonth() === mIdx) ||
+               (eDate && eDate.getFullYear() === yr && eDate.getMonth() === mIdx);
+      });
+
+      const due = matchedBill ? (parseFloat(matchedBill.net_payable) || baseRent) : baseRent;
+      const billId = matchedBill ? matchedBill.id : null;
       const prevPaid = paidMap[mLabel]?.totalPaid || 0;
-      const netDue = Math.max(0, billPayable - prevPaid);
+      const netDue = Math.max(0, due - prevPaid);
+
       if (netDue > 0) {
-        return {
+        cycles.push({
           monthLabel: mLabel,
-          due: billPayable,
+          year: yr,
+          monthIndex: mIdx,
+          due: due,
           alreadyPaid: prevPaid,
           netDue: netDue,
           isPastDue: true,
           isCurrent: false,
           isAdvance: false,
-          billId: b.id,
-        };
+          billId: billId,
+        });
       }
     }
+
+    iterDate.setMonth(iterDate.getMonth() + 1);
   }
 
-  // 2. Check past rent months (if rent only)
-  if (!hasUtils) {
-    const startStr = tenancy.start_date || tenancy.created_at;
-    const tenancyStart = startStr ? new Date(startStr + (startStr.includes('T') ? '' : 'T00:00:00')) : new Date(currentYear, currentMonthIdx, 1);
-    const startYear = tenancyStart.getFullYear();
-    const startMonth = tenancyStart.getMonth();
-    let iterDate = new Date(startYear, startMonth, 1);
-    const currentDateFirst = new Date(currentYear, currentMonthIdx, 1);
-
-    while (iterDate < currentDateFirst) {
-      const mIdx = iterDate.getMonth();
-      const yr = iterDate.getFullYear();
-      const mLabel = `${MONTH_NAMES[mIdx]} ${yr}`;
-      const prevPaid = paidMap[mLabel]?.totalPaid || 0;
-      const netDue = Math.max(0, baseRent - prevPaid);
-
-      if (netDue > 0) {
-        return {
-          monthLabel: mLabel,
-          due: baseRent,
-          alreadyPaid: prevPaid,
-          netDue: netDue,
-          isPastDue: true,
-          isCurrent: false,
-          isAdvance: false,
-          billId: null,
-        };
-      }
-      iterDate.setMonth(iterDate.getMonth() + 1);
-    }
-  }
-
-  // 3. Check Current Month
+  // 2. Current Month
   const isCurrentMonthBaselineSettled = paidUpToDate && (
     currentYear < paidUpToDate.getFullYear() ||
     (currentYear === paidUpToDate.getFullYear() && currentMonthIdx <= paidUpToDate.getMonth())
   );
+
   if (!isCurrentMonthBaselineSettled) {
+    const matchedCurrBill = tenancyBills.find((b) => {
+      if (b.status !== 'unpaid') return false;
+      const sDate = b.duration_start ? new Date(b.duration_start + 'T00:00:00') : null;
+      const eDate = b.duration_end ? new Date(b.duration_end + 'T00:00:00') : null;
+      return (sDate && sDate.getFullYear() === currentYear && sDate.getMonth() === currentMonthIdx) ||
+             (eDate && eDate.getFullYear() === currentYear && eDate.getMonth() === currentMonthIdx);
+    });
+
+    const currDue = matchedCurrBill ? (parseFloat(matchedCurrBill.net_payable) || baseRent) : baseRent;
+    const currBillId = matchedCurrBill ? matchedCurrBill.id : null;
     const currPaid = paidMap[currMonthLabel]?.totalPaid || 0;
-    const currNetDue = Math.max(0, baseRent - currPaid);
+    const currNetDue = Math.max(0, currDue - currPaid);
+
     if (currNetDue > 0) {
-      return {
+      cycles.push({
         monthLabel: currMonthLabel,
-        due: baseRent,
+        year: currentYear,
+        monthIndex: currentMonthIdx,
+        due: currDue,
         alreadyPaid: currPaid,
         netDue: currNetDue,
         isPastDue: false,
         isCurrent: true,
         isAdvance: false,
-        billId: null,
-      };
+        billId: currBillId,
+      });
     }
   }
 
-  // 4. Current month is fully settled, search future advance cycles
+  // 3. Advance Months (next 12 months)
   for (let advIdx = 1; advIdx <= 12; advIdx++) {
     const advDate = new Date(currentYear, currentMonthIdx + advIdx, 1);
     const advLabel = `${MONTH_NAMES[advDate.getMonth()]} ${advDate.getFullYear()}`;
     const advPrevPaid = paidMap[advLabel]?.totalPaid || 0;
     const advNetDue = Math.max(0, baseRent - advPrevPaid);
+
     if (advNetDue > 0) {
-      return {
+      cycles.push({
         monthLabel: advLabel,
+        year: advDate.getFullYear(),
+        monthIndex: advDate.getMonth(),
         due: baseRent,
         alreadyPaid: advPrevPaid,
         netDue: advNetDue,
@@ -4076,23 +4091,37 @@ export function getEarliestUnsettledCycle(tenancy) {
         isCurrent: false,
         isAdvance: true,
         billId: null,
-      };
+      });
     }
   }
 
+  return cycles;
+}
+
+export function getEarliestUnsettledCycle(tenancy) {
+  const cycles = getAllUnsettledCycles(tenancy);
+  if (cycles.length > 0) {
+    return cycles[0];
+  }
+  const now = new Date();
+  const MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  const baseRent = parseFloat(tenancy.base_rent || 0);
   return {
-    monthLabel: `${MONTH_NAMES[(currentMonthIdx + 1) % 12]} ${currentYear}`,
+    monthLabel: `${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`,
     due: baseRent,
     alreadyPaid: 0,
     netDue: baseRent,
     isPastDue: false,
-    isCurrent: false,
-    isAdvance: true,
+    isCurrent: true,
+    isAdvance: false,
     billId: null,
   };
 }
 
-export function setupRecordPaymentForm(tenancy) {
+export function setupRecordPaymentForm(tenancy, targetMonth = null) {
   if (!tenancy) return;
   selectedRecordTenancy = tenancy;
 
@@ -4110,37 +4139,76 @@ export function setupRecordPaymentForm(tenancy) {
   if (subtitle) subtitle.textContent = tenancy.property_name;
 
   const baseRent = parseFloat(tenancy.base_rent || 0);
+  const allCycles = getAllUnsettledCycles(tenancy);
 
-  // Compute earliest unsettled cycle and set optimal default payment amount & hint
-  const nextCycle = getEarliestUnsettledCycle(tenancy);
+  // Populate "Paying for Month" selector
+  const selectMonth = document.getElementById('record-page-settle-month');
+  if (selectMonth) {
+    selectMonth.innerHTML = allCycles.map((c) => {
+      let tag = c.isPastDue ? '⚠️ Overdue' : (c.isCurrent ? '📅 Current' : '⏳ Advance');
+      return `<option value="${c.monthLabel}">${c.monthLabel} • ${tag} (₹${formatCurrencyAmount(c.netDue)} due)</option>`;
+    }).join('');
+  }
+
+  // Determine active cycle based on targetMonth or earliest overdue
+  let activeCycle = null;
+  if (targetMonth) {
+    activeCycle = allCycles.find((c) => c.monthLabel.toLowerCase() === targetMonth.toLowerCase());
+    if (!activeCycle) {
+      activeCycle = {
+        monthLabel: targetMonth,
+        due: baseRent,
+        alreadyPaid: 0,
+        netDue: baseRent,
+        isPastDue: false,
+        isCurrent: false,
+        isAdvance: true,
+        billId: null,
+      };
+      if (selectMonth) {
+        const opt = document.createElement('option');
+        opt.value = targetMonth;
+        opt.textContent = `${targetMonth} (Selected Cycle)`;
+        selectMonth.insertBefore(opt, selectMonth.firstChild);
+      }
+    }
+  }
+
+  if (!activeCycle) {
+    activeCycle = getEarliestUnsettledCycle(tenancy);
+  }
+
+  if (selectMonth) {
+    selectMonth.value = activeCycle.monthLabel;
+  }
+
   const dueHint = document.getElementById('record-due-hint');
   const amountInput = document.getElementById('record-page-amount');
 
   if (dueHint) {
-    if (nextCycle.isPastDue) {
-      dueHint.textContent = `Past Due: ₹${formatCurrencyAmount(nextCycle.netDue)} (${nextCycle.monthLabel})`;
+    if (activeCycle.isPastDue) {
+      dueHint.textContent = `Past Due: ₹${formatCurrencyAmount(activeCycle.netDue)} (${activeCycle.monthLabel})`;
       dueHint.style.color = '#DC2626';
-    } else if (nextCycle.isCurrent) {
-      if (nextCycle.alreadyPaid > 0) {
-        dueHint.textContent = `Balance Due: ₹${formatCurrencyAmount(nextCycle.netDue)} (₹${formatCurrencyAmount(nextCycle.alreadyPaid)} prev. paid)`;
+    } else if (activeCycle.isCurrent) {
+      if (activeCycle.alreadyPaid > 0) {
+        dueHint.textContent = `Balance Due: ₹${formatCurrencyAmount(activeCycle.netDue)} (₹${formatCurrencyAmount(activeCycle.alreadyPaid)} prev. paid)`;
         dueHint.style.color = '#B45309';
       } else {
         dueHint.textContent = `Rent: ₹${formatCurrencyAmount(baseRent)}`;
         dueHint.style.color = '#5452EC';
       }
     } else {
-      // Future / Advance Cycle
-      if (nextCycle.alreadyPaid > 0) {
-        dueHint.textContent = `Next Cycle: ₹${formatCurrencyAmount(nextCycle.netDue)} (₹${formatCurrencyAmount(nextCycle.alreadyPaid)} Adv. applied)`;
+      if (activeCycle.alreadyPaid > 0) {
+        dueHint.textContent = `Next Cycle: ₹${formatCurrencyAmount(activeCycle.netDue)} (₹${formatCurrencyAmount(activeCycle.alreadyPaid)} Adv. applied)`;
       } else {
-        dueHint.textContent = `Next Cycle: ₹${formatCurrencyAmount(baseRent)} (${nextCycle.monthLabel})`;
+        dueHint.textContent = `Next Cycle: ₹${formatCurrencyAmount(baseRent)} (${activeCycle.monthLabel})`;
       }
       dueHint.style.color = '#5452EC';
     }
   }
 
   if (amountInput) {
-    amountInput.value = nextCycle.netDue > 0 ? nextCycle.netDue : (baseRent > 0 ? baseRent : '');
+    amountInput.value = activeCycle.netDue > 0 ? activeCycle.netDue : (baseRent > 0 ? baseRent : '');
   }
 
   // Shortcut chips removed per user preference
@@ -4160,113 +4228,64 @@ export function setupRecordPaymentForm(tenancy) {
     dateDisplay.value = now.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
-  // Render initial waterfall breakdown
-  renderWaterfallBreakdown(tenancy);
+  // Render initial waterfall breakdown for activeCycle
+  renderWaterfallBreakdown(tenancy, activeCycle.monthLabel);
 }
 
-export function computeWaterfallAllocations(tenancy, amountVal) {
+export function computeWaterfallAllocations(tenancy, amountVal, startMonthLabel = null) {
   const baseRent = parseFloat(tenancy.base_rent || 0);
   const amount = parseFloat(amountVal) || 0;
   let remaining = amount;
   const allocations = [];
 
-  const hasUtils = tenancyHasUtilities(tenancy);
-  const unpaidBills = hasUtils
-    ? (cloudBillsList || []).filter((b) => b.tenancy_id === tenancy.id && b.status === 'unpaid')
-    : [];
-
-  const MONTH_NAMES = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-  const now = new Date();
-  const currentMonthIdx = now.getMonth();
-  const currentYear = now.getFullYear();
-  const currMonthLabel = `${MONTH_NAMES[currentMonthIdx]} ${currentYear}`;
-
-  const paidMap = getTenancyPaidSummaryByMonth(tenancy);
-
-  const paidUpToDateStr = tenancy.paid_up_to_date;
-  const paidUpToDate = paidUpToDateStr ? new Date(paidUpToDateStr + 'T00:00:00') : null;
-
-  // 1. Gather all past overdue items (chronological oldest to newest)
-  const overdueQueue = [];
-  if (unpaidBills.length > 0) {
-    const sortedBills = [...unpaidBills].sort((a, b) => (a.duration_start || '').localeCompare(b.duration_start || ''));
-    sortedBills.forEach((b) => {
-      if (paidUpToDate && b.duration_start) {
-        const bd = new Date(b.duration_start + 'T00:00:00');
-        if (bd.getFullYear() < paidUpToDate.getFullYear() ||
-           (bd.getFullYear() === paidUpToDate.getFullYear() && bd.getMonth() <= paidUpToDate.getMonth())) {
-          return; // Skip, settled by baseline
-        }
-      }
-      const mLabel = b.duration_start
-        ? new Date(b.duration_start + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-        : 'Billing Cycle';
-      const billPayable = parseFloat(b.net_payable) || baseRent;
-      const prevPaid = paidMap[mLabel]?.totalPaid || 0;
-      const netDue = Math.max(0, billPayable - prevPaid);
-      if (netDue > 0) {
-        overdueQueue.push({
-          monthLabel: mLabel,
-          due: billPayable,
-          alreadyPaid: prevPaid,
-          netDue: netDue,
-          billId: b.id,
-          isPastDue: true,
-        });
-      }
+  const allCycles = getAllUnsettledCycles(tenancy);
+  if (allCycles.length === 0) {
+    const now = new Date();
+    const MONTH_NAMES = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    allCycles.push({
+      monthLabel: `${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`,
+      due: baseRent,
+      alreadyPaid: 0,
+      netDue: baseRent,
+      isPastDue: false,
+      isCurrent: true,
+      isAdvance: false,
+      billId: null,
     });
-  } else if (!hasUtils) {
-    const startStr = tenancy.start_date || tenancy.created_at;
-    const tenancyStart = startStr ? new Date(startStr + (startStr.includes('T') ? '' : 'T00:00:00')) : new Date(currentYear, currentMonthIdx, 1);
-    const startYear = tenancyStart.getFullYear();
-    const startMonth = tenancyStart.getMonth();
-    let iterDate = new Date(startYear, startMonth, 1);
-    const currentDateFirst = new Date(currentYear, currentMonthIdx, 1);
+  }
 
-    while (iterDate < currentDateFirst) {
-      const mIdx = iterDate.getMonth();
-      const yr = iterDate.getFullYear();
-      const mLabel = `${MONTH_NAMES[mIdx]} ${yr}`;
-      const prevPaid = paidMap[mLabel]?.totalPaid || 0;
-      const netDue = Math.max(0, baseRent - prevPaid);
-
-      if (netDue > 0) {
-        overdueQueue.push({
-          monthLabel: mLabel,
-          due: baseRent,
-          alreadyPaid: prevPaid,
-          netDue: netDue,
-          billId: null,
-          isPastDue: true,
-        });
-      }
-      iterDate.setMonth(iterDate.getMonth() + 1);
+  let queue = allCycles;
+  if (startMonthLabel) {
+    const startIdx = allCycles.findIndex((c) => c.monthLabel.toLowerCase() === startMonthLabel.toLowerCase());
+    if (startIdx !== -1) {
+      queue = allCycles.slice(startIdx);
     }
   }
 
-  // Step 1: Waterfall across Past Overdue Months
-  overdueQueue.forEach((item) => {
+  queue.forEach((item) => {
     const targetNeed = item.netDue;
     if (remaining <= 0) {
-      allocations.push({
-        monthLabel: item.monthLabel,
-        allocated: 0,
-        due: item.due,
-        alreadyPaid: item.alreadyPaid,
-        balanceLeft: item.netDue,
-        status: 'unpaid',
-        type: 'past_due',
-        billId: item.billId,
-        badgeText: 'Due',
-        badgeClass: 'badge-overdue',
-        icon: '⚠️',
-        noteText: item.alreadyPaid > 0
-          ? `₹${formatCurrencyAmount(item.alreadyPaid)} paid • ₹${formatCurrencyAmount(item.netDue)} due`
-          : 'Past due balance',
-      });
+      if (allocations.length === 0) {
+        allocations.push({
+          monthLabel: item.monthLabel,
+          allocated: 0,
+          due: item.due,
+          alreadyPaid: item.alreadyPaid,
+          balanceLeft: item.netDue,
+          status: 'unpaid',
+          type: item.isPastDue ? 'past_due' : (item.isCurrent ? 'current' : 'advance'),
+          billId: item.billId,
+          badgeText: item.isPastDue ? 'Due' : (item.isCurrent ? 'Current' : 'Upcoming'),
+          badgeClass: item.isPastDue ? 'badge-overdue' : 'badge-advance',
+          icon: item.isPastDue ? '⚠️' : '📅',
+          noteText: item.alreadyPaid > 0
+            ? `₹${formatCurrencyAmount(item.alreadyPaid)} paid • ₹${formatCurrencyAmount(item.netDue)} due`
+            : (item.isPastDue ? 'Past due balance' : 'Billing cycle due'),
+        });
+      }
       return;
     }
 
@@ -4278,14 +4297,14 @@ export function computeWaterfallAllocations(tenancy, amountVal) {
         alreadyPaid: item.alreadyPaid,
         balanceLeft: 0,
         status: 'settled',
-        type: 'past_due',
+        type: item.isPastDue ? 'past_due' : (item.isCurrent ? 'current' : 'advance'),
         billId: item.billId,
         badgeText: 'Cleared',
         badgeClass: 'badge-settled',
         icon: '✓',
         noteText: item.alreadyPaid > 0
           ? `₹${formatCurrencyAmount(item.alreadyPaid)} prev. • Balance cleared`
-          : 'Past due cleared',
+          : (item.isPastDue ? 'Past due cleared' : (item.isCurrent ? 'Current cycle cleared' : 'Advance cleared')),
       });
       remaining -= targetNeed;
     } else {
@@ -4297,7 +4316,7 @@ export function computeWaterfallAllocations(tenancy, amountVal) {
         alreadyPaid: item.alreadyPaid,
         balanceLeft: bal,
         status: 'partial',
-        type: 'past_due',
+        type: item.isPastDue ? 'past_due' : (item.isCurrent ? 'current' : 'advance'),
         billId: item.billId,
         badgeText: 'Partial',
         badgeClass: 'badge-partial',
@@ -4308,158 +4327,57 @@ export function computeWaterfallAllocations(tenancy, amountVal) {
     }
   });
 
-  // Step 2: Waterfall to Current Month
-  const currentMonthAlreadyInQueue = overdueQueue.some((o) => o.monthLabel.toLowerCase() === currMonthLabel.toLowerCase());
-  if (!currentMonthAlreadyInQueue) {
-    const currPaid = paidMap[currMonthLabel]?.totalPaid || 0;
-    const currNetDue = Math.max(0, baseRent - currPaid);
-
-    if (currNetDue > 0) {
-      if (remaining >= currNetDue) {
-        allocations.push({
-          monthLabel: currMonthLabel,
-          allocated: currNetDue,
-          due: baseRent,
-          alreadyPaid: currPaid,
-          balanceLeft: 0,
-          status: 'settled',
-          type: 'current',
-          billId: null,
-          badgeText: currPaid > 0 ? 'Cleared' : 'Paid',
-          badgeClass: 'badge-settled',
-          icon: '✓',
-          noteText: currPaid > 0
-            ? `₹${formatCurrencyAmount(currPaid)} prev. • Fully cleared`
-            : 'Current cycle',
-        });
-        remaining -= currNetDue;
-      } else if (remaining > 0) {
-        const bal = currNetDue - remaining;
-        allocations.push({
-          monthLabel: currMonthLabel,
-          allocated: remaining,
-          due: baseRent,
-          alreadyPaid: currPaid,
-          balanceLeft: bal,
-          status: 'partial',
-          type: 'current',
-          billId: null,
-          badgeText: 'Partial',
-          badgeClass: 'badge-partial',
-          icon: '⚠️',
-          noteText: `₹${formatCurrencyAmount(bal)} due`,
-        });
-        remaining = 0;
-      } else if (allocations.length === 0) {
-        allocations.push({
-          monthLabel: currMonthLabel,
-          allocated: 0,
-          due: baseRent,
-          alreadyPaid: currPaid,
-          balanceLeft: currNetDue,
-          status: 'unpaid',
-          type: 'current',
-          billId: null,
-          badgeText: 'Due',
-          badgeClass: 'badge-overdue',
-          icon: '📅',
-          noteText: currPaid > 0
-            ? `₹${formatCurrencyAmount(currPaid)} prev. • ₹${formatCurrencyAmount(currNetDue)} due`
-            : 'Current cycle',
-        });
-      }
-    }
-  }
-
-  // Step 3: Waterfall to Future Advance Months
-  let advIndex = 1;
-  while (remaining > 0 && advIndex <= 12) {
-    const advDate = new Date(currentYear, currentMonthIdx + advIndex, 1);
+  // If there's still extra remaining funds beyond the current queue, add further advance months
+  let advOffset = queue.length;
+  const now = new Date();
+  const MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  while (remaining > 0 && advOffset <= 24) {
+    const advDate = new Date(now.getFullYear(), now.getMonth() + advOffset, 1);
     const advLabel = `${MONTH_NAMES[advDate.getMonth()]} ${advDate.getFullYear()}`;
-    const advPrevPaid = paidMap[advLabel]?.totalPaid || 0;
-    const advNetDue = Math.max(0, baseRent - advPrevPaid);
-
-    if (advNetDue <= 0) {
-      advIndex++;
-      continue;
-    }
-
-    if (remaining >= advNetDue) {
+    const advNeed = baseRent;
+    if (remaining >= advNeed) {
       allocations.push({
         monthLabel: advLabel,
-        allocated: advNetDue,
+        allocated: advNeed,
         due: baseRent,
-        alreadyPaid: advPrevPaid,
+        alreadyPaid: 0,
         balanceLeft: 0,
-        status: 'advance',
-        type: 'advance',
-        billId: null,
-        badgeText: advPrevPaid > 0 ? 'Adv. Cleared' : 'Advance',
-        badgeClass: 'badge-advance',
-        icon: '⏩',
-        noteText: advPrevPaid > 0
-          ? `₹${formatCurrencyAmount(advPrevPaid)} adv. adjusted • Fully cleared`
-          : 'Advance credit',
-      });
-      remaining -= advNetDue;
-    } else {
-      allocations.push({
-        monthLabel: advLabel,
-        allocated: remaining,
-        due: baseRent,
-        alreadyPaid: advPrevPaid,
-        balanceLeft: advNetDue - remaining,
         status: 'advance',
         type: 'advance',
         billId: null,
         badgeText: 'Advance',
         badgeClass: 'badge-advance',
         icon: '⏩',
-        noteText: advPrevPaid > 0
-          ? `₹${formatCurrencyAmount(advPrevPaid)} adv. adjusted • ₹${formatCurrencyAmount(advNetDue - remaining)} due`
-          : 'Advance credit',
+        noteText: 'Advance rent credit',
+      });
+      remaining -= advNeed;
+    } else {
+      allocations.push({
+        monthLabel: advLabel,
+        allocated: remaining,
+        due: baseRent,
+        alreadyPaid: 0,
+        balanceLeft: advNeed - remaining,
+        status: 'advance',
+        type: 'advance',
+        billId: null,
+        badgeText: 'Advance',
+        badgeClass: 'badge-advance',
+        icon: '⏩',
+        noteText: `Advance credit • ₹${formatCurrencyAmount(advNeed - remaining)} remaining`,
       });
       remaining = 0;
-      break;
     }
-    advIndex++;
-  }
-
-  // Fallback: If remaining === 0 and allocations is empty (e.g. current month already paid and amount entered is 0)
-  if (allocations.length === 0) {
-    let advIdx = 1;
-    while (advIdx <= 12) {
-      const advDate = new Date(currentYear, currentMonthIdx + advIdx, 1);
-      const advLabel = `${MONTH_NAMES[advDate.getMonth()]} ${advDate.getFullYear()}`;
-      const advPrevPaid = paidMap[advLabel]?.totalPaid || 0;
-      const advNetDue = Math.max(0, baseRent - advPrevPaid);
-      if (advNetDue > 0) {
-        allocations.push({
-          monthLabel: advLabel,
-          allocated: 0,
-          due: baseRent,
-          alreadyPaid: advPrevPaid,
-          balanceLeft: advNetDue,
-          status: 'advance',
-          type: 'advance',
-          billId: null,
-          badgeText: 'Upcoming',
-          badgeClass: 'badge-advance',
-          icon: '📅',
-          noteText: advPrevPaid > 0
-            ? `₹${formatCurrencyAmount(advPrevPaid)} adv. applied • ₹${formatCurrencyAmount(advNetDue)} remaining`
-            : 'Next cycle',
-        });
-        break;
-      }
-      advIdx++;
-    }
+    advOffset++;
   }
 
   return allocations;
 }
 
-export function renderWaterfallBreakdown(tenancy) {
+export function renderWaterfallBreakdown(tenancy, startMonthLabel = null) {
   if (!tenancy) return;
   const listContainer = document.getElementById('waterfall-items-list');
   const amountInput = document.getElementById('record-page-amount');
@@ -4481,10 +4399,11 @@ export function renderWaterfallBreakdown(tenancy) {
   const baseRent = parseFloat(tenancy.base_rent || 0);
 
   const paidMap = getTenancyPaidSummaryByMonth(tenancy);
+  const chosenMonth = startMonthLabel || document.getElementById('record-page-settle-month')?.value || null;
   const currPaid = paidMap[currMonthLabel]?.totalPaid || 0;
 
-  // If current month is already 100% paid, show a prominent reassuring check notice
-  if (currPaid >= baseRent && baseRent > 0) {
+  // Reassuring notice only if current month is fully settled and user is paying for an upcoming/advance cycle
+  if (currPaid >= baseRent && baseRent > 0 && (!chosenMonth || chosenMonth === currMonthLabel)) {
     const notice = document.createElement('div');
     notice.className = 'waterfall-settled-notice';
     notice.innerHTML = `
@@ -4495,7 +4414,7 @@ export function renderWaterfallBreakdown(tenancy) {
   }
 
   const amountVal = parseFloat(amountInput?.value || 0) || 0;
-  const allocations = computeWaterfallAllocations(tenancy, amountVal);
+  const allocations = computeWaterfallAllocations(tenancy, amountVal, chosenMonth);
   let totalBalanceLeft = 0;
 
   allocations.forEach((item) => {
@@ -4543,19 +4462,48 @@ export function renderWaterfallBreakdown(tenancy) {
 
 function initRecordPaymentPage() {
   const selectTenancy = document.getElementById('record-page-tenancy');
+  const selectMonth = document.getElementById('record-page-settle-month');
   const btnBack = document.getElementById('btn-record-page-back');
   const cardCash = document.getElementById('card-mode-cash');
   const cardOnline = document.getElementById('card-mode-online');
   const onlineSubfields = document.getElementById('online-channel-subfields');
   const channelChips = document.querySelectorAll('.channel-chips-row .channel-chip');
   const amountInput = document.getElementById('record-page-amount');
+  const dueHint = document.getElementById('record-due-hint');
   const btnSave = document.getElementById('btn-save-full-payment');
 
   // Live real-time waterfall allocation as user types
   amountInput?.addEventListener('input', () => {
     if (selectedRecordTenancy) {
-      renderWaterfallBreakdown(selectedRecordTenancy);
+      const chosen = selectMonth?.value || null;
+      renderWaterfallBreakdown(selectedRecordTenancy, chosen);
     }
+  });
+
+  // Dynamic settlement month selection listener
+  selectMonth?.addEventListener('change', (e) => {
+    if (!selectedRecordTenancy) return;
+    const chosenMonth = e.target.value;
+    const allCycles = getAllUnsettledCycles(selectedRecordTenancy);
+    const cycle = allCycles.find((c) => c.monthLabel === chosenMonth);
+    const baseRent = parseFloat(selectedRecordTenancy.base_rent || 0);
+
+    if (cycle) {
+      if (amountInput) amountInput.value = cycle.netDue > 0 ? cycle.netDue : baseRent;
+      if (dueHint) {
+        if (cycle.isPastDue) {
+          dueHint.textContent = `Past Due: ₹${formatCurrencyAmount(cycle.netDue)} (${cycle.monthLabel})`;
+          dueHint.style.color = '#DC2626';
+        } else if (cycle.isCurrent) {
+          dueHint.textContent = `Current Due: ₹${formatCurrencyAmount(cycle.netDue)} (${cycle.monthLabel})`;
+          dueHint.style.color = '#5452EC';
+        } else {
+          dueHint.textContent = `Advance: ₹${formatCurrencyAmount(cycle.netDue)} (${cycle.monthLabel})`;
+          dueHint.style.color = '#0284C7';
+        }
+      }
+    }
+    renderWaterfallBreakdown(selectedRecordTenancy, chosenMonth);
   });
 
   selectTenancy?.addEventListener('change', (e) => {
@@ -4650,8 +4598,9 @@ function initRecordPaymentPage() {
       if (ref) modeLabel += ` (Ref: ${ref})`;
     }
 
-    // Determine settled months and bills using pure waterfall engine
-    const allocations = computeWaterfallAllocations(selectedRecordTenancy, amountVal);
+    // Determine settled months and bills starting specifically from the selected target month
+    const chosenMonth = selectMonth?.value || null;
+    const allocations = computeWaterfallAllocations(selectedRecordTenancy, amountVal, chosenMonth);
     const activeAllocations = allocations.filter((a) => (a.allocated || 0) > 0);
     let settledMonths = activeAllocations.map((a) => {
       if (a.type === 'advance') {
