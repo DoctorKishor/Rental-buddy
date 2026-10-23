@@ -737,6 +737,43 @@
                   <span class="form-caption">Financial records will be tracked starting from this date</span>
                 </div>
 
+                <!-- Past Cycles Settled Option (Historical Onboarding) -->
+                <div class="form-group past-settled-group" id="group-paid-up-to-option" style="margin-top: -6px;">
+                  <label class="checkbox-container" for="check-mark-past-paid" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="check-mark-past-paid" style="width: 18px; height: 18px; margin-top: 2px; accent-color: var(--color-primary); cursor: pointer;" />
+                    <div style="flex: 1;">
+                      <span style="font-size: 14.5px; font-weight: 600; color: var(--text-heading); display: block;">Mark past cycles as settled</span>
+                      <span class="form-caption" style="display: block; margin-top: 2px;">For long-running past tenancies, previous cycles up to your selected date are marked as paid.</span>
+                    </div>
+                  </label>
+
+                  <!-- Collapsible Paid-Up-To Cut-off Date Picker -->
+                  <div id="subfields-paid-up-to" class="hidden" style="margin-top: 12px; padding: 14px 16px; background: rgba(84, 82, 236, 0.05); border: 1.5px solid var(--border-subtle); border-radius: 16px;">
+                    <label class="form-label" for="input-paid-up-to-date" style="font-size: 13.5px; font-weight: 600;">Paid Up To (Cycles on or before this date are settled)</label>
+                    <div class="input-with-icon date-picker-box" id="paidUpToDatePickerTrigger" style="margin-top: 6px;">
+                      <input
+                        type="text"
+                        id="input-paid-up-to-date"
+                        class="form-input date-text"
+                        placeholder="Pick cut-off date"
+                        readonly
+                      />
+                      <input
+                        type="date"
+                        id="native-paid-up-to-date"
+                        class="native-date-field"
+                        aria-label="Pick cut-off date"
+                      />
+                      <div class="input-trailing-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </div>
+                    </div>
+                    <span class="form-caption" style="margin-top: 6px; display: block;">Only billing cycles strictly after this cut-off will appear as pending or overdue.</span>
+                  </div>
+                </div>
+
                 <!-- Recurring Billing Date Picker -->
                 <div class="form-group">
                   <label class="form-label" for="input-billing-date" id="label-billing-date">Recurring Billing Date (date of the month)</label>
@@ -752,7 +789,7 @@
                       type="date"
                       id="native-billing-date"
                       class="native-date-field"
-                      value="2026-04-12"
+                      value=""
                       aria-label="Pick billing date"
                     />
                     <div class="input-trailing-icon" id="datePickerIcon" aria-hidden="true">
@@ -1014,6 +1051,10 @@
                   <div class="confirm-row">
                     <span class="confirm-label">Tenancy Start Date</span>
                     <strong class="confirm-value" id="confirm-start-date">--</strong>
+                  </div>
+                  <div class="confirm-row" id="confirm-row-paid-up-to">
+                    <span class="confirm-label">Past Cycles Settled</span>
+                    <strong class="confirm-value" id="confirm-paid-up-to-date">None</strong>
                   </div>
                 </div>
               </div>
@@ -1432,6 +1473,43 @@
                     </div>
                   </div>
                   <span class="form-caption">Financial records will be tracked starting from this date</span>
+                </div>
+
+                <!-- Edit Past Cycles Settled Option (Historical Onboarding) -->
+                <div class="form-group past-settled-group" id="edit-group-paid-up-to-option" style="margin-top: -6px;">
+                  <label class="checkbox-container" for="edit-check-mark-past-paid" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="edit-check-mark-past-paid" style="width: 18px; height: 18px; margin-top: 2px; accent-color: var(--color-primary); cursor: pointer;" />
+                    <div style="flex: 1;">
+                      <span style="font-size: 14.5px; font-weight: 600; color: var(--text-heading); display: block;">Mark past cycles as settled</span>
+                      <span class="form-caption" style="display: block; margin-top: 2px;">Past cycles up to the selected date are treated as settled baseline.</span>
+                    </div>
+                  </label>
+
+                  <!-- Collapsible Paid-Up-To Cut-off Date Picker -->
+                  <div id="edit-subfields-paid-up-to" class="hidden" style="margin-top: 12px; padding: 14px 16px; background: rgba(84, 82, 236, 0.05); border: 1.5px solid var(--border-subtle); border-radius: 16px;">
+                    <label class="form-label" for="edit-input-paid-up-to-date" style="font-size: 13.5px; font-weight: 600;">Paid Up To (Cycles on or before this date are settled)</label>
+                    <div class="input-with-icon date-picker-box" id="editPaidUpToDatePickerTrigger" style="margin-top: 6px;">
+                      <input
+                        type="text"
+                        id="edit-input-paid-up-to-date"
+                        class="form-input date-text"
+                        placeholder="Pick cut-off date"
+                        readonly
+                      />
+                      <input
+                        type="date"
+                        id="edit-native-paid-up-to-date"
+                        class="native-date-field"
+                        aria-label="Pick cut-off date"
+                      />
+                      <div class="input-trailing-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </div>
+                    </div>
+                    <span class="form-caption" style="margin-top: 6px; display: block;">Only billing cycles strictly after this cut-off will appear as pending or overdue.</span>
+                  </div>
                 </div>
 
                 <!-- Recurring Billing Date Picker -->

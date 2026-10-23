@@ -371,6 +371,7 @@ export async function createCloudTenancy(tenancyData) {
         advance_amount: parseFloat(tenancyData.advanceAmount) || 0,
         billing_day: parseInt(tenancyData.billingDay, 10) || 1,
         start_date: tenancyData.startDate || new Date().toISOString().split('T')[0],
+        paid_up_to_date: tenancyData.paidUpToDate || null,
         status: 'active',
       })
       .select()

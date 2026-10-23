@@ -1869,6 +1869,53 @@ To eliminate dead placeholders and provide a production-ready user experience, a
   - Right (`.btn-primary`): `"Create First Tenancy"` (`#btn-onboarding-create-tenancy`) — marks onboarding complete, resets form inputs, and opens the Step 1 creation wizard (Screen 7).
 - **Responsive Guarantee**: Uses `.bottom-bar.two-buttons` architecture with full `54px` min-height, flexible widths (`1:1.5` ratio), and zero text wrapping on mobile viewports down to 360px.
 
+---
+
+## 55. Historical Tenancy Creation & Baseline Paid-Up-To Cut-off Architecture
+
+### 1. Landlord Financial Problem & Requirement
+- **The Past Tenancy Reality**: Landlords onboarding onto Rental Buddy frequently manage properties with tenants who have lived there for 2, 3, or more years and have consistently paid rent up to recent months.
+- **The Ledger Integrity Problem**: If a landlord sets the tenancy start date back to 2021 or 2023, naive ledger engines immediately flag all 30–50 historical billing cycles as massive unpaid arrears/overdue debts. Conversely, forcing the start date to "this month" erases lease duration, tenant tenure, and historical records.
+- **The Solution**: An integrated **Historical Baseline Cut-off (`paid_up_to_date`)** workflow allowing landlords to declare any past start date and select a cut-off date up to which all prior cycles are marked as settled baseline.
+
+### 2. Strict Zero-Hardcoding Rule
+- **Dynamic Derivation**:
+  - Under no circumstances is any date, month, or year hardcoded (such as "October 2026", "2021", etc.).
+  - All default date suggestions, calendar boundary checks, and historical year dropdown loops are dynamically derived relative to `new Date()` and the selected tenancy's actual start date.
+- **Dynamic Year Picker Generation**:
+  - When rendering Screen 10 (Tenancy Details) Month-wise view, the financial year dropdown dynamically computes `minYear = Math.min(...relevantYearsSet, currentYear)` where `relevantYearsSet` includes `tenancy.start_date` year, `tenancy.paid_up_to_date` year, and all payment/bill years.
+  - A tenancy starting in 2020 automatically populates all years from the current year down to 2020 without any hardcoded thresholds.
+
+### 3. Database Schema & Supabase Cloud Sync
+- **Column Addition**: Added `paid_up_to_date date` to `public.tenancies` in Supabase.
+- **Cloud Client**: `createCloudTenancy` and `updateCloudTenancy` persist and retrieve `paid_up_to_date` (in ISO format `YYYY-MM-DD`).
+
+### 4. UI Components & Interaction Flow
+- **Screen 7 (Create Tenancy - Step 1)**:
+  - Checkbox `#check-mark-past-paid`: `"Mark past cycles as settled"`.
+  - Collapsible container `#subfields-paid-up-to`: Displays an interactive date picker (`#paidUpToDatePickerTrigger`) allowing landlords to pick the exact cut-off date.
+  - Dynamic Default: When checked, defaults to the last day of the previous calendar month relative to `new Date()`.
+- **Screen 9 (Confirmation - Step 3)**:
+  - Added `#confirm-row-paid-up-to`: Displays `"Settled up to [Formatted Cut-off Date]"` (in emerald green) or `"None (All cycles active)"`.
+- **Screen 11 (Edit Tenancy)**:
+  - Includes `#edit-check-mark-past-paid` and `#edit-subfields-paid-up-to`. Prefilled dynamically from `currentActiveTenancy.paid_up_to_date`.
+  - Saving changes persists the updated cut-off to Supabase and immediately re-synchronizes the ledger.
+
+### 5. Multi-Layer Ledger & Waterfall Settlement Integration
+- **`computeTenancyStatusBadge`**:
+  - Automatically populates baseline settled cycles into `paidMap` for all months on or before `paid_up_to_date`.
+  - Bypasses any past months up to `paid_up_to_date` so they do not count towards `pastArrearsCount`.
+  - Excludes unpaid bills whose billing duration is on or before `paid_up_to_date`.
+  - Badges accurately reflect only unsettled cycles strictly after the cut-off date.
+- **`bindTenancyToDetails` (12-Month Card Stack & Summary)**:
+  - Months on or before `paid_up_to_date` that lack individual cash receipts render cleanly as:
+    `✔ Settled (Historical baseline prior to setup)` with emerald green badges and increment `paidCount++`.
+  - Summary card metrics dynamically incorporate baseline settled cycles into total payments and settled counts.
+- **`computeWaterfallAllocations` & `getEarliestUnsettledCycle` (Screen 12 Record Payment)**:
+  - Any cycles on or before `paid_up_to_date` are excluded from the `overdueQueue`.
+  - Landlords recording payments are automatically presented with the first true unsettled cycle occurring after their baseline cut-off.
+
+
 
 
 
