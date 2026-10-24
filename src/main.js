@@ -48,12 +48,14 @@ import {
   createSelectiveFamilyShare,
   respondToFamilyShare,
   revokeFamilyShare,
+  leaveFamilyShare,
   updateFamilyShareRole,
   resendVerificationEmail,
   resetUserPassword,
   updateUserProfile,
   syncUserProfile,
   deleteUserAccountAndData,
+  initSupabaseRealtime,
 } from './supabase.js';
 
 async function getHtml2Canvas() {
