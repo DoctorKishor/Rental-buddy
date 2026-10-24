@@ -7713,6 +7713,12 @@ async function bootApplication() {
         cloudSession.user = null;
         cloudSession.profile = null;
         cloudSession.isCloudConnected = false;
+        cloudTenanciesList = [];
+        cloudBillsList = [];
+        cloudPaymentsList = [];
+        cloudIncomingSharesList = [];
+        cloudOutgoingSharesList = [];
+        currentActiveTenancy = null;
         updateAuthUI(null);
       }
     });

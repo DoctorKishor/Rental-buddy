@@ -2039,6 +2039,39 @@ To eliminate dead placeholders and provide a production-ready user experience, a
 5. **Start Date Synchronization**:
    - In both creation (Screen 8) and edit (Screen 11) wizards, when a user sets a `paid_up_to_date`, the `start_date` field automatically aligns to be on or before the cut-off date.
 
+---
+
+## 60. Family Manager & Viewer Row Level Security (RLS) Permission Architecture
+
+### 1. Root Cause Analysis
+- **Problem A: Row Level Security Policy Violation on Payments**:
+  - The previous payments INSERT policy strictly checked `fs.status = 'accepted'`.
+  - When family shares were created/approved via the selective sharing flow, the status was recorded as `'approved'`.
+  - Because `'approved' != 'accepted'`, manager payment inserts were blocked with `Error saving payment: new row violates row-level security policy for table "payments"`.
+- **Problem B: Missing Manager Write Policies on Tenancies, Utilities, Bills, and Revisions**:
+  - `tenancies` only possessed an owner-write policy (`owner_id = auth.uid()`).
+  - When a manager attempted to save tenancy edits, archive, unarchive, or delete, PostgREST returned 0 affected rows. With `.select().single()`, this threw `❌ Update error: Cannot coerce the result to a single JSON object`.
+  - `rent_revisions`, `bills`, and `tenancy_utilities` also lacked manager write policies, blocking rent revisions, bill generation, and utility updates.
+- **Problem C: Client-Side Viewer Auto-Apply Rent Revision Collision**:
+  - When a viewer account loaded the dashboard, `applyDueRentRevisions` attempted to update the database for due revisions, resulting in unauthorized write attempts.
+
+### 2. Architectural Resolution
+1. **Security-Definer Manager Access Function (`public.has_family_manager_access(target_tenancy_id, user_id)`)**:
+   - Verifies whether `user_id` is either the property owner (`t.owner_id = user_id`) OR an authorized family manager with status in `('accepted', 'approved')` and matching `tenancy_ids` (or all tenancies if empty/null).
+   - Case-insensitive email comparison: `lower(trim(fs.member_email)) = lower(trim((SELECT email FROM auth.users WHERE id = user_id)))`.
+   - Returns `true` for Owners and Managers; returns `false` for Viewers and unauthorized users.
+2. **Unified RLS Policies Across 5 Core Ledger Tables**:
+   - `public.payments`: Added `family_managers_full_access_payments` (ALL: INSERT, UPDATE, DELETE).
+   - `public.tenancies`: Added `family_managers_update_tenancies` (UPDATE) and `family_managers_delete_tenancies` (DELETE).
+   - `public.tenancy_utilities`: Added `family_managers_full_access_utilities` (ALL).
+   - `public.rent_revisions`: Added `family_managers_full_access_rent_revisions` (ALL).
+   - `public.bills`: Added `family_managers_full_access_bills` (ALL).
+3. **Client-Side Viewer Protections & Memory Cleanup**:
+   - `applyDueRentRevisions` in `src/supabase.js` checks `verifyWritePermission` prior to database execution; for viewers, revisions are safely calculated in-memory without firing write requests.
+   - Clears memory arrays (`cloudIncomingSharesList`, `cloudOutgoingSharesList`, `cloudTenanciesList`, `cloudBillsList`, `cloudPaymentsList`, `currentActiveTenancy`) on `SIGNED_OUT` auth events to prevent cross-account state bleeding.
+   - Enhanced `fetchIncomingFamilyShares` with offline `localStorage` caching and resilient fallback.
+
+
 
 
 

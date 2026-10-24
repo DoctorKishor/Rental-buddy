@@ -607,15 +607,25 @@ export async function applyDueRentRevisions(tenancy) {
 
   dueRevisions.sort((a, b) => new Date(a.effective_date) - new Date(b.effective_date));
 
+  let canWrite = false;
+  try {
+    await verifyWritePermission(tenancy.id);
+    canWrite = true;
+  } catch (e) {
+    canWrite = false;
+  }
+
   for (const rev of dueRevisions) {
     try {
-      await updateCloudTenancy(tenancy.id, {
-        base_rent: parseFloat(rev.new_rent),
-      });
-      await supabase
-        .from('rent_revisions')
-        .update({ status: 'applied' })
-        .eq('id', rev.id);
+      if (canWrite) {
+        await updateCloudTenancy(tenancy.id, {
+          base_rent: parseFloat(rev.new_rent),
+        });
+        await supabase
+          .from('rent_revisions')
+          .update({ status: 'applied' })
+          .eq('id', rev.id);
+      }
 
       rev.status = 'applied';
       tenancy.base_rent = parseFloat(rev.new_rent);
@@ -886,6 +896,15 @@ export async function fetchOutgoingFamilyShares() {
 export async function fetchIncomingFamilyShares() {
   await ensureAuthenticated();
   if (!cloudSession.user) return [];
+  const cacheKey = `rb_cache_incoming_shares_${cloudSession.user.id}`;
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) {}
+    }
+    return [];
+  }
+
   try {
     const userEmail = (cloudSession.user.email || '').toLowerCase().trim();
     const { data, error } = await supabase
@@ -916,9 +935,14 @@ export async function fetchIncomingFamilyShares() {
         });
       }
     }
+    try { localStorage.setItem(cacheKey, JSON.stringify(shares)); } catch (e) {}
     return shares;
   } catch (err) {
-    console.error('Fetch Incoming Family Shares Error:', err);
+    console.warn('Fetch Incoming Family Shares Notice, falling back to cache:', err);
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try { return JSON.parse(cached); } catch (e) {}
+    }
     return [];
   }
 }
